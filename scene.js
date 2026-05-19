@@ -31,9 +31,15 @@
     depthTest: false,
     depthWrite: false,
     uniforms: {
-      uTime:   { value: 0 },
-      uAspect: { value: 1 },
-      uBreath: { value: 0 },
+      uTime:    { value: 0 },
+      uAspect:  { value: 1 },
+      uBreath:  { value: 0 },
+      uFloor:   { value: new THREE.Vector3(0.026, 0.030, 0.082) },
+      uHorizon: { value: new THREE.Vector3(0.295, 0.215, 0.255) },
+      uMid:     { value: new THREE.Vector3(0.092, 0.098, 0.190) },
+      uDeep:    { value: new THREE.Vector3(0.030, 0.038, 0.095) },
+      uBand:    { value: new THREE.Vector3(0.200, 0.140, 0.220) },
+      uStarBrightness: { value: 0.55 },
     },
     vertexShader: /* glsl */`
       varying vec2 vUv;
@@ -48,6 +54,12 @@
       uniform float uTime;
       uniform float uAspect;
       uniform float uBreath;
+      uniform vec3  uFloor;
+      uniform vec3  uHorizon;
+      uniform vec3  uMid;
+      uniform vec3  uDeep;
+      uniform vec3  uBand;
+      uniform float uStarBrightness;
 
       float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
       float noise(vec2 p){
@@ -74,31 +86,25 @@
         vec2 uv = vUv;
         float y = uv.y;
 
-        /* vertical sky gradient — quiet hour before dawn */
-        vec3 floorBand = vec3(0.026, 0.030, 0.082); // ground hint
-        vec3 horizon   = vec3(0.295, 0.215, 0.255); // warm dusk band
-        vec3 indigo    = vec3(0.092, 0.098, 0.190); // mid sky
-        vec3 deep      = vec3(0.030, 0.038, 0.095); // top
+        vec3 col = mix(uFloor,   uHorizon, smoothstep(0.0,  0.32, y));
+        col = mix(col, uMid,               smoothstep(0.28, 0.58, y));
+        col = mix(col, uDeep,              smoothstep(0.56, 1.0,  y));
 
-        vec3 col = mix(floorBand, horizon, smoothstep(0.0, 0.32, y));
-        col = mix(col, indigo,  smoothstep(0.28, 0.58, y));
-        col = mix(col, deep,    smoothstep(0.56, 1.0, y));
-
-        /* slow aurora / cloud wisps near the horizon band */
+        /* slow atmospheric wisps / aurora */
         vec2 p1 = vec2(uv.x * uAspect, uv.y) * vec2(2.8, 1.4)
                 + vec2(uTime * 0.020, uTime * 0.006);
         float n = fbm(p1);
         float band = smoothstep(0.42, 0.80, n)
                    * smoothstep(0.04, 0.30, y)
                    * smoothstep(1.00, 0.42, y);
-        col += vec3(0.20, 0.14, 0.22) * band * (0.45 + 0.25 * uBreath);
+        col += uBand * band * (0.45 + 0.25 * uBreath);
 
-        /* faint stars in the upper half */
+        /* stars — brightness driven by uStarBrightness */
         vec2 sp = floor(uv * vec2(420.0 * uAspect, 420.0));
         float r = hash(sp);
         float star = step(0.9965, r) * smoothstep(0.40, 1.0, y);
         float tw = 0.5 + 0.5 * sin(uTime * 1.6 + r * 80.0);
-        col += vec3(0.85, 0.92, 1.0) * star * tw * 0.55;
+        col += vec3(0.85, 0.92, 1.0) * star * tw * uStarBrightness;
 
         /* soft vignette */
         vec2 vc = (uv - 0.5) * vec2(uAspect, 1.0);
@@ -420,6 +426,9 @@
   skyMat.uniforms.uAspect.value = window.innerWidth / window.innerHeight;
   window.addEventListener('resize', resize);
 
+  /* Expose so scenes.js can drive sky colors */
+  window.__mindspaceSkyMat = skyMat;
+
   /* ============================================================
      Breath cycle (kept identical to before for app.jsx readout)
      ============================================================ */
@@ -453,8 +462,8 @@
     prev = now;
     const t = (now - start) / 1000;
 
-    mouse.x += (mouse.tx - mouse.x) * 0.04;
-    mouse.y += (mouse.ty - mouse.y) * 0.04;
+    mouse.x += (mouse.tx - mouse.x) * 0.10;
+    mouse.y += (mouse.ty - mouse.y) * 0.10;
     scrollT += (scrollTarget - scrollT) * 0.06;
 
     const computedBreath = breathAt(t);
