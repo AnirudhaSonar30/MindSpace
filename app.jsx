@@ -324,6 +324,47 @@ function Foot() {
   );
 }
 
+/* ---------- Scene Switcher ---------- */
+function SceneSwitcher() {
+  const eng = window.MindSpaceSceneEngine;
+  const SCENES = eng ? eng.SCENES : {};
+  const ids = eng ? eng.getIds() : [];
+
+  const [open, setOpen] = React.useState(false);
+  const [active, setActive] = React.useState('midnight-rain');
+
+  React.useEffect(() => {
+    if (!eng) return;
+    return eng.onChange((s) => setActive(s.id));
+  }, []);
+
+  const pick = (id) => { if (eng) eng.setScene(id); setActive(id); setOpen(false); };
+  const cur = SCENES[active] || { glyph: '✦', label: 'Atmosphere' };
+
+  return (
+    <div className="scene-sw">
+      {open && (
+        <div className="scene-panel">
+          <div className="scene-panel-label">atmosphere</div>
+          {ids.map(id => {
+            const s = SCENES[id];
+            return (
+              <button key={id} className={'scene-opt' + (active === id ? ' on' : '')} onClick={() => pick(id)}>
+                <span className="scene-opt-glyph">{s.glyph}</span>
+                <span className="scene-opt-name">{s.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+      <button className="scene-toggle" onClick={() => setOpen(o => !o)} title="Change atmosphere">
+        <span className="scene-toggle-glyph">{cur.glyph}</span>
+        <span className="scene-toggle-label">{cur.label}</span>
+      </button>
+    </div>
+  );
+}
+
 /* ---------- App shell ---------- */
 function App() {
   const [active, setActive] = useState('arrival');
@@ -370,12 +411,12 @@ function App() {
         <Begin />
         <Foot />
       </main>
-      {window.MindSpaceAtmosphere    ? <window.MindSpaceAtmosphere    /> : null}
-      {window.MindSpaceSound         ? <window.MindSpaceSound         /> : null}
-      {window.MindSpaceCompanionToggle ? <window.MindSpaceCompanionToggle/> : null}
-      {window.MindSpaceMoodCheck     ? <window.MindSpaceMoodCheck     /> : null}
-      {window.MindSpaceRightNow      ? <window.MindSpaceRightNow      /> : null}
-      {window.MindSpaceSceneSwitcher ? <window.MindSpaceSceneSwitcher /> : null}
+      {window.MindSpaceAtmosphere      ? <window.MindSpaceAtmosphere      /> : null}
+      {window.MindSpaceSound           ? <window.MindSpaceSound           /> : null}
+      {window.MindSpaceCompanionToggle ? <window.MindSpaceCompanionToggle /> : null}
+      {window.MindSpaceMoodCheck       ? <window.MindSpaceMoodCheck       /> : null}
+      {window.MindSpaceRightNow        ? <window.MindSpaceRightNow        /> : null}
+      <SceneSwitcher />
     </React.Fragment>
   );
 }

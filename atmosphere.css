@@ -50,10 +50,7 @@
   opacity: 0.9;
 }
 .scene-toggle-label {
-  display: none;
-}
-@media (min-width: 640px) {
-  .scene-toggle-label { display: inline; }
+  display: inline;
 }
 
 .scene-panel {
