@@ -14,8 +14,8 @@
 /* ── Scene Switcher ── */
 .scene-sw {
   position: fixed;
-  bottom: 36px;
-  right: 36px;
+  bottom: 96px;
+  right: 32px;
   z-index: 40;
   display: flex;
   flex-direction: column;
