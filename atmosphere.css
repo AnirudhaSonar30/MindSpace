@@ -122,47 +122,46 @@
   line-height: 1;
 }
 
-/* ── At-top — hide widgets on landing screen, reveal on scroll ── */
-.nav-meta,
-.rail,
-.counter,
-.snd-widget,
-.scene-sw,
-.rn-fab,
-.cm-fab,
-.progress-bar {
-  transition: opacity 1.4s ease;
+/* ── Progressive reveal — elements appear as user scrolls into sections ──
+   Level 1 (.show-nav):   anatomy section → rail, scene switcher, nav-meta
+   Level 2 (.show-sound): breathe section → sound widget
+   Level 3 (.show-tools): practices section → companion, right-now
+   Counter: permanently hidden — it's technical noise, not emotional content
+── */
+.nav-meta, .rail, .scene-sw,
+.snd-widget, .rn-fab, .cm-fab, .progress-bar {
+  transition: opacity 1.6s ease;
 }
 
-body.at-top .nav-meta   { opacity: 0 !important; pointer-events: none !important; }
-body.at-top .rail       { opacity: 0 !important; pointer-events: none !important; }
-body.at-top .counter    { opacity: 0 !important; pointer-events: none !important; }
-body.at-top .snd-widget { opacity: 0 !important; pointer-events: none !important; }
-body.at-top .scene-sw   { opacity: 0 !important; pointer-events: none !important; }
-body.at-top .rn-fab     { opacity: 0 !important; pointer-events: none !important; }
-body.at-top .cm-fab     { opacity: 0 !important; pointer-events: none !important; }
-body.at-top .progress-bar { opacity: 0 !important; }
+/* Hidden until their section arrives */
+body:not(.show-nav)   .nav-meta   { opacity: 0 !important; pointer-events: none !important; }
+body:not(.show-nav)   .rail       { opacity: 0 !important; pointer-events: none !important; }
+body:not(.show-nav)   .scene-sw   { opacity: 0 !important; pointer-events: none !important; }
+body:not(.show-nav)   .progress-bar { opacity: 0 !important; }
+body:not(.show-sound) .snd-widget { opacity: 0 !important; pointer-events: none !important; }
+body:not(.show-tools) .rn-fab     { opacity: 0 !important; pointer-events: none !important; }
+body:not(.show-tools) .cm-fab     { opacity: 0 !important; pointer-events: none !important; }
+
+/* Counter removed from the experience entirely */
+.counter { display: none !important; }
 
 /* ── Zen mode — UI softens on inactivity ── */
-.nav {
-  transition: opacity 1.8s ease;
-}
+.nav { transition: opacity 1.8s ease; }
 
 body.zen-mode .nav        { opacity: 0.10; }
 body.zen-mode .rail       { opacity: 0.05; }
-body.zen-mode .counter    { opacity: 0.06; }
 body.zen-mode .snd-widget { opacity: 0.08; }
 body.zen-mode .scene-sw   { opacity: 0.08; }
 body.zen-mode .rn-fab     { opacity: 0.06; }
 body.zen-mode .progress-bar { opacity: 0.12; }
 
-/* Re-appear immediately on hover */
+/* Re-appear on hover */
 body.zen-mode .nav:hover,
 body.zen-mode .rail:hover,
-body.zen-mode .counter:hover,
 body.zen-mode .snd-widget:hover,
 body.zen-mode .scene-sw:hover,
-body.zen-mode .rn-fab:hover {
+body.zen-mode .rn-fab:hover,
+body.zen-mode .cm-fab:hover {
   opacity: 1 !important;
   transition: opacity 0.3s ease;
 }

@@ -340,13 +340,28 @@
   resetZen();
 
   /* ============================================================
-     7) At-top — hide utility widgets on landing screen
-        Widgets fade in once user scrolls past 50% of first section.
+     7) Progressive UI reveal — staggered by section
+        show-nav:   when anatomy scrolls into view  (rail, scene-sw, nav-meta)
+        show-sound: when breathe scrolls into view  (sound widget)
+        show-tools: when practices scrolls into view (companion, right-now)
      ============================================================ */
-  const updateAtTop = () => {
-    document.body.classList.toggle('at-top', window.scrollY < window.innerHeight * 0.5);
+  const updateScrollLevels = () => {
+    const vh = window.innerHeight;
+    const threshold = vh * 0.75;
+
+    const anatomy   = document.getElementById('anatomy');
+    const breathe   = document.getElementById('breathe');
+    const practices = document.getElementById('practices');
+
+    document.body.classList.toggle('show-nav',
+      anatomy   ? anatomy.getBoundingClientRect().top   < threshold : false);
+    document.body.classList.toggle('show-sound',
+      breathe   ? breathe.getBoundingClientRect().top   < threshold : false);
+    document.body.classList.toggle('show-tools',
+      practices ? practices.getBoundingClientRect().top < threshold : false);
   };
-  window.addEventListener('scroll', updateAtTop, { passive: true });
-  window.addEventListener('resize', updateAtTop);
-  updateAtTop();
+
+  window.addEventListener('scroll', updateScrollLevels, { passive: true });
+  window.addEventListener('resize', updateScrollLevels);
+  updateScrollLevels();
 })();
