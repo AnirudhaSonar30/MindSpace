@@ -54,12 +54,17 @@ function Nav() {
   return (
     <nav className="nav">
       <div className="brand">
-        <span className="dot"></span>
+        <svg className="brand-mark" width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+          <circle cx="10" cy="10" r="8.2" stroke="currentColor" strokeWidth="0.8" opacity="0.45"/>
+          <circle cx="10" cy="10" r="2.0" fill="currentColor"/>
+          <path d="M4.8 10 C6.2 7.2 7.4 12.8 10 10 C12.6 7.2 13.8 12.8 15.2 10"
+                stroke="currentColor" strokeWidth="0.75" strokeLinecap="round" fill="none" opacity="0.40"/>
+        </svg>
         <span>MindSpace</span>
       </div>
       <div className="nav-meta">
-        <span className="meta-text">17 · 05 · 26 — beta 0.4</span>
-        <a className="pill" href="#begin" data-magnetic>Begin a session →</a>
+        <span className="meta-text">breathing · rest · space</span>
+        <a className="pill" href="#breathe" data-magnetic>Start here →</a>
       </div>
     </nav>
   );
@@ -137,19 +142,21 @@ function Arrival() {
       {Wind ? <Wind intensity={0.7} /> : null}
       <div className="arrival-lower">
         <div className="arrival-title">
-          <div className="eyebrow reveal d1">A field guide for the network in your head</div>
+          <div className="eyebrow reveal d1">A calm space for your busy mind</div>
           <h1>
-            <span className="line" data-reveal-text>Eighty-four</span>
-            <span className="line" data-reveal-text>billion <span className="it">neurons.</span></span>
-            <span className="line" data-reveal-text>One quiet hour.</span>
+            <span className="line" data-reveal-text>One quiet</span>
+            <span className="line" data-reveal-text><span className="it">hour.</span></span>
           </h1>
+          <p className="arrival-sub reveal d3">
+            Breathing exercises, ambient worlds, and guided stillness —
+            built around how your brain actually works.
+          </p>
         </div>
         <div className="arrival-meta reveal d4">
           <div className="scroll-hint">
-            <span>Scroll</span>
+            <span>Scroll to begin</span>
             <span className="line-mark"></span>
           </div>
-          <div className="index">I / VII</div>
         </div>
       </div>
     </section>

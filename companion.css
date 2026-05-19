@@ -14,39 +14,29 @@
   z-index: 75;
   display: inline-flex;
   align-items: center;
-  gap: 11px;
-  padding: 13px 20px 13px 16px;
-  background: rgba(6, 6, 26, 0.50);
-  border: 1px solid rgba(243, 239, 230, 0.30);
+  gap: 10px;
+  padding: 11px 18px;
+  background: rgba(6, 6, 26, 0.45);
+  border: 1px solid rgba(243, 239, 230, 0.18);
   border-radius: 999px;
   color: var(--paper);
   font-family: var(--mono);
-  font-size: 10.5px;
-  letter-spacing: 0.28em;
+  font-size: 10px;
+  letter-spacing: 0.26em;
   text-transform: uppercase;
   cursor: pointer;
-  backdrop-filter: blur(14px) saturate(120%);
-  -webkit-backdrop-filter: blur(14px) saturate(120%);
-  box-shadow:
-    0 8px 28px rgba(0, 0, 0, 0.35),
-    0 0 0 1px rgba(255, 255, 255, 0.02) inset;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.28);
   transition:
-    border-color 680ms var(--ease-premium),
-    background-color 680ms var(--ease-premium),
-    transform 680ms var(--ease-premium),
-    padding 680ms var(--ease-premium);
-  /* Match the notched-corner detail used elsewhere */
-  clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
-  animation: cmFabIn 1.2s var(--ease-premium) 1.5s both;
-}
-@keyframes cmFabIn {
-  from { opacity: 0; transform: translateY(20px); }
-  to   { opacity: 1; transform: translateY(0); }
+    border-color 400ms ease,
+    background-color 400ms ease,
+    transform 400ms ease;
 }
 .cm-fab:hover {
-  border-color: var(--paper);
-  background: rgba(6, 6, 26, 0.70);
-  padding-right: 24px;
+  border-color: rgba(243, 239, 230, 0.40);
+  background: rgba(6, 6, 26, 0.65);
+  transform: translateY(-2px);
 }
 .cm-fab-glyph {
   display: inline-flex;
@@ -61,12 +51,7 @@
   50%      { opacity: 1;    transform: scale(1.15); }
 }
 .cm-fab-sub {
-  margin-left: 4px;
-  padding-left: 11px;
-  border-left: 1px solid rgba(243, 239, 230, 0.18);
-  color: var(--whisper);
-  font-family: var(--mono);
-  letter-spacing: 0.22em;
+  display: none;
 }
 @media (max-width: 700px) {
   .cm-fab { left: 18px; bottom: 80px; padding: 11px 16px; }

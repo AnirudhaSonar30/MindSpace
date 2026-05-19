@@ -93,13 +93,12 @@ body { min-height: 100vh; }
   align-items: center;
   gap: 10px;
 }
-.brand .dot {
-  width: 7px; height: 7px;
-  border-radius: 50%;
-  background: var(--paper);
-  box-shadow: 0 0 14px rgba(243,239,230,0.7);
-  animation: pulse 4s ease-in-out infinite;
+.brand-mark {
+  color: var(--paper);
+  flex-shrink: 0;
+  opacity: 0.82;
 }
+.brand .dot { display: none; }
 @keyframes pulse {
   0%, 100% { opacity: 0.5; transform: scale(0.85); }
   50%      { opacity: 1;   transform: scale(1.15); }
@@ -285,6 +284,16 @@ body { min-height: 100vh; }
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
+}
+.arrival-sub {
+  margin-top: 20px;
+  max-width: 380px;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  line-height: 1.75;
+  color: rgba(243, 239, 230, 0.38);
+  font-weight: 400;
 }
 .arrival-meta {
   display: flex;

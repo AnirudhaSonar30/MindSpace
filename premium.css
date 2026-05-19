@@ -214,8 +214,8 @@ body.hide-native-cursor * { cursor: none !important; }
    ============================================================ */
 .snd-widget {
   position: fixed;
-  left: 36px;
-  bottom: 210px;
+  left: 32px;
+  bottom: 88px;
   z-index: 30;
   display: flex;
   flex-direction: column;
