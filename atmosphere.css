@@ -122,14 +122,29 @@
   line-height: 1;
 }
 
-/* ── Zen mode — UI softens on inactivity ── */
-.nav,
+/* ── At-top — hide widgets on landing screen, reveal on scroll ── */
+.nav-meta,
 .rail,
 .counter,
 .snd-widget,
 .scene-sw,
 .rn-fab,
+.cm-fab,
 .progress-bar {
+  transition: opacity 1.4s ease, pointer-events 0s;
+}
+
+body.at-top .nav-meta  { opacity: 0; pointer-events: none; }
+body.at-top .rail      { opacity: 0; pointer-events: none; }
+body.at-top .counter   { opacity: 0; pointer-events: none; }
+body.at-top .snd-widget{ opacity: 0; pointer-events: none; }
+body.at-top .scene-sw  { opacity: 0; pointer-events: none; }
+body.at-top .rn-fab    { opacity: 0; pointer-events: none; }
+body.at-top .cm-fab    { opacity: 0; pointer-events: none; }
+body.at-top .progress-bar { opacity: 0; }
+
+/* ── Zen mode — UI softens on inactivity ── */
+.nav {
   transition: opacity 1.8s ease;
 }
 

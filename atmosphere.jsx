@@ -147,7 +147,30 @@ function AtmosphereCanvas() {
     }
 
     let lastTs = 0;
-    let flashT = 0; // lightning flash 0→1 fades out
+    let flashT = 0;
+    let boltPath = null;
+
+    function generateBolt() {
+      const startX = W * (0.15 + Math.random() * 0.70);
+      const steps  = 10 + Math.floor(Math.random() * 6);
+      const segs   = [[startX, 0]];
+      let x = startX;
+      for (let i = 1; i <= steps; i++) {
+        x += (Math.random() - 0.5) * W * 0.18;
+        x = Math.max(W * 0.05, Math.min(W * 0.95, x));
+        segs.push([x, H * 0.82 * (i / steps)]);
+      }
+      const bi = Math.floor(steps * 0.3 + Math.random() * steps * 0.35);
+      const branch = [segs[bi]];
+      let bx = segs[bi][0], by = segs[bi][1];
+      const bsteps = 3 + Math.floor(Math.random() * 3);
+      for (let i = 1; i < bsteps; i++) {
+        bx += (Math.random() - 0.45) * W * 0.14;
+        by += H * 0.28 / bsteps;
+        branch.push([bx, by]);
+      }
+      return { segs, branch };
+    }
 
     /* ── draw helpers ── */
     function drawSceneGlow(scene, alpha) {
@@ -410,9 +433,41 @@ function AtmosphereCanvas() {
     }
 
     function drawLightning(t, flashT2, alpha) {
-      if (flashT2 <= 0) return;
-      ctx.fillStyle = `rgba(220, 235, 255, ${flashT2 * 0.12 * alpha})`;
+      if (flashT2 <= 0 || !boltPath) return;
+
+      // Screen flash
+      ctx.fillStyle = `rgba(210, 228, 255, ${flashT2 * 0.07 * alpha})`;
       ctx.fillRect(0, 0, W, H);
+
+      const drawBolt = (pts, lineW, glowW, opMul) => {
+        // Soft glow pass
+        ctx.save();
+        ctx.globalAlpha = flashT2 * alpha * 0.35 * opMul;
+        ctx.strokeStyle = 'rgba(150, 195, 255, 1)';
+        ctx.lineWidth = glowW;
+        ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+        ctx.shadowColor = 'rgba(140, 190, 255, 1)';
+        ctx.shadowBlur = 22;
+        ctx.beginPath();
+        pts.forEach(([x, y], i) => i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y));
+        ctx.stroke();
+        ctx.restore();
+        // Sharp core
+        ctx.save();
+        ctx.globalAlpha = flashT2 * alpha * opMul;
+        ctx.strokeStyle = 'rgba(230, 242, 255, 1)';
+        ctx.lineWidth = lineW;
+        ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+        ctx.shadowColor = 'rgba(200, 225, 255, 0.8)';
+        ctx.shadowBlur = 8;
+        ctx.beginPath();
+        pts.forEach(([x, y], i) => i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y));
+        ctx.stroke();
+        ctx.restore();
+      };
+
+      drawBolt(boltPath.segs,   1.5 + flashT2 * 1.5, 10 + flashT2 * 8, 1.0);
+      drawBolt(boltPath.branch, 0.8 + flashT2,        6  + flashT2 * 4, 0.6);
     }
 
     /* ── main tick ── */
@@ -469,6 +524,7 @@ function AtmosphereCanvas() {
         nextFlash -= dt;
         if (nextFlash <= 0) {
           flashT = 1;
+          boltPath = generateBolt();
           nextFlash = 6 + Math.random() * 18;
         }
       }

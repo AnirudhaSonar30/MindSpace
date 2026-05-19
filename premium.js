@@ -338,4 +338,15 @@
     .forEach(e => window.addEventListener(e, resetZen, { passive: true }));
 
   resetZen();
+
+  /* ============================================================
+     7) At-top — hide utility widgets on landing screen
+        Widgets fade in once user scrolls past 50% of first section.
+     ============================================================ */
+  const updateAtTop = () => {
+    document.body.classList.toggle('at-top', window.scrollY < window.innerHeight * 0.5);
+  };
+  window.addEventListener('scroll', updateAtTop, { passive: true });
+  window.addEventListener('resize', updateAtTop);
+  updateAtTop();
 })();
