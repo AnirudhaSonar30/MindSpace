@@ -88,15 +88,23 @@ function makeStreak(W, H, init = false) {
     w: 0.3 + Math.random() * 1.0,
   };
 }
+const CITY_LIGHT_COLORS = [
+  [255, 220, 140], // warm amber
+  [180, 210, 255], // cool blue-white
+  [255, 240, 180], // pale yellow
+  [200, 225, 255], // ice white
+  [255, 200, 120], // orange-amber
+];
 function makeCityLight(W, H) {
   const side = Math.random() < 0.5 ? 'left' : 'right';
+  const col = CITY_LIGHT_COLORS[Math.floor(Math.random() * CITY_LIGHT_COLORS.length)];
   return {
     x: side === 'left' ? Math.random() * W * 0.25 : W * 0.75 + Math.random() * W * 0.25,
     y: H * 0.2 + Math.random() * H * 0.65,
-    r: 1.5 + Math.random() * 3.5,
-    op: 0, maxOp: 0.3 + Math.random() * 0.5,
-    hue: Math.floor(Math.random() * 360),
-    life: 0, maxLife: 0.4 + Math.random() * 1.2,
+    r: 1.2 + Math.random() * 2.5,
+    op: 0, maxOp: 0.18 + Math.random() * 0.22,
+    col,
+    life: 0, maxLife: 0.8 + Math.random() * 2.0,
     state: 'in',
   };
 }
@@ -227,12 +235,12 @@ function AtmosphereCanvas() {
         p.y += p.vy * ms * dt;
         if (p.y < -20) { pollen[i] = makePollenDot(W, H); pollen[i].y = H + 5; continue; }
         if (p.x < -20 || p.x > W + 20) p.x = p.x < 0 ? W + 10 : -10;
-        const twinkle = 0.5 + 0.5 * Math.sin(t * 1.5 + p.phase);
+        const twinkle = 0.65 + 0.35 * Math.sin(t * 1.1 + p.phase);
         ctx.save();
         ctx.globalAlpha = p.op * twinkle * alpha;
         ctx.fillStyle = 'rgba(220, 200, 140, 1)';
-        ctx.shadowColor = 'rgba(220, 195, 100, 0.8)';
-        ctx.shadowBlur = 4;
+        ctx.shadowColor = 'rgba(220, 195, 100, 0.5)';
+        ctx.shadowBlur = 2;
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
         ctx.fill();
@@ -270,12 +278,12 @@ function AtmosphereCanvas() {
         if (p.x > W + 20) p.x = -10;
         if (p.y < -20) p.y = H + 10;
         if (p.y > H + 20) p.y = -10;
-        const twinkle = 0.4 + 0.6 * Math.sin(t * 0.8 + p.phase);
+        const twinkle = 0.60 + 0.40 * Math.sin(t * 0.8 + p.phase);
         ctx.save();
         ctx.globalAlpha = p.op * twinkle * alpha;
         ctx.fillStyle = 'rgba(80, 190, 200, 1)';
-        ctx.shadowColor = 'rgba(60, 180, 200, 0.6)';
-        ctx.shadowBlur = 5;
+        ctx.shadowColor = 'rgba(60, 180, 200, 0.4)';
+        ctx.shadowBlur = 3;
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
         ctx.fill();
@@ -388,11 +396,12 @@ function AtmosphereCanvas() {
         if (p.op >= p.maxOp && p.state === 'in') { p.state = 'hold'; }
         if (p.state === 'hold' && p.life > p.maxLife * 0.6) p.state = 'out';
         if (p.state === 'out' && p.op <= 0) { cityLights[i] = makeCityLight(W, H); continue; }
+        const [cr, cg, cb] = p.col;
         ctx.save();
         ctx.globalAlpha = p.op * alpha;
-        ctx.fillStyle = `hsl(${p.hue}, 80%, 70%)`;
-        ctx.shadowColor = `hsl(${p.hue}, 80%, 70%)`;
-        ctx.shadowBlur = 8;
+        ctx.fillStyle = `rgb(${cr},${cg},${cb})`;
+        ctx.shadowColor = `rgba(${cr},${cg},${cb},0.5)`;
+        ctx.shadowBlur = 5;
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
         ctx.fill();

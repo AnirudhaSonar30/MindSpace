@@ -99,11 +99,11 @@
                    * smoothstep(1.00, 0.42, y);
         col += uBand * band * (0.45 + 0.25 * uBreath);
 
-        /* stars — brightness driven by uStarBrightness */
+        /* stars — varying brightness, never fully dark so they don't pop */
         vec2 sp = floor(uv * vec2(420.0 * uAspect, 420.0));
         float r = hash(sp);
-        float star = step(0.9965, r) * smoothstep(0.40, 1.0, y);
-        float tw = 0.5 + 0.5 * sin(uTime * 1.6 + r * 80.0);
+        float star = smoothstep(0.9965, 1.0, r) * smoothstep(0.40, 1.0, y);
+        float tw = 0.65 + 0.35 * sin(uTime * 1.0 + r * 80.0);
         col += vec3(0.85, 0.92, 1.0) * star * tw * uStarBrightness;
 
         /* soft vignette */
