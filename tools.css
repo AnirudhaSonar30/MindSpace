@@ -1,0 +1,664 @@
+/* MindSpace — tools / practices / right-now
+   --------------------------------------------------------------
+   Motion language for this file (pinned for consistency):
+     - Standard ease       :  cubic-bezier(0.16, 1, 0.3, 1)    (expo-out)
+     - Standard duration   :  680ms
+     - Long, ceremonial    :  1100ms
+     - Stagger gap         :  90ms
+   These are picked deliberately — they're the easing curve you see on
+   sites that feel like silk. Avoid linear/ease anywhere visible.
+*/
+
+:root {
+  --ease:    cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-io: cubic-bezier(0.65, 0, 0.35, 1);
+  --d-fast:  420ms;
+  --d-std:   680ms;
+  --d-long:  1100ms;
+}
+
+html { scroll-behavior: smooth; }
+
+/* ============================================================
+   Shared header for Breathe + Ground sections
+   ============================================================ */
+.reset-head {
+  text-align: center;
+  max-width: 760px;
+  margin: 0 auto 64px;
+}
+.reset-head h2 {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: clamp(40px, 5vw, 72px);
+  line-height: 1.08;
+  letter-spacing: -0.015em;
+  margin: 18px 0 22px;
+  color: var(--paper);
+  text-wrap: pretty;
+}
+.reset-head h2 .it { font-style: italic; }
+.reset-lede {
+  font-size: 15px;
+  line-height: 1.65;
+  color: var(--mist);
+  max-width: 520px;
+  margin: 0 auto;
+  font-weight: 300;
+  text-wrap: pretty;
+}
+.reset-body { width: 100%; display: flex; justify-content: center; }
+
+/* ============================================================
+   Breathing Lab
+   ============================================================ */
+
+.lab {
+  display: grid;
+  grid-template-columns: 240px 1fr 240px;
+  gap: 56px;
+  width: 100%;
+  max-width: 1240px;
+  align-items: center;
+}
+@media (max-width: 980px) {
+  .lab {
+    grid-template-columns: 1fr;
+    gap: 48px;
+    max-width: 460px;
+  }
+  .lab-side { order: 3; }
+  .lab-picker { order: 1; }
+  .lab-stage  { order: 2; }
+}
+
+/* picker ------------------------------------------------------ */
+.lab-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border-top: 1px solid var(--hairline);
+}
+.lab-picker-label {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--whisper);
+  padding: 16px 0 12px;
+  border-bottom: 1px solid var(--hairline);
+}
+.lab-cad {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 18px 0 18px 0;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--hairline);
+  color: var(--mist);
+  text-align: left;
+  cursor: pointer;
+  transition: padding-left var(--d-std) var(--ease),
+              color var(--d-fast) var(--ease);
+  font-family: inherit;
+}
+.lab-cad::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 0;
+  height: 1px;
+  background: var(--paper);
+  transform: translateY(-50%);
+  transition: width var(--d-long) var(--ease);
+}
+.lab-cad:hover { color: var(--paper); }
+.lab-cad.active {
+  color: var(--paper);
+  padding-left: 30px;
+}
+.lab-cad.active::before { width: 20px; }
+.lab-cad-nums {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+}
+.lab-cad-name {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 22px;
+  line-height: 1.1;
+  letter-spacing: -0.005em;
+}
+
+/* stage (orb) ------------------------------------------------- */
+.lab-stage {
+  position: relative;
+  aspect-ratio: 1;
+  width: 100%;
+  max-width: 440px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Extra bottom clearance for the label */
+  padding-bottom: 64px;
+  box-sizing: content-box;
+}
+
+/* Canvas fills the stage square */
+.lab-canvas {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  /* Canvas itself is transparent — scene shows through */
+  background: transparent;
+}
+
+/* Phase label sits centred below the canvas */
+.lab-label {
+  position: absolute;
+  bottom: 12px;
+  left: 0; right: 0;
+  text-align: center;
+  z-index: 3;
+  pointer-events: none;
+}
+.lab-phase {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 22px;
+  color: var(--paper);
+  margin-bottom: 4px;
+  letter-spacing: 0.01em;
+  transition: opacity 400ms var(--ease);
+}
+.lab-phase-dur {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--whisper);
+}
+
+/* side panel -------------------------------------------------- */
+.lab-side {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.lab-desc {
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--mist);
+  font-weight: 300;
+  text-wrap: pretty;
+  min-height: 60px;
+  transition: opacity var(--d-std) var(--ease);
+}
+.lab-source {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--whisper);
+}
+.lab-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 0;
+  border-top: 1px solid var(--hairline);
+  border-bottom: 1px solid var(--hairline);
+}
+.lab-stats > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.lab-stats .rk {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--whisper);
+}
+.lab-stats .rv {
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--paper);
+  letter-spacing: 0.06em;
+}
+.lab-btn {
+  margin-top: 6px;
+  padding: 15px 28px;
+  background: transparent;
+  border: 1px solid rgba(243,239,230,0.32);
+  border-radius: 999px;
+  color: var(--paper);
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  position: relative;
+  overflow: hidden;
+  transition: border-color var(--d-std) var(--ease),
+              background-color var(--d-std) var(--ease),
+              transform var(--d-std) var(--ease);
+}
+.lab-btn::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 50%,
+    rgba(243,239,230,0.16), transparent 70%);
+  opacity: 0;
+  transition: opacity var(--d-std) var(--ease);
+}
+.lab-btn:hover::before { opacity: 1; }
+.lab-btn:hover {
+  border-color: var(--paper);
+  transform: translateY(-1px);
+}
+.lab-btn:active { transform: translateY(0); }
+.lab-btn-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--paper);
+  box-shadow: 0 0 10px rgba(243,239,230,0.7);
+}
+.lab-btn.paused .lab-btn-dot {
+  animation: labDotPulse 1.6s ease-in-out infinite;
+}
+@keyframes labDotPulse {
+  0%, 100% { opacity: 0.5; transform: scale(0.85); }
+  50%      { opacity: 1;   transform: scale(1.2);  }
+}
+
+/* ============================================================
+   Ground (5-4-3-2-1)
+   ============================================================ */
+
+.ground {
+  width: 100%;
+  max-width: 720px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 32px;
+}
+
+.ground-progress {
+  display: flex;
+  gap: 14px;
+}
+.ground-pip {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid rgba(243,239,230,0.18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--whisper);
+  transition:
+    border-color var(--d-long) var(--ease),
+    background-color var(--d-long) var(--ease),
+    color var(--d-long) var(--ease),
+    transform var(--d-long) var(--ease);
+}
+.ground-pip.done {
+  border-color: rgba(243,239,230,0.50);
+  background: rgba(243,239,230,0.06);
+  color: var(--mist);
+}
+.ground-pip.active {
+  border-color: var(--paper);
+  color: var(--paper);
+  transform: scale(1.10);
+  box-shadow: 0 0 20px rgba(243,239,230,0.18);
+}
+
+.ground-prompt {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: clamp(36px, 5vw, 60px);
+  line-height: 1.1;
+  letter-spacing: -0.015em;
+  color: var(--paper);
+  text-wrap: pretty;
+  animation: groundPromptIn var(--d-long) var(--ease);
+  transition: opacity var(--d-std) var(--ease),
+              transform var(--d-std) var(--ease);
+}
+.ground-prompt.fading {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+.ground-num  { font-style: italic; }
+.ground-prompt .it { font-style: italic; }
+@keyframes groundPromptIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.ground-dots {
+  display: flex;
+  gap: 18px;
+  justify-content: center;
+}
+.ground-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1px solid rgba(243,239,230,0.30);
+  background: transparent;
+  transition:
+    border-color var(--d-long) var(--ease),
+    background-color var(--d-long) var(--ease),
+    box-shadow var(--d-long) var(--ease),
+    transform var(--d-long) var(--ease);
+}
+.ground-dot.filled {
+  border-color: var(--paper);
+  background: var(--paper);
+  box-shadow: 0 0 16px rgba(243,239,230,0.5);
+  transform: scale(1.15);
+}
+
+.ground-hint {
+  font-size: 14.5px;
+  line-height: 1.6;
+  color: var(--mist);
+  font-weight: 300;
+  max-width: 380px;
+  text-wrap: pretty;
+  animation: groundPromptIn var(--d-long) var(--ease) 0.12s both;
+  transition: opacity var(--d-std) var(--ease);
+}
+.ground-hint.fading { opacity: 0; }
+
+.ground-tap {
+  margin-top: 8px;
+  padding: 16px 32px;
+  background: transparent;
+  border: 1px solid rgba(243,239,230,0.40);
+  border-radius: 999px;
+  color: var(--paper);
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  position: relative;
+  overflow: hidden;
+  transition: all var(--d-std) var(--ease);
+}
+.ground-tap::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 50%,
+    rgba(243,239,230,0.15), transparent 70%);
+  opacity: 0;
+  transition: opacity var(--d-std) var(--ease);
+}
+.ground-tap:hover::before { opacity: 1; }
+.ground-tap:hover  { border-color: var(--paper); transform: translateY(-1px); }
+.ground-tap:active { transform: translateY(0) scale(0.98); }
+.ground-tap:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.ground-tap .arrow {
+  display: inline-block;
+  transition: transform var(--d-std) var(--ease);
+}
+.ground-tap:hover .arrow { transform: translateX(6px); }
+
+.ground-done {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 28px;
+  animation: groundDoneIn var(--d-long) var(--ease);
+}
+@keyframes groundDoneIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ============================================================
+   Right Now — floating reset
+   ============================================================ */
+
+.rn-fab {
+  position: fixed;
+  right: 32px;
+  bottom: 32px;
+  z-index: 80;
+  display: inline-flex;
+  align-items: center;
+  gap: 11px;
+  padding: 13px 20px 13px 18px;
+  background: rgba(6, 6, 26, 0.50);
+  border: 1px solid rgba(243, 239, 230, 0.30);
+  border-radius: 999px;
+  color: var(--paper);
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  cursor: pointer;
+  backdrop-filter: blur(14px) saturate(120%);
+  -webkit-backdrop-filter: blur(14px) saturate(120%);
+  box-shadow:
+    0 8px 28px rgba(0, 0, 0, 0.35),
+    0 0 0 1px rgba(255, 255, 255, 0.02) inset;
+  transition:
+    border-color var(--d-std) var(--ease),
+    transform var(--d-std) var(--ease),
+    padding var(--d-std) var(--ease),
+    background-color var(--d-std) var(--ease);
+  animation: rnFabIn 1.2s var(--ease) 1.2s both;
+}
+@keyframes rnFabIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.rn-fab:hover {
+  border-color: var(--paper);
+  background: rgba(6, 6, 26, 0.70);
+  padding-right: 24px;
+  transform: translateY(-2px);
+}
+.rn-fab-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--paper);
+  box-shadow: 0 0 12px rgba(243, 239, 230, 0.7);
+  animation: rnPulse 4s ease-in-out infinite;
+}
+@keyframes rnPulse {
+  0%, 100% { opacity: 0.5; transform: scale(0.85); }
+  50%      { opacity: 1;   transform: scale(1.2);  }
+}
+.rn-fab-text { color: var(--paper); }
+.rn-fab-sub {
+  margin-left: 4px;
+  padding-left: 11px;
+  border-left: 1px solid rgba(243, 239, 230, 0.18);
+  color: var(--whisper);
+}
+
+/* Overlay ----------------------------------------------------- */
+.rn-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(6, 6, 26, 0);
+  -webkit-backdrop-filter: blur(0px);
+          backdrop-filter: blur(0px);
+  cursor: pointer;
+  transition:
+    background-color var(--d-long) var(--ease),
+    -webkit-backdrop-filter var(--d-long) var(--ease),
+            backdrop-filter var(--d-long) var(--ease);
+}
+.rn-overlay.rn-open,
+.rn-overlay.rn-opening {
+  background: rgba(6, 6, 26, 0.78);
+  -webkit-backdrop-filter: blur(18px) saturate(120%);
+          backdrop-filter: blur(18px) saturate(120%);
+}
+.rn-overlay.rn-closing {
+  background: rgba(6, 6, 26, 0);
+  -webkit-backdrop-filter: blur(0px);
+          backdrop-filter: blur(0px);
+}
+
+.rn-stage {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 22px;
+  opacity: 0;
+  transform: translateY(20px) scale(0.96);
+  transition:
+    opacity   var(--d-long) var(--ease) 120ms,
+    transform var(--d-long) var(--ease) 120ms;
+  cursor: default;
+  padding: 0 40px;
+}
+.rn-overlay.rn-open .rn-stage {
+  opacity: 1;
+  transform: none;
+}
+.rn-overlay.rn-closing .rn-stage {
+  opacity: 0;
+  transform: translateY(10px) scale(0.98);
+  transition:
+    opacity   var(--d-std) var(--ease),
+    transform var(--d-std) var(--ease);
+}
+
+.rn-eyebrow {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--whisper);
+}
+
+.rn-orb-wrap {
+  position: relative;
+  width: 360px;
+  height: 360px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+@media (max-height: 720px) {
+  .rn-orb-wrap { width: 280px; height: 280px; }
+}
+.rn-orb-glow {
+  position: absolute;
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 50% 50%,
+      oklch(0.78 0.11 240 / 0.42) 0%,
+      oklch(0.72 0.10 290 / 0.18) 40%,
+      transparent 70%);
+  filter: blur(28px);
+  transition: transform 140ms linear;
+  will-change: transform;
+}
+.rn-orb {
+  position: relative;
+  width: 70%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 35% 30%,
+      rgba(255,255,255,0.45) 0%,
+      rgba(255,255,255,0.05) 22%,
+      transparent 42%),
+    radial-gradient(circle at 50% 50%,
+      oklch(0.78 0.11 240 / 0.55) 0%,
+      oklch(0.72 0.10 285 / 0.40) 40%,
+      transparent 100%);
+  box-shadow:
+    0 0 120px oklch(0.7 0.11 240 / 0.5),
+    0 0 220px oklch(0.6 0.10 280 / 0.22),
+    inset 0 0 80px rgba(255, 255, 255, 0.05);
+  transition: transform 140ms linear;
+  will-change: transform;
+}
+.rn-orb-core {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--paper);
+  box-shadow: 0 0 16px rgba(243, 239, 230, 0.7);
+  animation: rnPulse 4s ease-in-out infinite;
+}
+
+.rn-phase {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 30px;
+  color: var(--paper);
+  letter-spacing: 0.01em;
+  min-height: 1.2em;
+}
+.rn-time {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--mist);
+}
+.rn-hint {
+  font-size: 13.5px;
+  font-weight: 300;
+  color: var(--whisper);
+  max-width: 440px;
+  line-height: 1.7;
+  margin-top: 8px;
+  text-wrap: pretty;
+}
+
+/* Adjust counter z-index so the FAB sits beside it cleanly --- */
+@media (max-width: 560px) {
+  .rn-fab {
+    right: 18px;
+    bottom: 18px;
+    padding: 11px 16px 11px 14px;
+  }
+  .rn-fab-sub { display: none; }
+}

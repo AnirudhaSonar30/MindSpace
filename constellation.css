@@ -1,0 +1,157 @@
+/* MindSpace — Mood Landscape / Constellation */
+
+.const-wrap {
+  width: 100%;
+  max-width: 1180px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+}
+
+.const-head {
+  text-align: center;
+  margin-bottom: 64px;
+}
+.const-head h2 {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: clamp(40px, 5.2vw, 76px);
+  line-height: 1.05;
+  letter-spacing: -0.015em;
+  color: var(--paper);
+  margin: 16px 0 22px;
+}
+.const-head h2 .it { font-style: italic; }
+.const-lede {
+  font-size: 15px;
+  line-height: 1.68;
+  color: var(--mist);
+  max-width: 520px;
+  margin: 0 auto;
+  font-weight: 300;
+  text-wrap: pretty;
+}
+
+/* Canvas container */
+.const-canvas-wrap {
+  position: relative;
+  width: 100%;
+  max-width: 900px;
+  border: 1px solid rgba(243,239,230,0.08);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.const-canvas {
+  display: block;
+  width: 100%;
+  height: clamp(280px, 40vw, 520px);
+  background: transparent;
+}
+
+/* Empty state */
+.const-empty {
+  position: relative;
+  width: 100%;
+}
+.const-empty-msg {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  pointer-events: none;
+}
+.const-empty .const-empty-msg { pointer-events: auto; }
+.const-empty-glyph {
+  font-size: 28px;
+  opacity: 0.25;
+  animation: constPulse 3s ease-in-out infinite;
+}
+@keyframes constPulse {
+  0%, 100% { opacity: 0.18; transform: scale(0.9); }
+  50%      { opacity: 0.35; transform: scale(1.1); }
+}
+.const-empty-msg p {
+  font-size: 14px;
+  color: var(--whisper);
+  font-weight: 300;
+  max-width: 240px;
+  text-align: center;
+  line-height: 1.6;
+}
+.const-seed-btn {
+  background: transparent;
+  border: 1px solid rgba(243,239,230,0.20);
+  border-radius: 999px;
+  padding: 10px 22px;
+  color: var(--mist);
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: color 400ms var(--ease-premium), border-color 400ms var(--ease-premium);
+}
+.const-seed-btn:hover { color: var(--paper); border-color: rgba(243,239,230,0.38); }
+
+/* Legend */
+.const-legend {
+  position: absolute;
+  bottom: 16px;
+  right: 20px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  justify-content: flex-end;
+  max-width: 280px;
+}
+.const-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--whisper);
+}
+.const-legend-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  opacity: 0.7;
+}
+
+/* Count */
+.const-count {
+  margin-top: 22px;
+  height: 22px;
+}
+.const-count-text {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--whisper);
+}
+
+/* Time-of-day sky tints via CSS vars from timeofday.js */
+.veil::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: var(--tod-tint, transparent);
+  mix-blend-mode: screen;
+  opacity: 1;
+  transition: background 2400ms ease;
+}
+
+@media (max-width: 600px) {
+  .const-legend { display: none; }
+}
