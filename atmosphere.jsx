@@ -435,39 +435,39 @@ function AtmosphereCanvas() {
     function drawLightning(t, flashT2, alpha) {
       if (flashT2 <= 0 || !boltPath) return;
 
-      // Screen flash
-      ctx.fillStyle = `rgba(210, 228, 255, ${flashT2 * 0.07 * alpha})`;
+      // Very subtle screen lighten
+      ctx.fillStyle = `rgba(210, 228, 255, ${flashT2 * 0.025 * alpha})`;
       ctx.fillRect(0, 0, W, H);
 
       const drawBolt = (pts, lineW, glowW, opMul) => {
-        // Soft glow pass
+        // Soft glow (narrow)
         ctx.save();
-        ctx.globalAlpha = flashT2 * alpha * 0.35 * opMul;
-        ctx.strokeStyle = 'rgba(150, 195, 255, 1)';
+        ctx.globalAlpha = flashT2 * alpha * 0.18 * opMul;
+        ctx.strokeStyle = 'rgba(160, 205, 255, 1)';
         ctx.lineWidth = glowW;
         ctx.lineCap = 'round'; ctx.lineJoin = 'round';
         ctx.shadowColor = 'rgba(140, 190, 255, 1)';
-        ctx.shadowBlur = 22;
+        ctx.shadowBlur = 10;
         ctx.beginPath();
         pts.forEach(([x, y], i) => i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y));
         ctx.stroke();
         ctx.restore();
         // Sharp core
         ctx.save();
-        ctx.globalAlpha = flashT2 * alpha * opMul;
-        ctx.strokeStyle = 'rgba(230, 242, 255, 1)';
+        ctx.globalAlpha = flashT2 * alpha * 0.75 * opMul;
+        ctx.strokeStyle = 'rgba(220, 238, 255, 1)';
         ctx.lineWidth = lineW;
         ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-        ctx.shadowColor = 'rgba(200, 225, 255, 0.8)';
-        ctx.shadowBlur = 8;
+        ctx.shadowColor = 'rgba(200, 220, 255, 0.6)';
+        ctx.shadowBlur = 5;
         ctx.beginPath();
         pts.forEach(([x, y], i) => i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y));
         ctx.stroke();
         ctx.restore();
       };
 
-      drawBolt(boltPath.segs,   1.5 + flashT2 * 1.5, 10 + flashT2 * 8, 1.0);
-      drawBolt(boltPath.branch, 0.8 + flashT2,        6  + flashT2 * 4, 0.6);
+      drawBolt(boltPath.segs,   1.2 + flashT2,       5 + flashT2 * 3, 1.0);
+      drawBolt(boltPath.branch, 0.6 + flashT2 * 0.8, 3 + flashT2 * 2, 0.5);
     }
 
     /* ── main tick ── */
@@ -529,7 +529,7 @@ function AtmosphereCanvas() {
         }
       }
       if (flashT > 0) {
-        flashT = Math.max(0, flashT - dt * 4);
+        flashT = Math.max(0, flashT - dt * 6);
         drawLightning(t, flashT, eT);
       }
 
