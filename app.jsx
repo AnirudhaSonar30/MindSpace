@@ -370,10 +370,12 @@ function App() {
         <Begin />
         <Foot />
       </main>
-      {window.MindSpaceSound    ? <window.MindSpaceSound    /> : null}
+      {window.MindSpaceAtmosphere    ? <window.MindSpaceAtmosphere    /> : null}
+      {window.MindSpaceSound         ? <window.MindSpaceSound         /> : null}
       {window.MindSpaceCompanionToggle ? <window.MindSpaceCompanionToggle/> : null}
-      {window.MindSpaceMoodCheck ? <window.MindSpaceMoodCheck/> : null}
-      {window.MindSpaceRightNow ? <window.MindSpaceRightNow /> : null}
+      {window.MindSpaceMoodCheck     ? <window.MindSpaceMoodCheck     /> : null}
+      {window.MindSpaceRightNow      ? <window.MindSpaceRightNow      /> : null}
+      {window.MindSpaceSceneSwitcher ? <window.MindSpaceSceneSwitcher /> : null}
     </React.Fragment>
   );
 }

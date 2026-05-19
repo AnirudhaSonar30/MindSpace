@@ -321,4 +321,21 @@
     setTimeout(setupActWipes, 800);
     setTimeout(setupActWipes, 2400);
   }
+
+  /* ============================================================
+     6) Zen mode — UI softens after 9s of inactivity
+     ============================================================ */
+  let zenTimer;
+  const ZEN_DELAY = 9000;
+
+  const resetZen = () => {
+    document.body.classList.remove('zen-mode');
+    clearTimeout(zenTimer);
+    zenTimer = setTimeout(() => document.body.classList.add('zen-mode'), ZEN_DELAY);
+  };
+
+  ['mousemove', 'mousedown', 'scroll', 'keydown', 'touchstart', 'click']
+    .forEach(e => window.addEventListener(e, resetZen, { passive: true }));
+
+  resetZen();
 })();
