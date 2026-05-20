@@ -106,7 +106,6 @@ function Mandala() {
 function HomeScreen() {
   return (
     <div className="hs">
-      <Mandala />
       <h1 className="hs-quiet">a quiet sky<br/>for a loud mind.</h1>
       <div className="hs-hint">choose a practice below</div>
     </div>
