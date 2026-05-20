@@ -612,8 +612,8 @@ function BreathingLab({ autoFocus, onExit }) {
         </div>
       )}
 
-      {/* Immersive focus overlay */}
-      {focused && (
+      {/* Immersive focus overlay — portaled to body to escape .mode-panel clip-path */}
+      {focused && ReactDOM.createPortal(
         <div className="lab-focus" onClick={endSession}>
           <div className="lab-focus-inner" onClick={(e) => e.stopPropagation()}>
             <div className="lab-focus-orb">
@@ -645,7 +645,8 @@ function BreathingLab({ autoFocus, onExit }) {
             </div>
             <button className="lab-focus-exit" onClick={endSession}>end session</button>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </React.Fragment>
   );
