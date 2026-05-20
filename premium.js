@@ -26,13 +26,20 @@
     const count = loader.querySelector('.premium-loader-count');
     let p = 0;
     let finished = false;
-    let pageLoaded = document.readyState === 'complete';
+    let appReady = false;
     const startedAt = performance.now();
-    const minDur = reducedMotion ? 200 : 1000;
+    const minDur = reducedMotion ? 200 : 900;
 
-    /* Wait for ALL scripts (including CDN libs + Babel transpile) to finish.
-       The window 'load' event fires after every resource is fully parsed.  */
-    if (!pageLoaded) window.addEventListener('load', () => { pageLoaded = true; });
+    /* Watch for React to render its first element into #root.
+       Babel processes JSX via XHR — window.load fires too early.
+       A MutationObserver on #root is the only reliable signal.    */
+    const rootEl = document.getElementById('root');
+    if (rootEl) {
+      const mo = new MutationObserver(() => {
+        if (rootEl.children.length > 0) { appReady = true; mo.disconnect(); }
+      });
+      mo.observe(rootEl, { childList: true });
+    }
 
     const dismiss = () => {
       if (finished) return;
@@ -50,9 +57,11 @@
     const tick = () => {
       if (finished) return;
       const elapsed = performance.now() - startedAt;
-      /* Hold at 88% until the page is actually loaded — then race to 100.
-         Hard-cap at 5s so a stalled CDN doesn't freeze the loader forever. */
-      const ceiling = (pageLoaded || elapsed > 5000) ? 1.0 : 0.88;
+      /* Animate to 88% while waiting for React to mount.
+         Once #root has children (app rendered) AND minDur has passed,
+         race to 100. Hard 8s fallback in case something goes wrong.  */
+      const ready = appReady && elapsed >= minDur;
+      const ceiling = (ready || elapsed > 8000) ? 1.0 : 0.88;
       const timeTarget = Math.min(ceiling, elapsed / minDur);
       p += (timeTarget - p) * 0.11;
       if (bar)   bar.style.transform = `scaleX(${p})`;
