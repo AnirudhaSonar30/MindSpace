@@ -772,38 +772,42 @@ body { min-height: 100vh; }
   overflow: hidden;
 }
 .stage > * {
-  will-change: clip-path, opacity;
+  will-change: transform, opacity, filter;
 }
 
 /* ── Portal transition — circular wipe rising from the nav ── */
 
-/* Enter: circle expands from bottom-centre (where the nav sits) */
+/* Enter: rise + fade in with gentle blur dissolve */
 @keyframes panelIn {
   from {
-    clip-path: circle(2% at 50% calc(100% + 32px));
-    opacity: 0.85;
+    opacity: 0;
+    transform: scale(0.97) translateY(12px);
+    filter: blur(8px);
   }
   to {
-    clip-path: circle(150% at 50% calc(100% + 32px));
     opacity: 1;
+    transform: scale(1) translateY(0px);
+    filter: blur(0px);
   }
 }
 
-/* Exit: circle collapses to screen centre */
+/* Exit: dissolve upward with blur + scale + fade */
 @keyframes panelOut {
   from {
-    clip-path: circle(150% at 50% 50%);
     opacity: 1;
+    transform: scale(1) translateY(0px);
+    filter: blur(0px);
   }
   to {
-    clip-path: circle(0% at 50% 50%);
     opacity: 0;
+    transform: scale(0.96) translateY(-8px);
+    filter: blur(6px);
   }
 }
 
 /* Stage leaving: outgoing panel plays exit */
 .stage-leaving > * {
-  animation: panelOut 300ms cubic-bezier(0.65, 0, 0.35, 1) both !important;
+  animation: panelOut 420ms cubic-bezier(0.4, 0, 1, 1) both !important;
 }
 
 /* ── Home screen ── */
@@ -811,7 +815,7 @@ body { min-height: 100vh; }
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 22px;
+  gap: 18px;
   text-align: center;
   padding: 0 40px;
   width: 100%;
@@ -851,9 +855,21 @@ body { min-height: 100vh; }
   letter-spacing: 0.30em;
   text-transform: uppercase;
   color: var(--whisper);
-  opacity: 0.55;
+  opacity: 0.70;
   margin-top: 12px;
   animation: panelIn 1200ms var(--ease-premium) 600ms both;
+}
+
+.hs-quiet {
+  font-family: "Cormorant Garamond", "Instrument Serif", Georgia, serif;
+  font-weight: 300;
+  font-style: italic;
+  font-size: clamp(34px, 5.5vw, 58px);
+  line-height: 1.12;
+  letter-spacing: -0.01em;
+  color: rgba(243, 239, 230, 0.80);
+  margin: 0;
+  animation: panelIn 900ms var(--ease-premium) 200ms both;
 }
 
 /* ── Mode panel ── */

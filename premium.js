@@ -26,7 +26,7 @@
     const count = loader.querySelector('.premium-loader-count');
     let p = 0;
     const startedAt = performance.now();
-    const minDur = reducedMotion ? 300 : 1500;
+    const minDur = reducedMotion ? 200 : 800;
     const tick = () => {
       const elapsed = performance.now() - startedAt;
       const target = Math.min(1, elapsed / minDur);

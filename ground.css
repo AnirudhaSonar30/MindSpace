@@ -1,0 +1,354 @@
+/* MindSpace — Grounding (rich) styles
+   Layered onto the existing tools.css .ground rules.
+   This sheet adds the canvas-backed, per-sense, cinematic experience.
+*/
+
+/* ── Wrapper + atmospheric canvas ── */
+.ground-rich {
+  position: relative;
+  width: 100%;
+  max-width: 920px;
+  min-height: 70vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 40px;
+  padding: 0 32px;
+}
+.ground-canvas {
+  position: absolute;
+  inset: -40px;
+  width: calc(100% + 80px);
+  height: calc(100% + 80px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── Progress lozenge ── */
+.ground-progress-rich {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  gap: 22px;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.ground-step-tag {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: rgba(243, 239, 230, 0.03);
+  border: 1px solid rgba(243, 239, 230, 0.06);
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--whisper);
+  transition: all 0.6s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.ground-step-tag .ground-step-n {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 14px;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--mist);
+}
+.ground-step-tag.active {
+  border-color: rgba(243, 239, 230, 0.30);
+  background: rgba(243, 239, 230, 0.06);
+  color: var(--paper);
+  transform: scale(1.06);
+}
+.ground-step-tag.active .ground-step-n { color: var(--paper); }
+.ground-step-tag.done {
+  opacity: 0.55;
+}
+
+/* ── Stage ── */
+.ground-stage-rich {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 36px;
+  width: 100%;
+}
+
+.ground-sense-glyph {
+  color: var(--paper);
+  transition: opacity 0.8s ease, transform 0.8s cubic-bezier(0.2, 0.7, 0.2, 1);
+  filter: drop-shadow(0 0 26px rgba(243, 239, 230, 0.10));
+  margin-bottom: -16px;
+}
+
+/* ── Headline — big-italic + small caps support ── */
+.ground-headline {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  text-align: center;
+  transition: opacity 0.7s ease, transform 0.7s ease;
+}
+.ground-headline.fading {
+  opacity: 0;
+  transform: translateY(-6px);
+}
+.ground-num-big {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: clamp(54px, 9vw, 110px);
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--paper);
+}
+.ground-sub {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.40em;
+  text-transform: uppercase;
+  color: var(--whisper);
+}
+.ground-sense-big {
+  font-family: var(--serif);
+  font-style: italic;
+  font-weight: 300;
+  font-size: clamp(38px, 6vw, 72px);
+  line-height: 1;
+  color: var(--paper);
+  letter-spacing: -0.01em;
+}
+
+/* ── Tap zone + dots ── */
+.ground-tap-zone-rich {
+  position: relative;
+  width: min(560px, 92%);
+  padding: 28px 24px 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  cursor: pointer;
+  user-select: none;
+  border-radius: 18px;
+  border: 1px solid rgba(243, 239, 230, 0.08);
+  background: rgba(6, 6, 26, 0.34);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  overflow: hidden;
+  transition: all 0.5s ease;
+}
+.ground-tap-zone-rich:hover {
+  border-color: rgba(243, 239, 230, 0.20);
+  background: rgba(6, 6, 26, 0.48);
+}
+
+.ground-dots-rich {
+  display: flex;
+  gap: 16px;
+  position: relative;
+  z-index: 2;
+}
+.ground-dot-rich {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 1px solid rgba(243, 239, 230, 0.18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 22px;
+  color: rgba(243, 239, 230, 0.30);
+  transition: all 0.55s cubic-bezier(0.2, 0.7, 0.2, 1);
+  background: rgba(6, 6, 26, 0.20);
+}
+.ground-dot-rich .ground-dot-n {
+  opacity: 0.40;
+  font-style: italic;
+  transition: opacity 0.4s ease;
+}
+.ground-dot-rich.filled {
+  background: rgba(243, 239, 230, 0.18);
+  border-color: rgba(243, 239, 230, 0.55);
+  color: var(--paper);
+  box-shadow: 0 0 22px rgba(243, 239, 230, 0.16);
+  transform: scale(1.08);
+}
+.ground-dot-rich.filled .ground-dot-n { opacity: 0.85; }
+
+@media (max-width: 560px) {
+  .ground-dot-rich { width: 44px; height: 44px; font-size: 18px; }
+  .ground-dots-rich { gap: 10px; }
+}
+
+.ground-tap-hint {
+  position: relative;
+  z-index: 2;
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--whisper);
+  opacity: 0.55;
+}
+
+/* ── Ripples from tap point ── */
+.ground-ripple-rich {
+  position: absolute;
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  border: 1px solid rgba(243, 239, 230, 0.60);
+  pointer-events: none;
+  z-index: 1;
+  transform: translate(-50%, -50%);
+  animation: groundRipple 1.3s cubic-bezier(0.2, 0.7, 0.2, 1) forwards;
+}
+@keyframes groundRipple {
+  0%   { width: 6px;   height: 6px;   opacity: 0.85; }
+  100% { width: 260px; height: 260px; opacity: 0;    }
+}
+
+/* ── Hint text ── */
+.ground-hint-rich {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 17px;
+  font-weight: 300;
+  line-height: 1.55;
+  color: var(--mist);
+  max-width: 460px;
+  text-align: center;
+  text-wrap: pretty;
+  transition: opacity 0.7s ease, transform 0.7s ease;
+}
+.ground-hint-rich.fading { opacity: 0; transform: translateY(6px); }
+
+/* ── Completion ceremony ── */
+.ground-done-rich {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 26px;
+  text-align: center;
+  max-width: 520px;
+  padding: 40px 24px;
+}
+.ground-done-eyebrow {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--whisper);
+  opacity: 0;
+  animation: groundFade 1.2s ease 0.1s forwards;
+}
+.ground-done-title {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: clamp(64px, 9vw, 108px);
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--paper);
+  margin: 0;
+  opacity: 0;
+  animation: groundFade 1.6s ease 0.4s forwards;
+}
+.ground-done-title .it { font-style: italic; }
+.ground-done-sub {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 17px;
+  line-height: 1.6;
+  color: var(--mist);
+  max-width: 380px;
+  margin: 0;
+  font-weight: 300;
+  opacity: 0;
+  animation: groundFade 1.6s ease 0.9s forwards;
+  text-wrap: pretty;
+}
+
+/* the 15-star constellation */
+.ground-done-constellation {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 14px 12px;
+  max-width: 240px;
+  padding: 24px 0 8px;
+  opacity: 0;
+  animation: groundFade 1.6s ease 1.4s forwards;
+}
+.ground-done-star {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--paper);
+  box-shadow: 0 0 12px currentColor;
+  opacity: 0;
+  transform: scale(0);
+  animation: groundStarBirth 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) forwards;
+}
+@keyframes groundStarBirth {
+  0%   { opacity: 0; transform: scale(0); }
+  60%  { opacity: 1; transform: scale(1.4); }
+  100% { opacity: 0.75; transform: scale(1); }
+}
+
+@keyframes groundFade {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.ground-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 26px;
+  border: 1px solid rgba(243, 239, 230, 0.28);
+  background: rgba(243, 239, 230, 0.05);
+  color: var(--paper);
+  border-radius: 999px;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.4s;
+  margin-top: 8px;
+  opacity: 0;
+  animation: groundFade 1.6s ease 2.0s forwards;
+}
+.ground-cta:hover {
+  border-color: var(--paper);
+  background: rgba(243, 239, 230, 0.10);
+}
+.ground-cta .arrow {
+  transition: transform 0.4s;
+}
+.ground-cta:hover .arrow { transform: translateX(4px); }
+
+/* ── Per-sense ambient tint over the stage ── */
+.ground-rich.ground-step-eye   { --sense-h: 192; }
+.ground-rich.ground-step-ear   { --sense-h: 220; }
+.ground-rich.ground-step-hand  { --sense-h: 40;  }
+.ground-rich.ground-step-air   { --sense-h: 320; }
+.ground-rich.ground-step-drop  { --sense-h: 10;  }
+
+.ground-rich {
+  --tint-color: hsl(var(--sense-h, 200), 50%, 70%);
+}
+.ground-rich .ground-dot-rich.filled {
+  border-color: var(--tint-color);
+  box-shadow: 0 0 28px hsla(var(--sense-h, 200), 50%, 70%, 0.22);
+}
+.ground-rich .ground-sense-big {
+  color: var(--tint-color);
+}

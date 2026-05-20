@@ -684,27 +684,28 @@ html { scroll-behavior: smooth; }
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  /* Dark veil so content is always legible against the sky */
-  background: rgba(6, 6, 26, 0.82);
+  /* darker veil but not opaque — aura bleeds through */
+  background: rgba(4, 4, 16, 0.74);
   backdrop-filter: blur(6px) saturate(120%);
   -webkit-backdrop-filter: blur(6px) saturate(120%);
-  /* Animate the veil itself — opacity stays 1 so the canvas is never hidden */
   animation: labFocusIn 700ms var(--ease) both;
 }
 @keyframes labFocusIn {
-  from { background-color: rgba(6, 6, 26, 0); backdrop-filter: blur(0px); -webkit-backdrop-filter: blur(0px); }
-  to   { background-color: rgba(6, 6, 26, 0.82); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+  from { background-color: rgba(4, 4, 16, 0); backdrop-filter: blur(0px); -webkit-backdrop-filter: blur(0px); }
+  to   { background-color: rgba(4, 4, 16, 0.74); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
 }
 .lab-focus-inner {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 18px;
+  gap: 14px;
   cursor: default;
 }
 .lab-focus-orb {
-  width: min(68vh, 68vw);
-  height: min(68vh, 68vw);
+  width: min(62vh, 62vw);
+  height: min(62vh, 62vw);
+  position: relative;
+  z-index: 2;
 }
 .lab-focus-orb .lab-canvas {
   width: 100%;
@@ -714,17 +715,21 @@ html { scroll-behavior: smooth; }
 .lab-focus-phase {
   font-family: var(--serif);
   font-style: italic;
-  font-size: clamp(28px, 4vw, 48px);
+  font-weight: 300;
+  font-size: clamp(48px, 7vw, 96px);
   color: var(--paper);
-  letter-spacing: 0.01em;
+  letter-spacing: -0.005em;
+  line-height: 1;
 }
 .lab-focus-dur {
-  font-family: var(--mono);
-  font-size: 10.5px;
-  letter-spacing: 0.30em;
-  text-transform: uppercase;
-  color: var(--whisper);
-  margin-top: -10px;
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: clamp(14px, 1.4vw, 18px);
+  letter-spacing: 0.04em;
+  text-transform: lowercase;
+  color: var(--mist);
+  margin-top: 0;
+  opacity: 0.6;
 }
 .lab-focus-meta {
   display: flex;
@@ -740,9 +745,11 @@ html { scroll-behavior: smooth; }
   color: var(--mist);
 }
 .lab-focus-exit {
-  margin-top: 10px;
-  padding: 12px 28px;
-  background: transparent;
+  position: absolute;
+  top: 28px;
+  right: 32px;
+  padding: 10px 22px;
+  background: rgba(243, 239, 230, 0.04);
   border: 1px solid rgba(243,239,230,0.18);
   border-radius: 999px;
   color: var(--whisper);
@@ -752,10 +759,12 @@ html { scroll-behavior: smooth; }
   text-transform: uppercase;
   cursor: pointer;
   transition: all 480ms var(--ease);
+  z-index: 5;
 }
 .lab-focus-exit:hover {
   border-color: rgba(243,239,230,0.40);
   color: var(--paper);
+  background: rgba(243, 239, 230, 0.10);
 }
 
 /* ── Focus overlay cadence switcher ── */

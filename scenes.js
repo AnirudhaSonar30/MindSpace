@@ -10,6 +10,12 @@
   const SCENES = {
     'midnight-rain': {
       id: 'midnight-rain', label: 'Midnight Rain', glyph: '⋮',
+      story: 'an apartment, four floors up. nobody is waiting for anything.',
+      whispers: [
+        'the rain has been here longer than the building.',
+        'somewhere a kettle is on. not yours.',
+        'the windows know each other.',
+      ],
       sky: {
         floor:   [0.026, 0.030, 0.082],
         horizon: [0.295, 0.215, 0.255],
@@ -34,6 +40,12 @@
     },
     'soft-morning': {
       id: 'soft-morning', label: 'Soft Morning', glyph: '◌',
+      story: 'the first light is borrowed. the day hasn\u2019t decided what it is yet.',
+      whispers: [
+        'a sparrow is the only one awake.',
+        'tea steam climbs into the curtain.',
+        'the floor is cool. that\u2019s the news.',
+      ],
       sky: {
         floor:   [0.045, 0.048, 0.110],
         horizon: [0.260, 0.230, 0.310],
@@ -57,6 +69,12 @@
     },
     'forest-temple': {
       id: 'forest-temple', label: 'Forest Temple', glyph: '⟡',
+      story: 'a clearing nobody named. moss took the bench back two summers ago.',
+      whispers: [
+        'something old is breathing nearby.',
+        'a single pine cone has decided.',
+        'the trees are taller than your week.',
+      ],
       sky: {
         floor:   [0.008, 0.028, 0.010],
         horizon: [0.045, 0.140, 0.055],
@@ -81,6 +99,12 @@
     },
     'ocean-dream': {
       id: 'ocean-dream', label: 'Ocean Dream', glyph: '∿',
+      story: 'a small boat between two larger silences. the moon has lost interest in you, kindly.',
+      whispers: [
+        'the salt knows the shape of your shoulders.',
+        'somewhere a whale is also resting.',
+        'the surface is far away.',
+      ],
       sky: {
         floor:   [0.004, 0.012, 0.048],
         horizon: [0.018, 0.072, 0.195],
@@ -105,6 +129,12 @@
     },
     'fireplace-cabin': {
       id: 'fireplace-cabin', label: 'Fireplace', glyph: '◈',
+      story: 'a cabin somebody left for you. the kettle is still warm. you do not have to be anywhere.',
+      whispers: [
+        'the wood has been burning a long time.',
+        'a draft moves the curtain. that\u2019s all.',
+        'the chair you are in remembers you.',
+      ],
       sky: {
         floor:   [0.055, 0.014, 0.004],
         horizon: [0.260, 0.075, 0.015],
@@ -129,6 +159,12 @@
     },
     'deep-space': {
       id: 'deep-space', label: 'Deep Space', glyph: '✦',
+      story: 'three hundred and eighty thousand kilometres above the inbox. nothing is close enough to want anything from you.',
+      whispers: [
+        'a photon from 1962 just arrived.',
+        'your thoughts are just light, travelling.',
+        'the silence here has weight.',
+      ],
       sky: {
         floor:   [0.002, 0.001, 0.010],
         horizon: [0.012, 0.007, 0.048],
@@ -153,6 +189,12 @@
     },
     'night-train': {
       id: 'night-train', label: 'Night Train', glyph: '⟶',
+      story: 'a sleeper car between two cities you don\u2019t live in. the world is happening outside your jurisdiction.',
+      whispers: [
+        'the city passes without needing you.',
+        'a stranger is reading two carriages down.',
+        'somewhere up ahead, rest.',
+      ],
       sky: {
         floor:   [0.012, 0.014, 0.042],
         horizon: [0.095, 0.105, 0.240],

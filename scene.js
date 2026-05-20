@@ -90,26 +90,29 @@
         col = mix(col, uMid,               smoothstep(0.28, 0.58, y));
         col = mix(col, uDeep,              smoothstep(0.56, 1.0,  y));
 
-        /* slow atmospheric wisps / aurora */
+        /* slow atmospheric wisps / aurora — breathes harder now */
         vec2 p1 = vec2(uv.x * uAspect, uv.y) * vec2(2.8, 1.4)
                 + vec2(uTime * 0.020, uTime * 0.006);
         float n = fbm(p1);
         float band = smoothstep(0.42, 0.80, n)
                    * smoothstep(0.04, 0.30, y)
                    * smoothstep(1.00, 0.42, y);
-        col += uBand * band * (0.45 + 0.25 * uBreath);
+        col += uBand * band * (0.42 + 0.55 * uBreath);
 
-        /* stars — varying brightness, never fully dark so they don't pop */
+        /* stars — varying brightness, never fully dark so they don't pop.
+           inhale lifts their intensity; exhale lets them rest. */
         vec2 sp = floor(uv * vec2(420.0 * uAspect, 420.0));
         float r = hash(sp);
         float star = smoothstep(0.9965, 1.0, r) * smoothstep(0.40, 1.0, y);
         float tw = 0.65 + 0.35 * sin(uTime * 1.0 + r * 80.0);
-        col += vec3(0.85, 0.92, 1.0) * star * tw * uStarBrightness;
+        float starBreath = 0.75 + 0.55 * uBreath;
+        col += vec3(0.85, 0.92, 1.0) * star * tw * uStarBrightness * starBreath;
 
-        /* soft vignette */
+        /* soft vignette — breathes wider on inhale, tighter on exhale */
         vec2 vc = (uv - 0.5) * vec2(uAspect, 1.0);
-        float v = smoothstep(1.10, 0.35, length(vc));
-        col *= mix(0.74, 1.02, v);
+        float vRadius = 1.10 + 0.10 * uBreath;
+        float v = smoothstep(vRadius, 0.35, length(vc));
+        col *= mix(0.74, 1.02 + 0.04 * uBreath, v);
 
         gl_FragColor = vec4(col, 1.0);
       }
@@ -125,18 +128,18 @@
   camera.position.set(0, 0, 22);
 
   /* Soft lighting for the paper planes */
-  scene.add(new THREE.AmbientLight(0xfff0d8, 0.55));
-  const key = new THREE.DirectionalLight(0xfff0d0, 1.15);
-  key.position.set(4, 6, 5);
+  scene.add(new THREE.AmbientLight(0xfff8f0, 1.10));
+  const key = new THREE.DirectionalLight(0xfff4e8, 0.60);
+  key.position.set(4, 8, 8);
   scene.add(key);
-  const fill = new THREE.DirectionalLight(0x99aaff, 0.45);
+  const fill = new THREE.DirectionalLight(0xaabfff, 0.35);
   fill.position.set(-6, -2, 4);
   scene.add(fill);
 
   /* ============================================================
      Drifting motes — soft points moved by a smooth flow field
      ============================================================ */
-  const M = 800;
+  const M = 420;
   const BOX = { x: 18, y: 10, z: 11 };
 
   const mPos  = new Float32Array(M * 3);
@@ -245,32 +248,35 @@
   function makePlaneMesh() {
     /* Local frame: +X right wing, +Y up (fold), +Z nose-forward */
     const geo = new THREE.BufferGeometry();
+    const s = 0.55; // scale factor — smaller, more delicate
     const v = new Float32Array([
       // top — left half
-      0.00,  0.00,  0.90,
-     -0.55,  0.00, -0.70,
-      0.00,  0.10, -0.50,
+      0.00,       0.00,      0.90*s,
+     -0.55*s,     0.00,     -0.70*s,
+      0.00,       0.10*s,   -0.50*s,
       // top — right half
-      0.00,  0.00,  0.90,
-      0.00,  0.10, -0.50,
-      0.55,  0.00, -0.70,
+      0.00,       0.00,      0.90*s,
+      0.00,       0.10*s,   -0.50*s,
+      0.55*s,     0.00,     -0.70*s,
       // bottom — left half (slight V downward)
-      0.00, -0.02,  0.90,
-     -0.55,  0.00, -0.70,
-      0.00, -0.06, -0.50,
+      0.00,      -0.02*s,    0.90*s,
+     -0.55*s,     0.00,     -0.70*s,
+      0.00,      -0.06*s,   -0.50*s,
       // bottom — right half
-      0.00, -0.02,  0.90,
-      0.00, -0.06, -0.50,
-      0.55,  0.00, -0.70,
+      0.00,      -0.02*s,    0.90*s,
+      0.00,      -0.06*s,   -0.50*s,
+      0.55*s,     0.00,     -0.70*s,
     ]);
     geo.setAttribute('position', new THREE.BufferAttribute(v, 3));
     geo.computeVertexNormals();
     const mat = new THREE.MeshStandardMaterial({
-      color: 0xeee5cf,
-      roughness: 0.78,
-      metalness: 0.0,
+      color: 0xf4eee0,
+      roughness: 0.62,
+      metalness: 0.04,
       side: THREE.DoubleSide,
-      flatShading: true,
+      flatShading: false,
+      transparent: true,
+      opacity: 0.52,
     });
     return new THREE.Mesh(geo, mat);
   }
@@ -288,7 +294,7 @@
     varying float vA;
     uniform vec3 uColor;
     void main(){
-      gl_FragColor = vec4(uColor, vA * vA * 0.55);
+      gl_FragColor = vec4(uColor, vA * vA * 0.28);
     }
   `;
 
@@ -395,7 +401,87 @@
   }
 
   const planes = [];
-  for (let i = 0; i < 5; i++) planes.push(new PaperPlane(Math.random()));
+  for (let i = 0; i < 3; i++) planes.push(new PaperPlane(Math.random()));
+
+  /* ============================================================
+     Shooting stars — occasional bright diagonal streaks
+     ============================================================ */
+  class ShootingStar {
+    constructor() {
+      const geo = new THREE.BufferGeometry();
+      const pos = new Float32Array(2 * 3);
+      geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+      const mat = new THREE.LineBasicMaterial({
+        color: 0xd8e8ff,
+        transparent: true,
+        opacity: 0,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+      });
+      this.line = new THREE.Line(geo, mat);
+      this.line.visible = false;
+      this.geo = geo;
+      this.pos = pos;
+      this.mat = mat;
+      this.active = false;
+      this.life = 0;
+      this.maxLife = 0.28;
+      this.x = 0; this.y = 0; this.z = 0;
+      this.vx = 0; this.vy = 0;
+      this.len = 2.0;
+      scene.add(this.line);
+    }
+    spawn() {
+      const angle = -0.20 - Math.random() * 0.28; // downward diagonal
+      const speed = 22 + Math.random() * 18;
+      this.x  = (Math.random() - 0.5) * 24;
+      this.y  = 3.5 + Math.random() * 4.5;
+      this.z  = -1 - Math.random() * 6;
+      this.vx = Math.cos(angle) * speed;
+      this.vy = Math.sin(angle) * speed;
+      this.len = 1.8 + Math.random() * 2.8;
+      this.life = 0;
+      this.maxLife = 0.22 + Math.random() * 0.14;
+      this.active = true;
+      this.line.visible = true;
+    }
+    update(dt) {
+      if (!this.active) return;
+      this.life += dt;
+      if (this.life >= this.maxLife) {
+        this.active = false;
+        this.line.visible = false;
+        this.mat.opacity = 0;
+        return;
+      }
+      const t = this.life / this.maxLife;
+      this.mat.opacity = Math.sin(Math.PI * t) * 0.88;
+      const cx = this.x + this.vx * this.life;
+      const cy = this.y + this.vy * this.life;
+      const p = this.pos;
+      p[0] = cx - this.vx * this.len * 0.07;
+      p[1] = cy - this.vy * this.len * 0.07;
+      p[2] = this.z;
+      p[3] = cx; p[4] = cy; p[5] = this.z;
+      this.geo.attributes.position.needsUpdate = true;
+    }
+  }
+
+  const shootingStars = Array.from({ length: 4 }, () => new ShootingStar());
+  let nextStar = 18 + Math.random() * 30;
+
+  /* ============================================================
+     Lightning — triggered when the active scene has lightning:true
+     ============================================================ */
+  const _flashEl = document.querySelector('.scene-veil-flash');
+  let nextLightning = 12 + Math.random() * 25;
+  function triggerLightning() {
+    if (!_flashEl) return;
+    _flashEl.classList.remove('lightning-active');
+    void _flashEl.offsetWidth; /* force reflow to restart animation */
+    _flashEl.classList.add('lightning-active');
+    setTimeout(() => _flashEl.classList.remove('lightning-active'), 700);
+  }
 
   /* ============================================================
      Interaction
@@ -457,17 +543,25 @@
      ============================================================ */
   let prev = performance.now();
   const start = prev;
+  let liteFrame = 0;
   function animate(now) {
     const dt = Math.min(0.05, (now - prev) / 1000);
     prev = now;
     const t = (now - start) / 1000;
+
+    /* throttle when an immersive overlay covers the world — saves
+       paper-plane updates + halves mote work without dropping the sky */
+    const body = document.body;
+    const lite = document.hidden ||
+                 body.classList.contains('breath-focus') ||
+                 body.classList.contains('has-journey-open') ||
+                 body.classList.contains('amb-sleep');
 
     mouse.x += (mouse.tx - mouse.x) * 0.10;
     mouse.y += (mouse.ty - mouse.y) * 0.10;
     scrollT += (scrollTarget - scrollT) * 0.06;
 
     const computedBreath = breathAt(t);
-    // If a UI component (breathing lab / right-now) is driving breath, defer.
     if (!window.__mindspaceOverride) {
       window.__mindspaceBreath = computedBreath;
     }
@@ -477,8 +571,43 @@
     skyMat.uniforms.uBreath.value = breath;
     motesMat.uniforms.uTime.value = t;
 
-    updateMotes(dt, t, breath);
-    for (let i = 0; i < planes.length; i++) planes[i].update(dt, breath);
+    /* In lite mode update motes every-other-frame and skip plane updates */
+    liteFrame++;
+    if (!lite || (liteFrame & 1) === 0) {
+      updateMotes(dt * (lite ? 2 : 1), t, breath);
+    }
+    /* Show/hide planes based on ambient mode */
+    const hidePlanes = body.classList.contains('amb-sleep') ||
+                       body.classList.contains('amb-nothing');
+    for (let i = 0; i < planes.length; i++) {
+      planes[i].mesh.visible  = !hidePlanes;
+      planes[i].trail.visible = !hidePlanes;
+    }
+    if (!lite) {
+      for (let i = 0; i < planes.length; i++) planes[i].update(dt, breath);
+    }
+
+    /* Shooting stars — update active ones, schedule next */
+    for (let i = 0; i < shootingStars.length; i++) shootingStars[i].update(dt);
+    if (!lite) {
+      nextStar -= dt;
+      if (nextStar <= 0) {
+        const ss = shootingStars.find(s => !s.active);
+        if (ss) ss.spawn();
+        nextStar = 22 + Math.random() * 45;
+      }
+    }
+
+    /* Lightning — only when scene defines lightning:true */
+    if (!lite && window.__mindspaceScene && window.__mindspaceScene.lightning) {
+      nextLightning -= dt;
+      if (nextLightning <= 0) {
+        triggerLightning();
+        nextLightning = 14 + Math.random() * 28;
+      }
+    } else {
+      nextLightning = 14 + Math.random() * 28; /* reset when scene has no lightning */
+    }
 
     // Camera parallax — mouse drift + slow scroll dolly
     camera.position.x = mouse.x * 1.6;

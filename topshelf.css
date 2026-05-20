@@ -1,0 +1,920 @@
+/* MindSpace — top-level modules
+   styles for: Memory (welcome-back), Scene Whisper, Ambient Modes,
+   Shared Sky, Micro Life, sleep/focus body classes
+*/
+
+/* ═══════════════════════════════════════════════════════════════
+   Micro-life canvas — sits above .atm-canvas, below UI chrome
+═══════════════════════════════════════════════════════════════ */
+.microlife-canvas {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 4;
+  width: 100vw;
+  height: 100vh;
+  mix-blend-mode: screen;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Welcome-back card — top-centre, glassy, very small
+═══════════════════════════════════════════════════════════════ */
+.wb-card {
+  position: fixed;
+  top: 70px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 70;
+  pointer-events: auto;
+  animation: wbFadeIn 1.6s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.wb-card-inner {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 44px 14px 20px;
+  background: rgba(6, 6, 26, 0.62);
+  border: 1px solid rgba(243, 239, 230, 0.10);
+  border-radius: 12px;
+  backdrop-filter: blur(18px) saturate(1.2);
+  -webkit-backdrop-filter: blur(18px) saturate(1.2);
+  box-shadow: 0 8px 36px rgba(0, 0, 0, 0.30);
+  min-width: 260px;
+  max-width: 420px;
+}
+.wb-eyebrow {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.36em;
+  text-transform: uppercase;
+  color: var(--whisper);
+}
+.wb-line {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 16px;
+  line-height: 1.35;
+  color: var(--paper);
+}
+.wb-scene {
+  color: oklch(0.85 0.09 240);
+  font-style: italic;
+}
+.wb-when {
+  color: var(--mist);
+  font-size: 13px;
+  margin-left: 6px;
+  font-style: normal;
+  font-family: var(--sans);
+  font-weight: 300;
+}
+.wb-close {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  background: none;
+  border: none;
+  color: var(--whisper);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  border-radius: 999px;
+  transition: color 0.3s, background 0.3s;
+}
+.wb-close:hover { color: var(--paper); background: rgba(243, 239, 230, 0.06); }
+@keyframes wbFadeIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(-12px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Scene Whisper — small italic line above the mode nav
+═══════════════════════════════════════════════════════════════ */
+.whisper {
+  position: fixed;
+  bottom: 96px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 55;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  pointer-events: none;
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 16px;
+  color: var(--mist);
+  letter-spacing: 0.01em;
+  text-align: center;
+  max-width: 90vw;
+  text-wrap: balance;
+  opacity: 0;
+  animation: whisperFade 7.4s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  text-shadow: 0 0 16px rgba(6, 6, 26, 0.55);
+}
+.whisper-glyph {
+  font-family: var(--sans);
+  opacity: 0.4;
+  font-style: normal;
+}
+@keyframes whisperFade {
+  0%   { opacity: 0;     transform: translateX(-50%) translateY(8px); }
+  12%  { opacity: 0.92;  transform: translateX(-50%) translateY(0); }
+  82%  { opacity: 0.92;  transform: translateX(-50%) translateY(0); }
+  100% { opacity: 0;     transform: translateX(-50%) translateY(-6px); }
+}
+body.zen-mode .whisper { opacity: 0.92; } /* whispers survive zen */
+@media (max-width: 560px) {
+  .whisper { font-size: 14px; bottom: 88px; padding: 0 16px; }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Ambient Modes — trigger + picker
+═══════════════════════════════════════════════════════════════ */
+.amb-trigger-wrap {
+  position: fixed;
+  top: 62px;
+  right: 36px;
+  z-index: 64;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+  pointer-events: auto;
+  opacity: 0;
+  transition: opacity 1.6s ease;
+}
+body.app-ready .amb-trigger-wrap { opacity: 0.55; }
+body.app-ready .amb-trigger-wrap:hover,
+body.app-ready .amb-trigger-wrap.open { opacity: 1; }
+body.zen-mode .amb-trigger-wrap { opacity: 0.10; }
+body.zen-mode .amb-trigger-wrap:hover { opacity: 1; }
+.amb-trigger {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 14px 8px 12px;
+  border-radius: 999px;
+  background: rgba(6, 6, 26, 0.42);
+  border: 1px solid rgba(243, 239, 230, 0.10);
+  color: var(--mist);
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  cursor: pointer;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  transition: all 0.4s;
+  opacity: 0.78;
+}
+.amb-trigger:hover { opacity: 1; border-color: rgba(243, 239, 230, 0.22); color: var(--paper); }
+.amb-trigger-glyph {
+  font-size: 13px;
+  line-height: 1;
+  opacity: 0.85;
+}
+.amb-trigger-wrap.open .amb-trigger { background: rgba(6, 6, 26, 0.68); opacity: 1; }
+
+.amb-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 280px;
+  padding: 14px 8px 10px;
+  background: rgba(6, 6, 26, 0.78);
+  border: 1px solid rgba(243, 239, 230, 0.10);
+  border-radius: 14px;
+  backdrop-filter: blur(20px) saturate(1.3);
+  -webkit-backdrop-filter: blur(20px) saturate(1.3);
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.45);
+  animation: ambPop 0.42s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.amb-picker-eyebrow {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--whisper);
+  padding: 4px 12px 12px;
+}
+.amb-opt {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 12px 14px;
+  border: none;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: background 0.3s;
+  color: var(--paper);
+}
+.amb-opt:hover { background: rgba(243, 239, 230, 0.05); }
+.amb-opt.on   { background: rgba(243, 239, 230, 0.08); }
+.amb-opt-glyph {
+  font-size: 18px;
+  line-height: 1;
+  width: 22px;
+  margin-top: 2px;
+  color: var(--mist);
+}
+.amb-opt.on .amb-opt-glyph { color: var(--paper); }
+.amb-opt-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.amb-opt-name {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 17px;
+  color: var(--paper);
+  line-height: 1.1;
+}
+.amb-opt-blurb {
+  font-family: var(--sans);
+  font-size: 12px;
+  font-weight: 300;
+  color: var(--mist);
+  line-height: 1.45;
+}
+@keyframes ambPop {
+  from { opacity: 0; transform: translateY(-8px) scale(0.96); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* ── Do Nothing veil — captures clicks, very subtle hint ── */
+.amb-nothing-veil {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  cursor: pointer;
+  background: transparent;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 7vh;
+  animation: nothingFadeIn 1.4s ease-out both;
+}
+.amb-nothing-hint {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.4em;
+  text-transform: uppercase;
+  color: rgba(243, 239, 230, 0.18);
+  text-shadow: 0 0 18px rgba(6, 6, 26, 0.7);
+  animation: nothingHint 5s ease-in-out infinite;
+}
+@keyframes nothingFadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes nothingHint {
+  0%, 100% { opacity: 0.18; }
+  50%      { opacity: 0.50; }
+}
+
+/* When Do Nothing is active, fade out every piece of UI chrome.
+   Everything except the scene canvases. */
+body.amb-nothing .nav,
+body.amb-nothing .mode-nav,
+body.amb-nothing .scene-sw,
+body.amb-nothing .cm-fab,
+body.amb-nothing .rn-fab,
+body.amb-nothing .snd-widget,
+body.amb-nothing .mood-badge,
+body.amb-nothing .ss-fab,
+body.amb-nothing .amb-trigger-wrap,
+body.amb-nothing .hs-eyebrow,
+body.amb-nothing .hs-hint,
+body.amb-nothing .hs-sub,
+body.amb-nothing .hs-title {
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transition: opacity 1.8s ease-out !important;
+}
+
+/* ── Focus mode — dim and quiet, single banner top-centre ── */
+.amb-focus-band {
+  position: fixed;
+  top: 22px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 70;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 8px 8px 16px;
+  background: rgba(6, 6, 26, 0.55);
+  border: 1px solid rgba(243, 239, 230, 0.10);
+  border-radius: 999px;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--mist);
+  animation: wbFadeIn 1s ease-out both;
+}
+.amb-focus-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: oklch(0.78 0.10 60);
+  box-shadow: 0 0 10px oklch(0.78 0.10 60 / 0.7);
+  animation: pulse 3s ease-in-out infinite;
+}
+.amb-focus-leave {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--mist);
+  background: rgba(243, 239, 230, 0.06);
+  border: 1px solid rgba(243, 239, 230, 0.10);
+  padding: 6px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+.amb-focus-leave:hover { color: var(--paper); border-color: rgba(243, 239, 230, 0.22); }
+
+/* In focus mode, dim non-essential surfaces */
+body.amb-focus .nav,
+body.amb-focus .rn-fab,
+body.amb-focus .ss-fab,
+body.amb-focus .mood-badge,
+body.amb-focus .scene-sw {
+  opacity: 0.30;
+  transition: opacity 1.2s ease;
+}
+body.amb-focus .cm-fab { opacity: 0.50; }
+body.amb-focus .nav:hover,
+body.amb-focus .rn-fab:hover,
+body.amb-focus .ss-fab:hover,
+body.amb-focus .scene-sw:hover { opacity: 1; }
+
+/* ── Sleep mode — black-ramp veil + screen-wide softness ── */
+.amb-sleep-veil {
+  position: fixed;
+  inset: 0;
+  z-index: 95;
+  background: rgb(2, 2, 8);
+  cursor: pointer;
+  transition: opacity 1.6s ease-out;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.amb-sleep-hint {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: clamp(18px, 2.4vw, 28px);
+  color: rgba(243, 239, 230, 0.45);
+  text-align: center;
+  text-shadow: 0 0 18px rgba(0, 0, 0, 0.8);
+  transition: opacity 1.6s ease;
+  max-width: 480px;
+  padding: 0 24px;
+  text-wrap: pretty;
+}
+
+/* Slow everything down in sleep mode */
+body.amb-sleep .nav,
+body.amb-sleep .mode-nav,
+body.amb-sleep .scene-sw,
+body.amb-sleep .cm-fab,
+body.amb-sleep .rn-fab,
+body.amb-sleep .snd-widget,
+body.amb-sleep .ss-fab,
+body.amb-sleep .mood-badge {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 1s ease;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Shared Sky — FAB + overlay
+═══════════════════════════════════════════════════════════════ */
+.ss-fab {
+  position: fixed;
+  left: 36px;
+  top: 62px;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 10px 16px 10px 14px;
+  background: rgba(6, 6, 26, 0.42);
+  border: 1px solid rgba(243, 239, 230, 0.10);
+  border-radius: 999px;
+  color: var(--paper);
+  cursor: pointer;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  font-family: var(--sans);
+  transition: all 0.4s, opacity 1.6s ease;
+  opacity: 0;
+}
+body.app-ready .ss-fab { opacity: 0.55; }
+body.app-ready .ss-fab:hover { opacity: 1; border-color: rgba(243, 239, 230, 0.25); }
+body.zen-mode .ss-fab { opacity: 0.10; }
+body.zen-mode .ss-fab:hover { opacity: 1; }
+.ss-fab-glyph {
+  display: none;
+}
+.ss-fab-text {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--paper);
+}
+.ss-fab-sub {
+  font-family: var(--mono);
+  font-size: 8.5px;
+  letter-spacing: 0.20em;
+  text-transform: uppercase;
+  color: var(--whisper);
+}
+@media (max-width: 700px) {
+  .ss-fab { top: auto; bottom: 92px; left: 14px; padding: 8px 12px; }
+}
+
+.ss-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 110;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 600ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.ss-overlay.in { opacity: 1; }
+.ss-veil {
+  position: absolute;
+  inset: 0;
+  background: rgba(2, 2, 8, 0.68);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+.ss-stage {
+  position: relative;
+  width: min(96vw, 1160px);
+  height: min(92vh, 760px);
+  display: flex;
+  flex-direction: column;
+  background: rgba(6, 6, 26, 0.74);
+  border: 1px solid rgba(243, 239, 230, 0.10);
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.55);
+}
+.ss-head {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 26px 32px 18px;
+  border-bottom: 1px solid rgba(243, 239, 230, 0.06);
+  gap: 24px;
+}
+.ss-head-text { display: flex; flex-direction: column; gap: 8px; }
+.ss-head-meta {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-shrink: 0;
+}
+.ss-presence {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  background: rgba(243, 239, 230, 0.04);
+  border: 1px solid rgba(243, 239, 230, 0.10);
+  border-radius: 999px;
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--mist);
+  white-space: nowrap;
+}
+.ss-presence-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: oklch(0.78 0.13 150);
+  box-shadow: 0 0 8px oklch(0.78 0.13 150 / 0.7);
+  animation: pulse 3s ease-in-out infinite;
+}
+.ss-eyebrow {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: var(--whisper);
+}
+.ss-title {
+  font-family: var(--serif);
+  font-style: italic;
+  font-weight: 400;
+  font-size: clamp(32px, 4vw, 48px);
+  line-height: 1;
+  margin: 0;
+  color: var(--paper);
+}
+.ss-sub {
+  font-size: 13.5px;
+  font-weight: 300;
+  color: var(--mist);
+  max-width: 540px;
+  line-height: 1.55;
+  text-wrap: pretty;
+  margin: 0;
+}
+.ss-close {
+  background: rgba(243, 239, 230, 0.04);
+  border: 1px solid rgba(243, 239, 230, 0.10);
+  border-radius: 999px;
+  color: var(--mist);
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.3s;
+}
+.ss-close:hover { color: var(--paper); background: rgba(243, 239, 230, 0.10); }
+
+.ss-canvas-wrap {
+  position: relative;
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: hidden;
+}
+.ss-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  cursor: grab;
+}
+.ss-canvas:active { cursor: grabbing; }
+
+/* Theme legend — bottom-left, vertical stack of tiny dots + labels */
+.ss-legend {
+  position: absolute;
+  left: 18px;
+  bottom: 18px;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 12px 14px;
+  background: rgba(6, 6, 26, 0.42);
+  border: 1px solid rgba(243, 239, 230, 0.08);
+  border-radius: 10px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  pointer-events: none;
+}
+.ss-legend-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--whisper);
+}
+.ss-legend-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  box-shadow: 0 0 8px currentColor;
+  flex-shrink: 0;
+}
+
+/* Re-centre button — top-right of canvas */
+.ss-recenter {
+  position: absolute;
+  right: 18px;
+  bottom: 18px;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: rgba(6, 6, 26, 0.55);
+  border: 1px solid rgba(243, 239, 230, 0.12);
+  border-radius: 999px;
+  color: var(--mist);
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.3s;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+.ss-recenter:hover {
+  color: var(--paper);
+  border-color: rgba(243, 239, 230, 0.30);
+}
+.ss-recenter svg {
+  color: inherit;
+}
+.ss-tip {
+  position: absolute;
+  transform: translate(14px, -28px);
+  background: rgba(8, 8, 24, 0.86);
+  border: 1px solid rgba(243, 239, 230, 0.16);
+  padding: 9px 14px;
+  border-radius: 10px;
+  max-width: 280px;
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 14px;
+  color: var(--paper);
+  line-height: 1.4;
+  pointer-events: none;
+  z-index: 5;
+  text-wrap: pretty;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.4);
+}
+.ss-tip.mine { border-color: oklch(0.78 0.11 220 / 0.45); }
+.ss-tip-mine {
+  margin-left: 6px;
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--whisper);
+  font-style: normal;
+}
+
+.ss-foot {
+  flex-shrink: 0;
+  padding: 20px 32px 26px;
+  border-top: 1px solid rgba(243, 239, 230, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.ss-leave-btn {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 22px;
+  background: rgba(243, 239, 230, 0.04);
+  border: 1px solid rgba(243, 239, 230, 0.16);
+  border-radius: 999px;
+  color: var(--paper);
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+.ss-leave-btn:hover { border-color: var(--paper); background: rgba(243, 239, 230, 0.08); }
+.ss-leave-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: oklch(0.78 0.10 220);
+  box-shadow: 0 0 10px oklch(0.78 0.10 220 / 0.7);
+}
+.ss-composer {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  animation: ssComposerIn 0.35s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+@keyframes ssComposerIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.ss-input {
+  width: 100%;
+  background: rgba(28, 24, 68, 0.92);
+  border: 1px solid rgba(160, 180, 255, 0.28);
+  border-radius: 12px;
+  padding: 14px 16px;
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 18px;
+  color: rgba(243, 239, 230, 0.92);
+  caret-color: rgba(243, 239, 230, 0.9);
+  line-height: 1.45;
+  resize: none;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+.ss-input::placeholder {
+  color: rgba(243, 239, 230, 0.32);
+  font-style: italic;
+}
+.ss-input:focus {
+  border-color: rgba(120, 160, 255, 0.55);
+  box-shadow: 0 0 0 3px rgba(100, 140, 255, 0.10);
+}
+.ss-composer-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+.ss-count {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--whisper);
+}
+.ss-composer-actions { display: flex; gap: 10px; }
+.ss-btn {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  padding: 10px 18px;
+  background: oklch(0.78 0.10 220 / 0.18);
+  border: 1px solid oklch(0.78 0.10 220 / 0.36);
+  color: var(--paper);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+.ss-btn:hover:not(:disabled) {
+  background: oklch(0.78 0.10 220 / 0.30);
+  border-color: oklch(0.78 0.10 220 / 0.60);
+}
+.ss-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.ss-btn-ghost {
+  background: none;
+  border-color: rgba(243, 239, 230, 0.16);
+  color: var(--mist);
+}
+.ss-btn-ghost:hover {
+  background: rgba(243, 239, 230, 0.06);
+  border-color: rgba(243, 239, 230, 0.32);
+  color: var(--paper);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Reduce z-fight & keep nav above effects
+═══════════════════════════════════════════════════════════════ */
+.mode-nav { z-index: 65; }
+.nav { z-index: 68; }
+
+/* When Do Nothing veil is up, the mode-nav must stay reachable from
+   outside. (we exit by tapping the veil itself.) */
+body.amb-nothing .amb-nothing-veil { z-index: 90; }
+
+/* When a heavy overlay is up (companion, journey, mood, right-now),
+   hide the whisper so it doesn't fight for attention. */
+body.has-journey-open .whisper,
+body.amb-nothing .whisper,
+body.amb-sleep .whisper { display: none !important; }
+
+/* ═══════════════════════════════════════════════════════════════
+   Breath Orb v2 — style picker + peripheral aura
+═══════════════════════════════════════════════════════════════ */
+.lab-aura {
+  position: fixed;
+  inset: -8vh;
+  z-index: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    circle at 50% 50%,
+    hsla(var(--aura-h, 260), var(--aura-s, 50%), var(--aura-l, 64%), calc(var(--aura-b, 0.5) * 0.68)) 0%,
+    hsla(var(--aura-h, 260), var(--aura-s, 50%), var(--aura-l, 64%), calc(var(--aura-b, 0.5) * 0.32)) 20%,
+    hsla(var(--aura-h, 260), var(--aura-s, 50%), var(--aura-l, 64%), calc(var(--aura-b, 0.5) * 0.10)) 50%,
+    transparent 85%
+  );
+  filter: blur(80px);
+  transition: opacity 800ms ease;
+  opacity: 0;
+}
+body.breath-focus .lab-aura { opacity: 1; }
+html body.breath-focus .mode-nav,
+html body.breath-focus .nav,
+html body.breath-focus .scene-sw,
+html body.breath-focus .cm-fab,
+html body.breath-focus .ss-fab,
+html body.breath-focus .rn-fab,
+html body.breath-focus .snd-widget,
+html body.breath-focus .mood-badge,
+html body.breath-focus .amb-trigger-wrap,
+html body.breath-focus .counter {
+  opacity: 0 !important;
+  pointer-events: none !important;
+  visibility: hidden !important;
+  transition: none !important;
+}
+/* Keep the custom cursor visible in focus mode */
+html body.breath-focus.hide-native-cursor .premium-cursor-ring,
+html body.breath-focus.hide-native-cursor .premium-cursor-dot {
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: none !important;
+}
+.lab-focus .lab-aura {
+  position: absolute;
+  inset: -20vh;
+  opacity: 1;
+  mix-blend-mode: screen;
+  z-index: 0;
+}
+.lab-focus-inner { position: relative; z-index: 1; }
+.lab-stage .lab-aura {
+  position: absolute;
+  inset: -20%;
+  opacity: 0.55;
+  filter: blur(40px);
+}
+
+/* Inline orb-style picker — positioned below the canvas, centred */
+.lab-orb-styles {
+  position: absolute;
+  left: 50%;
+  bottom: -40px;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  background: rgba(6, 6, 26, 0.55);
+  border: 1px solid rgba(243, 239, 230, 0.10);
+  border-radius: 999px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  z-index: 4;
+  white-space: nowrap;
+}
+.lab-orb-style {
+  padding: 7px 14px;
+  border: none;
+  background: transparent;
+  color: var(--whisper);
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  cursor: pointer;
+  border-radius: 999px;
+  transition: all 0.3s;
+}
+.lab-orb-style:hover {
+  color: var(--mist);
+}
+.lab-orb-style.on {
+  background: rgba(243, 239, 230, 0.08);
+  color: var(--paper);
+}
+
+/* Focus overlay — orb style picker (next to cadence chips) */
+.lab-focus-styles {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+}
+.lab-focus-style {
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(243, 239, 230, 0.10);
+  background: transparent;
+  color: rgba(243, 239, 230, 0.45);
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 360ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.lab-focus-style:hover {
+  color: rgba(243, 239, 230, 0.78);
+  border-color: rgba(243, 239, 230, 0.30);
+}
+.lab-focus-style.on {
+  background: rgba(243, 239, 230, 0.08);
+  border-color: rgba(243, 239, 230, 0.40);
+  color: var(--paper);
+}
+
+/* Make the lab-stage a positioning context so the aura sits behind */
+.lab-stage { position: relative; }

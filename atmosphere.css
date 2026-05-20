@@ -58,7 +58,7 @@
   border: 1px solid rgba(243, 239, 230, 0.10);
   border-radius: 16px;
   padding: 16px 12px;
-  min-width: 185px;
+  min-width: 240px;
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   animation: scenePanelIn 280ms var(--ease-premium) both;
@@ -115,11 +115,47 @@
   opacity: 0.75;
   flex-shrink: 0;
 }
-.scene-opt-name { flex: 1; }
+.scene-opt-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.scene-opt-name { line-height: 1; }
+.scene-opt-story {
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  text-transform: none;
+  font-style: italic;
+  font-family: var(--serif);
+  color: rgba(243, 239, 230, 0.28);
+  line-height: 1.35;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 160px;
+}
+.scene-opt.on .scene-opt-story {
+  color: rgba(243, 239, 230, 0.48);
+}
 .scene-opt-tick {
   color: rgba(243, 239, 230, 0.40);
   font-size: 16px;
   line-height: 1;
+}
+
+/* First-visit pulse to draw attention to the switcher */
+@keyframes scenePulse {
+  0%   { box-shadow: 0 0 0 0 rgba(243, 239, 230, 0.30); }
+  65%  { box-shadow: 0 0 0 12px rgba(243, 239, 230, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(243, 239, 230, 0); }
+}
+.scene-toggle.pulse {
+  animation: scenePulse 1.7s ease 3;
+  border-color: rgba(243, 239, 230, 0.32) !important;
+  color: rgba(243, 239, 230, 0.90) !important;
+  opacity: 1 !important;
 }
 
 /* ── Progressive reveal — everything appears once app is ready ── */
@@ -181,6 +217,18 @@ body.zen-mode .mode-nav:hover {
 body.scene-transitioning .scene-veil-flash {
   background: rgba(243, 239, 230, 0.10);
   transition: background-color 90ms ease;
+}
+
+/* ── Lightning strike ── */
+@keyframes lightningBolt {
+  0%   { background: transparent; }
+  4%   { background: rgba(200, 220, 255, 0.55); }
+  9%   { background: transparent; }
+  13%  { background: rgba(200, 220, 255, 0.30); }
+  20%  { background: transparent; }
+}
+.scene-veil-flash.lightning-active {
+  animation: lightningBolt 0.65s ease forwards;
 }
 
 /* ── Mobile ── */

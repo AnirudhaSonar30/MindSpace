@@ -67,18 +67,11 @@ function SceneSwitcher() {
   );
 }
 
-/* ── Home screen — tagline only, mode-nav is the navigation entry point ── */
+/* ── Home screen — minimal ── */
 function HomeScreen() {
   return (
     <div className="hs">
-      <div className="hs-eyebrow">a calm space for your busy mind</div>
-      <h1 className="hs-title">
-        One quiet<br/><span className="hs-it">moment.</span>
-      </h1>
-      <p className="hs-sub">
-        Breathing exercises, ambient worlds, and guided stillness —
-        made for minds that won't slow down on their own.
-      </p>
+      <h1 className="hs-quiet">a quiet sky<br/>for a loud mind.</h1>
       <div className="hs-hint">choose a practice below</div>
     </div>
   );
@@ -103,16 +96,69 @@ function RestScreen() {
   );
 }
 
+/* ── Error boundary so a single feature crash doesn't kill the app ── */
+class FeatureBoundary extends React.Component {
+  constructor(p) { super(p); this.state = { err: null }; }
+  static getDerivedStateFromError(err) { return { err }; }
+  componentDidCatch(err, info) { console.warn('[MindSpace] feature crashed:', err, info); }
+  render() {
+    if (this.state.err) {
+      if (this.props.fallback) return this.props.fallback;
+      return (
+        <div className="mode-panel">
+          <div style={{
+            textAlign: 'center', maxWidth: 460, padding: '0 32px',
+            fontFamily: 'var(--serif)', fontStyle: 'italic',
+            fontSize: 22, color: 'rgba(243,239,230,0.78)', lineHeight: 1.55,
+          }}>
+            this practice stumbled. the sky is still here.
+            <div style={{
+              marginTop: 22, fontFamily: 'var(--mono)', fontSize: 11,
+              letterSpacing: '0.26em', textTransform: 'uppercase',
+              color: 'rgba(243,239,230,0.45)',
+            }}>
+              <button
+                onClick={() => { this.setState({ err: null }); this.props.onReset && this.props.onReset(); }}
+                style={{
+                  background: 'rgba(243,239,230,0.05)',
+                  border: '1px solid rgba(243,239,230,0.20)',
+                  color: 'inherit', padding: '10px 20px', borderRadius: 999,
+                  cursor: 'pointer', fontFamily: 'inherit', fontSize: 'inherit',
+                  letterSpacing: 'inherit', textTransform: 'inherit',
+                }}
+              >back home</button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+/* Silent boundary for FAB-level components so a crash there
+   just removes that surface, no banner. */
+function silent(Comp) {
+  if (!Comp) return null;
+  return (
+    <FeatureBoundary fallback={null}>
+      <Comp />
+    </FeatureBoundary>
+  );
+}
+
 /* ── Mode panel ── */
 function ModePanel({ mode, onExit }) {
   const Lab = window.MindSpaceBreathingLab;
   const G   = window.MindSpaceGrounding;
   return (
-    <div className="mode-panel">
-      {mode === 'breathe' && (Lab ? <Lab autoFocus={true} onExit={onExit} /> : <p className="mode-loading">Loading…</p>)}
-      {mode === 'ground'  && (G   ? <G  /> : <p className="mode-loading">Loading…</p>)}
-      {mode === 'rest'    && <RestScreen />}
-    </div>
+    <FeatureBoundary onReset={onExit}>
+      <div className="mode-panel">
+        {mode === 'breathe' && (Lab ? <Lab autoFocus={true} onExit={onExit} /> : <p className="mode-loading">Loading…</p>)}
+        {mode === 'ground'  && (G   ? <G  /> : <p className="mode-loading">Loading…</p>)}
+        {mode === 'rest'    && <RestScreen />}
+      </div>
+    </FeatureBoundary>
   );
 }
 
@@ -157,7 +203,7 @@ function App() {
     setTimeout(() => {
       setMode(pendingRef.current);
       setLeaving(false);
-    }, 300);
+    }, 420);
   };
 
   return (
@@ -171,14 +217,20 @@ function App() {
       </main>
       <ModeNav mode={mode} onMode={goMode} />
 
-      {window.MindSpaceAtmosphere      ? <window.MindSpaceAtmosphere      /> : null}
-      {window.MindSpaceSound           ? <window.MindSpaceSound           /> : null}
-      {window.MindSpaceCompanionToggle ? <window.MindSpaceCompanionToggle /> : null}
-      {window.MindSpaceMoodCheck       ? <window.MindSpaceMoodCheck       /> : null}
-      {window.MindSpaceRightNow        ? <window.MindSpaceRightNow        /> : null}
-      <SceneSwitcher />
+      {silent(window.MindSpaceAtmosphere)}
+      {silent(window.MindSpaceSound)}
+      {silent(window.MindSpaceCompanionToggle)}
+      {silent(window.MindSpaceMoodCheck)}
+      {silent(window.MindSpaceRightNow)}
+      {silent(window.MindSpaceSharedSky)}
+      {silent(window.MindSpaceAmbientModes)}
+      {silent(window.MindSpaceWelcomeBack)}
+      {silent(window.MindSpaceWhisper)}
+      <FeatureBoundary fallback={null}><SceneSwitcher /></FeatureBoundary>
     </React.Fragment>
   );
 }
 
-ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+ReactDOM.createRoot(document.getElementById('root')).render(
+  <FeatureBoundary fallback={null}><App /></FeatureBoundary>
+);

@@ -450,6 +450,17 @@ function AtmosphereCanvas() {
     const tick = (ts) => {
       const dt = Math.min((ts - lastTs) / 1000, 0.05);
       lastTs = ts;
+
+      /* skip heavy atmosphere render when an immersive view is up */
+      const body = document.body;
+      if (document.hidden ||
+          body.classList.contains('breath-focus') ||
+          body.classList.contains('has-journey-open') ||
+          body.classList.contains('amb-sleep')) {
+        ctx.clearRect(0, 0, W, H);
+        animId = requestAnimationFrame(tick);
+        return;
+      }
       const t = ts / 1000;
 
       const scene     = window.__mindspaceScene || { id:'midnight-rain', tint:[8,14,48], tintOpacity:0.22, glow:[55,95,210], fog:[12,25,72], fogDensity:0.55, particles:'rain', lightning:true, rays:false, caustics:false, flicker:false, cityLights:false, motionSpeed:0.8 };
@@ -550,10 +561,25 @@ function SceneSwitcher() {
 
   const [open, setOpen]     = useState(false);
   const [active, setActive] = useState('midnight-rain');
+  const [pulse, setPulse]   = useState(false);
 
   useEffect(() => {
     if (!engine) return;
     const off = engine.onChange((s) => setActive(s.id));
+
+    /* One-time pulse to draw attention to the switcher on first visit */
+    const seen = localStorage.getItem('mindspace.scenePulsed');
+    if (!seen) {
+      const t1 = setTimeout(() => {
+        setPulse(true);
+        const t2 = setTimeout(() => {
+          setPulse(false);
+          localStorage.setItem('mindspace.scenePulsed', '1');
+        }, 5200);
+        return () => clearTimeout(t2);
+      }, 3200);
+      return () => { off(); clearTimeout(t1); };
+    }
     return off;
   }, []);
 
@@ -561,6 +587,7 @@ function SceneSwitcher() {
     if (engine) engine.setScene(id);
     setActive(id);
     setOpen(false);
+    setPulse(false);
   };
 
   if (!engine || ids.length === 0) return null;
@@ -581,7 +608,10 @@ function SceneSwitcher() {
                 onClick={() => pick(id)}
               >
                 <span className="scene-opt-glyph">{s.glyph}</span>
-                <span className="scene-opt-name">{s.label}</span>
+                <span className="scene-opt-body">
+                  <span className="scene-opt-name">{s.label}</span>
+                  {s.story && <span className="scene-opt-story">{s.story}</span>}
+                </span>
                 {active === id && <span className="scene-opt-tick">·</span>}
               </button>
             );
@@ -589,7 +619,7 @@ function SceneSwitcher() {
         </div>
       )}
       <button
-        className="scene-toggle"
+        className={`scene-toggle${pulse ? ' pulse' : ''}`}
         onClick={() => setOpen(o => !o)}
         aria-label="Switch scene"
         title="Change atmosphere"
