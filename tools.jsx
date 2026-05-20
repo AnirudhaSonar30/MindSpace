@@ -667,7 +667,7 @@ function BreathingLab({ autoFocus, onExit }) {
   const initFocus  = !!autoFocus;
   const [cadenceId, setCadenceId]  = useState('478');
   const [orbStyle, setOrbStyle] = useState(() => {
-    try { return localStorage.getItem('mindspace.orbStyle.v2') || 'globe'; } catch { return 'globe'; }
+    try { return localStorage.getItem('mindspace.orbStyle.v3') || 'globe'; } catch { return 'globe'; }
   });
   const [running,   setRunning]    = useState(initFocus);
   const [focused,   setFocused]    = useState(initFocus);
@@ -676,7 +676,7 @@ function BreathingLab({ autoFocus, onExit }) {
 
   const pickOrb = (id) => {
     setOrbStyle(id);
-    try { localStorage.setItem('mindspace.orbStyle.v2', id); } catch {}
+    try { localStorage.setItem('mindspace.orbStyle.v3', id); } catch {}
   };
 
   const cadence = CADENCES.find((c) => c.id === cadenceId);
