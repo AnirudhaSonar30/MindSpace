@@ -59,9 +59,18 @@ body { min-height: 100vh; }
   inset: 0;
   pointer-events: none;
   z-index: 2;
-  opacity: 0.045;
+  opacity: 0.052;
   mix-blend-mode: overlay;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' seed='4'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 1 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.80' numOctaves='4' seed='4'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 1 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>"),
+              url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.80' numOctaves='4' seed='17'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 1 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>"),
+              url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.80' numOctaves='4' seed='42'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 1 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  background-size: 200px 200px;
+  animation: grainShift 0.55s steps(1) infinite;
+}
+@keyframes grainShift {
+  0%   { background-position: 0px 0px,   80px 60px,  160px 120px; }
+  33%  { background-position: 60px 40px,  0px 100px,  40px  20px; }
+  66%  { background-position: 120px 80px, 40px 20px,   0px  80px; }
 }
 
 .stage { position: relative; z-index: 3; }
@@ -889,6 +898,92 @@ body { min-height: 100vh; }
   animation:
     panelIn 900ms var(--ease-premium) 200ms both,
     shimmerText 9s linear 1100ms infinite;
+}
+
+/* ── Sacred geometry mandala ── */
+@keyframes sacredSpin    { to { transform: rotate( 360deg); } }
+@keyframes sacredReverse { to { transform: rotate(-360deg); } }
+
+.hs-mandala {
+  position: absolute;
+  width: clamp(340px, 60vw, 520px);
+  height: clamp(340px, 60vw, 520px);
+  color: rgba(243, 239, 230, 0.11);
+  pointer-events: none;
+  z-index: 0;
+  will-change: transform;
+  transform: translate(
+    calc(var(--parallax-x, 0) * -18px),
+    calc(var(--parallax-y, 0) * -14px)
+  );
+  transition: opacity 1s ease;
+}
+.mandala-outer {
+  transform-origin: 100px 100px;
+  animation: sacredSpin 120s linear infinite;
+}
+.mandala-mid {
+  transform-origin: 100px 100px;
+  animation: sacredReverse 75s linear infinite;
+}
+.mandala-inner {
+  transform-origin: 100px 100px;
+  animation: sacredSpin 45s linear infinite;
+}
+
+/* ── God-ray breathe cone ── */
+.breath-cone {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+  opacity: 0;
+  transition: opacity 2.8s ease;
+  background: radial-gradient(
+    ellipse 52% 52% at 50% 50%,
+    rgba(130, 100, 210, 0.09) 0%,
+    rgba(100, 75, 175, 0.05) 35%,
+    transparent 68%
+  );
+}
+.breath-cone::before {
+  content: '';
+  position: absolute;
+  inset: -25%;
+  background: repeating-conic-gradient(
+    rgba(160, 120, 255, 0.035) 0deg,
+    transparent 11.25deg,
+    rgba(140, 100, 230, 0.018) 22.5deg
+  );
+  animation: rayRotate 28s linear infinite;
+  opacity: 0;
+  transition: opacity 3s ease;
+}
+body.breath-focus .breath-cone       { opacity: 1; }
+body.breath-focus .breath-cone::before { opacity: 1; }
+@keyframes rayRotate { to { transform: rotate(360deg); } }
+
+/* ── Mode transition flash ── */
+@keyframes modeFlash {
+  0%   { opacity: 1; }
+  22%  { opacity: 0.50; }
+  55%  { opacity: 0.80; }
+  100% { opacity: 1; }
+}
+.veil.mode-flash {
+  animation: modeFlash 580ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* ── Globe orb Three.js mount ── */
+.globe-orb-mount {
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
+}
+.globe-orb-mount canvas {
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
 }
 
 /* ── Mode panel ── */

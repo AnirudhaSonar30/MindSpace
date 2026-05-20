@@ -818,6 +818,11 @@ function drawReactor(ctx, st, env) {
    BreathOrb component — switches drawer based on `style` prop.
 ─────────────────────────────────────────────────────────────── */
 function BreathOrbV2({ runningRef, cadenceRef, cpRef, style }) {
+  /* 3D WebGL globe — completely separate render path */
+  if (style === 'globe') {
+    return <GlobeOrb cadenceRef={cadenceRef} cpRef={cpRef} />;
+  }
+
   const canvasRef = useRefB(null);
   const styleRef  = useRefB(style || 'nebula');
 
@@ -912,6 +917,237 @@ function BreathAura() {
   return <div id="__breath-aura" className="lab-aura" aria-hidden="true"/>;
 }
 
+/* ───────────────────────────────────────────────────────────────
+   GLOBE ORB — Three.js WebGL sphere with Fresnel / iridescent shader
+   A breathing 3D orb: pulsing scale, phase-reactive colour, orbiting
+   particle ring, inner glow. Replaces the 2D canvas when style='globe'.
+─────────────────────────────────────────────────────────────── */
+function GlobeOrb({ cadenceRef, cpRef }) {
+  const mountRef = useRefB(null);
+
+  useEffectB(() => {
+    const mount = mountRef.current;
+    if (!mount || typeof THREE === 'undefined') return;
+
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const W0  = mount.clientWidth  || 400;
+    const H0  = mount.clientHeight || 400;
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
+    renderer.setPixelRatio(dpr);
+    renderer.setSize(W0, H0);
+    renderer.setClearColor(0x000000, 0);
+    mount.appendChild(renderer.domElement);
+
+    const scene  = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(48, W0 / H0, 0.1, 80);
+    camera.position.set(0, 0, 4.5);
+
+    /* ── Sphere: iridescent Fresnel shader ── */
+    const sGeo = new THREE.SphereGeometry(1.0, 72, 72);
+    const sMat = new THREE.ShaderMaterial({
+      transparent: true,
+      uniforms: {
+        uTime:    { value: 0 },
+        uBreath:  { value: 0 },
+        uColA:    { value: new THREE.Color(0.63, 0.82, 0.84) },
+        uColB:    { value: new THREE.Color(0.75, 0.85, 1.00) },
+        uBlend:   { value: 0 },
+      },
+      vertexShader: /* glsl */`
+        uniform float uTime;
+        uniform float uBreath;
+        varying vec3 vN;
+        varying vec3 vV;
+        void main(){
+          float w = sin(position.x*6.0+uTime*1.8)*cos(position.y*6.0+uTime*1.4)*0.022;
+          vec3 p = position + normal * w * (0.2 + uBreath * 0.8);
+          vec4 mv = modelViewMatrix * vec4(p, 1.0);
+          vN = normalize(normalMatrix * normal);
+          vV = normalize(-mv.xyz);
+          gl_Position = projectionMatrix * mv;
+        }
+      `,
+      fragmentShader: /* glsl */`
+        precision highp float;
+        uniform float uTime;
+        uniform float uBreath;
+        uniform vec3  uColA;
+        uniform vec3  uColB;
+        uniform float uBlend;
+        varying vec3  vN;
+        varying vec3  vV;
+        void main(){
+          float f = pow(1.0 - max(0.0, dot(vV, vN)), 2.6);
+          float ir = sin(f*5.2 + uTime*0.65)*0.5+0.5;
+          vec3 irid = mix(vec3(0.72,0.88,1.0), vec3(1.0,0.78,0.92), ir);
+          vec3 base = mix(uColA, uColB, uBlend);
+          vec3 col  = mix(base, irid, f*0.60);
+          float core = (1.0-f)*(1.0-f)*0.25*(0.4+uBreath*0.8);
+          col += vec3(0.38,0.52,0.82)*core;
+          float alpha = clamp(f*0.78 + (1.0-f)*0.16*(0.5+uBreath*0.6), 0.0, 1.0);
+          gl_FragColor = vec4(col*(0.65+f*1.55), alpha);
+        }
+      `,
+    });
+    const sphere = new THREE.Mesh(sGeo, sMat);
+    scene.add(sphere);
+
+    /* ── Inner glow shell (back-face, additive) ── */
+    const iMat = new THREE.ShaderMaterial({
+      transparent: true, side: THREE.BackSide,
+      blending: THREE.AdditiveBlending, depthWrite: false,
+      uniforms: { uBreath:{value:0}, uColA:{value:new THREE.Color(0.63,0.82,0.84)}, uBlend:{value:0}, uColB:{value:new THREE.Color(0.95,0.76,0.69)} },
+      vertexShader: /* glsl */`varying vec3 vN,vV; void main(){ vec4 mv=modelViewMatrix*vec4(position,1.0); vN=normalize(normalMatrix*normal); vV=normalize(-mv.xyz); gl_Position=projectionMatrix*mv; }`,
+      fragmentShader: /* glsl */`precision mediump float; uniform float uBreath; uniform vec3 uColA,uColB; uniform float uBlend; varying vec3 vN,vV; void main(){ float f=pow(1.0-max(0.0,dot(vV,vN)),1.4); vec3 c=mix(uColA,uColB,uBlend); gl_FragColor=vec4(c*1.6, f*0.42*(0.35+uBreath*0.80)); }`,
+    });
+    const inner = new THREE.Mesh(sGeo, iMat);
+    inner.scale.setScalar(1.07);
+    scene.add(inner);
+
+    /* ── Orbiting particle ring ── */
+    const RING_N = 90;
+    const rGeo = new THREE.BufferGeometry();
+    const rPos = new Float32Array(RING_N * 3);
+    const rOp  = new Float32Array(RING_N);
+    for (let i = 0; i < RING_N; i++) {
+      const a = (i / RING_N) * Math.PI * 2;
+      rPos[3*i]   = Math.cos(a) * 1.52;
+      rPos[3*i+1] = 0;
+      rPos[3*i+2] = Math.sin(a) * 1.52;
+      rOp[i] = 0.35 + Math.random() * 0.65;
+    }
+    rGeo.setAttribute('position', new THREE.BufferAttribute(rPos, 3));
+    rGeo.setAttribute('aOp', new THREE.BufferAttribute(rOp, 1));
+    const rMat = new THREE.ShaderMaterial({
+      transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+      uniforms: { uBreath:{value:0}, uCol:{value:new THREE.Color(0.63,0.82,0.84)}, uPR:{value:dpr} },
+      vertexShader: /* glsl */`attribute float aOp; uniform float uBreath,uPR; varying float vOp; void main(){ vOp=aOp; gl_PointSize=(2.8+uBreath*3.8)*uPR; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
+      fragmentShader: /* glsl */`precision mediump float; uniform vec3 uCol; uniform float uBreath; varying float vOp; void main(){ vec2 c=gl_PointCoord-0.5; if(length(c)>0.5)discard; float a=smoothstep(0.5,0.0,length(c))*vOp*(0.28+uBreath*0.55); gl_FragColor=vec4(uCol,a); }`,
+    });
+    const ring = new THREE.Points(rGeo, rMat);
+    scene.add(ring);
+
+    /* ── Second outer ring — slower, tilted ── */
+    const r2Geo = new THREE.BufferGeometry();
+    const r2Pos = new Float32Array(RING_N * 3);
+    for (let i = 0; i < RING_N; i++) {
+      const a = (i / RING_N) * Math.PI * 2;
+      r2Pos[3*i]   = Math.cos(a) * 1.82;
+      r2Pos[3*i+1] = Math.sin(a) * 0.22;
+      r2Pos[3*i+2] = Math.sin(a) * 1.82;
+      rOp[i] = 0.20 + Math.random() * 0.45;
+    }
+    r2Geo.setAttribute('position', new THREE.BufferAttribute(r2Pos, 3));
+    r2Geo.setAttribute('aOp', new THREE.BufferAttribute(new Float32Array(rOp), 1));
+    const r2Mat = rMat.clone();
+    r2Mat.uniforms.uCol = { value: new THREE.Color(0.82, 0.76, 0.87) };
+    r2Mat.uniforms.uPR  = { value: dpr };
+    const ring2 = new THREE.Points(r2Geo, r2Mat);
+    scene.add(ring2);
+
+    /* ── Lights ── */
+    scene.add(new THREE.AmbientLight(0x223355, 0.5));
+    const pL = new THREE.PointLight(0x88aaff, 2.2, 10);
+    pL.position.set(2.5, 2, 2);
+    scene.add(pL);
+    const pL2 = new THREE.PointLight(0xffbbdd, 1.2, 8);
+    pL2.position.set(-2, -1, 2);
+    scene.add(pL2);
+
+    /* Phase → color tables (matches LINEN_COL above) */
+    const CA = { inhale:[0.63,0.82,0.84], hold:[0.70,0.86,0.78], exhale:[0.95,0.76,0.69], rest:[0.82,0.76,0.87] };
+    const CB = { inhale:[0.75,0.85,1.00], hold:[0.72,0.96,0.88], exhale:[1.00,0.65,0.55], rest:[0.90,0.85,1.00] };
+    const auraH = { inhale:200, hold:155, exhale:15, rest:270 };
+
+    const curA = new THREE.Color(...CA.inhale);
+    const curB = new THREE.Color(...CB.inhale);
+    let blend = 0;
+    let rafId;
+    const t0 = performance.now();
+
+    const animate = (now) => {
+      const t       = (now - t0) / 1000;
+      const breath  = window.__mindspaceBreath || 0;
+      const phase   = window.__mindspacePhase  || 'inhale';
+
+      /* lerp colours to current phase */
+      const tA = CA[phase] || CA.inhale;
+      const tB = CB[phase] || CB.inhale;
+      curA.lerp(new THREE.Color(...tA), 0.022);
+      curB.lerp(new THREE.Color(...tB), 0.022);
+      blend += (breath - blend) * 0.038;
+
+      /* orb scale breathes */
+      const sc = 1.0 + breath * 0.20;
+      sphere.scale.setScalar(sc);
+      inner.scale.setScalar(sc * 1.07);
+
+      /* rotate rings */
+      ring.rotation.y  =  t * 0.38;
+      ring.rotation.x  =  Math.sin(t * 0.11) * 0.28 + breath * 0.12;
+      ring2.rotation.y = -t * 0.20;
+      ring2.rotation.z =  t * 0.06;
+
+      /* light pulse */
+      pL.intensity  = 2.2 + breath * 1.4 + Math.sin(t * 1.2) * 0.3;
+      pL2.intensity = 1.2 + breath * 0.8;
+
+      /* update uniforms */
+      sMat.uniforms.uTime.value  = t;
+      sMat.uniforms.uBreath.value = breath;
+      sMat.uniforms.uColA.value.copy(curA);
+      sMat.uniforms.uColB.value.copy(curB);
+      sMat.uniforms.uBlend.value = blend;
+      iMat.uniforms.uBreath.value = breath;
+      iMat.uniforms.uColA.value.copy(curA);
+      iMat.uniforms.uColB.value.copy(curB);
+      iMat.uniforms.uBlend.value = blend;
+      rMat.uniforms.uBreath.value = breath;
+      rMat.uniforms.uCol.value.copy(curA);
+      r2Mat.uniforms.uBreath.value = breath;
+
+      /* camera drift */
+      camera.position.x = Math.sin(t * 0.07) * 0.14;
+      camera.position.y = Math.sin(t * 0.05) * 0.10;
+      camera.lookAt(0, 0, 0);
+
+      /* write aura for peripheral glow */
+      const aura = document.getElementById('__breath-aura');
+      if (aura) {
+        const h = auraH[phase] || 200;
+        aura.style.setProperty('--aura-h', h);
+        aura.style.setProperty('--aura-s', '55%');
+        aura.style.setProperty('--aura-l', '72%');
+        aura.style.setProperty('--aura-b', (0.5 + breath * 0.6).toFixed(3));
+      }
+
+      renderer.render(scene, camera);
+      rafId = requestAnimationFrame(animate);
+    };
+    rafId = requestAnimationFrame(animate);
+
+    const ro = new ResizeObserver(() => {
+      const w = mount.clientWidth;
+      const h = mount.clientHeight;
+      if (!w || !h) return;
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+      renderer.setSize(w, h);
+    });
+    ro.observe(mount);
+
+    return () => {
+      cancelAnimationFrame(rafId);
+      ro.disconnect();
+      renderer.dispose();
+      if (mount.contains(renderer.domElement)) mount.removeChild(renderer.domElement);
+    };
+  }, []);
+
+  return <div ref={mountRef} className="lab-canvas globe-orb-mount" aria-label="Breathing visualisation" />;
+}
+
 window.MindSpaceBreathOrbV2 = BreathOrbV2;
 window.MindSpaceBreathAura  = BreathAura;
-window.MindSpaceBreathStyles = ['glass', 'reactor', 'nebula', 'jellyfish', 'wireframe'];
+window.MindSpaceBreathStyles = ['glass', 'globe', 'reactor', 'nebula', 'jellyfish', 'wireframe'];

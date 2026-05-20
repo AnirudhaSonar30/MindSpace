@@ -187,6 +187,12 @@
     let pulled = { x: 0, y: 0 };
 
     window.addEventListener('mousemove', (e) => {
+      /* Parallax CSS vars — consumed by .hs-mandala, .veil, etc. */
+      const px = ((e.clientX / window.innerWidth)  - 0.5).toFixed(4);
+      const py = ((e.clientY / window.innerHeight) - 0.5).toFixed(4);
+      document.body.style.setProperty('--parallax-x', px);
+      document.body.style.setProperty('--parallax-y', py);
+
       mx = e.clientX; my = e.clientY;
 
       // Magnetic pull when hovering a [data-magnetic] element
