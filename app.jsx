@@ -1,7 +1,10 @@
-/* MindSpace — single-screen app shell
-   No scrolling. Sky always visible. Choose a practice from the bottom nav. */
+/* MindSpace — single-screen app shell v15
+   No scrolling. Sky always visible.
+   Choose a practice from the bottom nav.
+   Breathe → auto-enters immersive focus mode.
+*/
 
-const { useEffect, useState } = React;
+const { useEffect, useState, useRef } = React;
 
 /* ── Nav (top) ── */
 function Nav() {
@@ -64,32 +67,19 @@ function SceneSwitcher() {
   );
 }
 
-/* ── Home screen ── */
-function HomeScreen({ onMode }) {
-  const modes = [
-    { id: 'breathe', glyph: '◯', label: 'Breathe',  sub: '4 protocols' },
-    { id: 'ground',  glyph: '⬡', label: 'Ground',   sub: '5 · 4 · 3 · 2 · 1' },
-    { id: 'rest',    glyph: '∿', label: 'Rest',      sub: '60 s reset' },
-  ];
+/* ── Home screen — tagline only, mode-nav is the navigation entry point ── */
+function HomeScreen() {
   return (
     <div className="hs">
       <div className="hs-eyebrow">a calm space for your busy mind</div>
       <h1 className="hs-title">
-        One quiet<br/><span className="hs-it">hour.</span>
+        One quiet<br/><span className="hs-it">moment.</span>
       </h1>
       <p className="hs-sub">
         Breathing exercises, ambient worlds, and guided stillness —
         made for minds that won't slow down on their own.
       </p>
-      <div className="hs-cards">
-        {modes.map(m => (
-          <button key={m.id} className="hs-card" onClick={() => onMode(m.id)}>
-            <span className="hs-card-glyph">{m.glyph}</span>
-            <span className="hs-card-label">{m.label}</span>
-            <span className="hs-card-sub">{m.sub}</span>
-          </button>
-        ))}
-      </div>
+      <div className="hs-hint">choose a practice below</div>
     </div>
   );
 }
@@ -114,12 +104,12 @@ function RestScreen() {
 }
 
 /* ── Mode panel ── */
-function ModePanel({ mode }) {
+function ModePanel({ mode, onExit }) {
   const Lab = window.MindSpaceBreathingLab;
   const G   = window.MindSpaceGrounding;
   return (
     <div className="mode-panel">
-      {mode === 'breathe' && (Lab ? <Lab /> : <p className="mode-loading">Loading…</p>)}
+      {mode === 'breathe' && (Lab ? <Lab autoFocus={true} onExit={onExit} /> : <p className="mode-loading">Loading…</p>)}
       {mode === 'ground'  && (G   ? <G  /> : <p className="mode-loading">Loading…</p>)}
       {mode === 'rest'    && <RestScreen />}
     </div>
@@ -129,10 +119,10 @@ function ModePanel({ mode }) {
 /* ── Bottom mode navigation ── */
 function ModeNav({ mode, onMode }) {
   const items = [
-    { id: 'home',    label: 'home' },
-    { id: 'breathe', label: 'breathe' },
-    { id: 'ground',  label: 'ground' },
-    { id: 'rest',    label: 'rest' },
+    { id: 'home',    label: 'home',    glyph: '⌂' },
+    { id: 'breathe', label: 'breathe', glyph: '◯' },
+    { id: 'ground',  label: 'ground',  glyph: '⬡' },
+    { id: 'rest',    label: 'rest',    glyph: '∿' },
   ];
   return (
     <nav className="mode-nav" aria-label="Practice navigation">
@@ -142,27 +132,44 @@ function ModeNav({ mode, onMode }) {
           className={'mode-btn' + (mode === it.id ? ' active' : '')}
           onClick={() => onMode(it.id)}
         >
-          {it.label}
+          <span className="mode-btn-glyph">{it.glyph}</span>
+          <span className="mode-btn-label">{it.label}</span>
         </button>
       ))}
     </nav>
   );
 }
 
-/* ── App shell ── */
+/* ── App shell with cinematic mode transitions ── */
 function App() {
   const [mode, setMode] = useState('home');
+  const [leaving, setLeaving] = useState(false);
+  const pendingRef = useRef(null);
+
+  const goMode = (next) => {
+    if (next === mode) return;
+    if (leaving) {
+      pendingRef.current = next;
+      return;
+    }
+    pendingRef.current = next;
+    setLeaving(true);
+    setTimeout(() => {
+      setMode(pendingRef.current);
+      setLeaving(false);
+    }, 300);
+  };
 
   return (
     <React.Fragment>
       <Nav />
-      <main className="stage">
+      <main className={'stage' + (leaving ? ' stage-leaving' : '')}>
         {mode === 'home'
-          ? <HomeScreen key="home" onMode={setMode} />
-          : <ModePanel key={mode} mode={mode} />
+          ? <HomeScreen key="home" />
+          : <ModePanel key={mode} mode={mode} onExit={() => goMode('home')} />
         }
       </main>
-      <ModeNav mode={mode} onMode={setMode} />
+      <ModeNav mode={mode} onMode={goMode} />
 
       {window.MindSpaceAtmosphere      ? <window.MindSpaceAtmosphere      /> : null}
       {window.MindSpaceSound           ? <window.MindSpaceSound           /> : null}

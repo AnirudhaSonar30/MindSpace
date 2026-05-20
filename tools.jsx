@@ -108,17 +108,17 @@ function BreathOrb({ runningRef, cadenceRef, cpRef }) {
     ro.observe(canvas);
     resize();
 
-    /* Particles */
-    const N_PART = 88;
+    /* Particles — 72 is plenty; no per-particle gradient (big perf win) */
+    const N_PART = 72;
     const particles = Array.from({ length: N_PART }, () => {
-      const base = 0.22 + Math.random() * 0.14; // fraction of half-width
+      const base = 0.22 + Math.random() * 0.14;
       return {
         angle:  Math.random() * Math.PI * 2,
         rFrac:  base,
         baseFrac: base,
         speed:  (0.0045 + Math.random() * 0.006) * (Math.random() < 0.5 ? 1 : -1),
-        size:   0.5 + Math.random() * 1.2,
-        op:     0.28 + Math.random() * 0.48,
+        size:   0.8 + Math.random() * 1.4,
+        op:     0.30 + Math.random() * 0.50,
         twink:  Math.random() * Math.PI * 2,
       };
     });
@@ -292,9 +292,8 @@ function BreathOrb({ runningRef, cadenceRef, cpRef }) {
         ctx.restore();
       });
 
-      /* ── 5. Particles ────────────────────────────────────────── */
+      /* ── 5. Particles — simple arcs, no per-particle gradient ── */
       particles.forEach(p => {
-        /* Drift outward on inhale, inward on exhale */
         const tgt = kind === 'in'  ? p.baseFrac + 0.13 :
                     kind === 'out' ? Math.max(orbR / HALF + 0.04, p.baseFrac - 0.06) :
                     p.baseFrac;
@@ -304,21 +303,18 @@ function BreathOrb({ runningRef, cadenceRef, cpRef }) {
         const pr = HALF * p.rFrac;
         if (pr < orbR + 4) return;
 
-        const px  = CX + Math.cos(p.angle) * pr;
-        const py  = CY + Math.sin(p.angle) * pr;
-        const tw  = 0.5 + 0.5 * Math.sin(f * 0.038 + p.twink);
-        const al  = p.op * tw * (running ? 0.90 : 0.28);
+        const px = CX + Math.cos(p.angle) * pr;
+        const py = CY + Math.sin(p.angle) * pr;
+        const tw = 0.5 + 0.5 * Math.sin(f * 0.038 + p.twink);
+        const al = p.op * tw * (running ? 0.90 : 0.28);
 
-        /* Glow halo */
-        const grd = ctx.createRadialGradient(px, py, 0, px, py, p.size * 3.8);
-        grd.addColorStop(0, hslA(al * 0.55));
-        grd.addColorStop(1, hslA(0));
+        /* Soft halo — solid circle with low alpha (no gradient object) */
         ctx.beginPath();
-        ctx.arc(px, py, p.size * 3.8, 0, Math.PI * 2);
-        ctx.fillStyle = grd;
+        ctx.arc(px, py, p.size * 3.2, 0, Math.PI * 2);
+        ctx.fillStyle = hslA(al * 0.18);
         ctx.fill();
 
-        /* Core */
+        /* Core dot */
         ctx.beginPath();
         ctx.arc(px, py, p.size, 0, Math.PI * 2);
         ctx.fillStyle = `hsla(${(CH + 18)|0},88%,91%,${al.toFixed(3)})`;
@@ -336,80 +332,104 @@ function BreathOrb({ runningRef, cadenceRef, cpRef }) {
       ctx.fillStyle = haloG;
       ctx.fill();
 
-      /* ── 7. Core orb — 5 layers ──────────────────────────────── */
+      /* ── 7. Core orb — morphing organic shape + layers ──────── */
+
+      /* Helper: draw organic morphed orb path (32 bezier-smoothed points) */
+      const MORPH_N = 32;
+      const drawOrbPath = (rScale) => {
+        const r = orbR * (rScale || 1);
+        ctx.beginPath();
+        for (let i = 0; i <= MORPH_N; i++) {
+          const a = (i / MORPH_N) * Math.PI * 2;
+          const wobble = 1
+            + 0.038 * Math.sin(f * 0.016 + a * 3.1) * breath
+            + 0.022 * Math.cos(f * 0.022 + a * 5.3) * breath;
+          const pr2 = r * wobble;
+          const x = CX + Math.cos(a) * pr2;
+          const y = CY + Math.sin(a) * pr2;
+          i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+        }
+        ctx.closePath();
+      };
 
       /* a) Deep atmospheric glow */
-      const deepG = ctx.createRadialGradient(CX, CY, 0, CX, CY, orbR * 1.32);
-      deepG.addColorStop(0,   hslA(0.32));
-      deepG.addColorStop(0.55,hslA(0.14));
-      deepG.addColorStop(1,   hslA(0));
-      ctx.beginPath();
-      ctx.arc(CX, CY, orbR * 1.32, 0, Math.PI * 2);
+      const deepG = ctx.createRadialGradient(CX, CY, 0, CX, CY, orbR * 1.38);
+      deepG.addColorStop(0,    hslA(0.34));
+      deepG.addColorStop(0.55, hslA(0.14));
+      deepG.addColorStop(1,    hslA(0));
+      drawOrbPath(1.38);
       ctx.fillStyle = deepG;
       ctx.fill();
 
-      /* b) Body gradient (off-centre for 3D depth) */
+      /* f) Volumetric rays — pulse outward with breath */
+      const N_RAYS = 16;
+      for (let i = 0; i < N_RAYS; i++) {
+        const rayA   = (i / N_RAYS) * Math.PI * 2 + f * 0.003;
+        const rayLen = HALF * (0.06 + breath * 0.22 + 0.025 * Math.sin(f * 0.04 + i * 2.1));
+        const innerR = orbR * 0.90;
+        ctx.beginPath();
+        ctx.moveTo(CX + Math.cos(rayA) * innerR,            CY + Math.sin(rayA) * innerR);
+        ctx.lineTo(CX + Math.cos(rayA) * (innerR + rayLen), CY + Math.sin(rayA) * (innerR + rayLen));
+        ctx.strokeStyle = hslA(0.05 + breath * 0.09);
+        ctx.lineWidth   = 0.65;
+        ctx.stroke();
+      }
+
+      /* b) Body gradient — morphing shape */
       const bodyG = ctx.createRadialGradient(
         CX - orbR * 0.30, CY - orbR * 0.30, 0,
-        CX, CY, orbR,
+        CX, CY, orbR * 1.04,
       );
-      bodyG.addColorStop(0,    'rgba(255,255,255,0.36)');
-      bodyG.addColorStop(0.20, hslA(0.78));
-      bodyG.addColorStop(0.65, hslA(0.48));
-      bodyG.addColorStop(1,    hslA(0.10));
-      ctx.beginPath();
-      ctx.arc(CX, CY, orbR, 0, Math.PI * 2);
+      bodyG.addColorStop(0,    'rgba(255,255,255,0.34)');
+      bodyG.addColorStop(0.20, hslA(0.80));
+      bodyG.addColorStop(0.65, hslA(0.50));
+      bodyG.addColorStop(1,    hslA(0.08));
+      drawOrbPath(1.0);
       ctx.fillStyle = bodyG;
       ctx.fill();
 
-      /* c) Rotating shimmer ring (colour wash that orbits surface) */
+      /* c) Rotating shimmer wash */
       const shimAng = f * 0.0065;
       const sX = CX + Math.cos(shimAng) * orbR * 0.38;
       const sY = CY + Math.sin(shimAng) * orbR * 0.28;
       const shimG = ctx.createRadialGradient(sX, sY, 0, sX, sY, orbR * 0.68);
-      shimG.addColorStop(0, 'rgba(255,255,255,0.22)');
+      shimG.addColorStop(0, 'rgba(255,255,255,0.20)');
       shimG.addColorStop(1, 'rgba(255,255,255,0)');
-      ctx.beginPath();
-      ctx.arc(CX, CY, orbR, 0, Math.PI * 2);
+      drawOrbPath(1.0);
       ctx.fillStyle = shimG;
       ctx.fill();
 
-      /* d) Inner plasma — 4 thin bezier curves rotating inside orb */
+      /* d) Inner plasma threads — 4 bezier curves clipped to orb */
       ctx.save();
-      ctx.beginPath(); ctx.arc(CX, CY, orbR * 0.96, 0, Math.PI * 2);
+      drawOrbPath(0.96);
       ctx.clip();
       for (let i = 0; i < 4; i++) {
         const pa  = f * 0.0042 * (i % 2 === 0 ? 1 : -0.8) + (i / 4) * Math.PI * 2;
         const ir  = orbR * 0.22;
         const or2 = orbR * 0.78;
-        ctx.save();
-        ctx.shadowColor = hslA(0.5);
-        ctx.shadowBlur  = 6;
         ctx.beginPath();
-        ctx.moveTo(CX + Math.cos(pa) * ir,          CY + Math.sin(pa) * ir);
+        ctx.moveTo(CX + Math.cos(pa) * ir,         CY + Math.sin(pa) * ir);
         ctx.bezierCurveTo(
-          CX + Math.cos(pa + 1.1) * or2,            CY + Math.sin(pa + 1.1) * or2,
-          CX + Math.cos(pa + 2.2) * or2 * 0.75,     CY + Math.sin(pa + 2.2) * or2 * 0.75,
-          CX + Math.cos(pa + Math.PI) * ir * 0.85,  CY + Math.sin(pa + Math.PI) * ir * 0.85,
+          CX + Math.cos(pa + 1.1) * or2,           CY + Math.sin(pa + 1.1) * or2,
+          CX + Math.cos(pa + 2.2) * or2 * 0.75,    CY + Math.sin(pa + 2.2) * or2 * 0.75,
+          CX + Math.cos(pa + Math.PI) * ir * 0.85, CY + Math.sin(pa + Math.PI) * ir * 0.85,
         );
-        ctx.strokeStyle = hslA(0.18);
-        ctx.lineWidth   = 1.2;
+        ctx.strokeStyle = hslA(0.16);
+        ctx.lineWidth   = 1.1;
         ctx.lineCap     = 'round';
         ctx.stroke();
-        ctx.restore();
       }
       ctx.restore();
 
-      /* e) Specular highlight (fixed top-left, glass feel) */
+      /* e) Soft specular — top-left gradient, contained to orb shape */
       const specG = ctx.createRadialGradient(
         CX - orbR * 0.33, CY - orbR * 0.38, 0,
-        CX - orbR * 0.33, CY - orbR * 0.38, orbR * 0.50,
+        CX - orbR * 0.33, CY - orbR * 0.38, orbR * 0.52,
       );
-      specG.addColorStop(0,   'rgba(255,255,255,0.52)');
-      specG.addColorStop(0.45,'rgba(255,255,255,0.14)');
-      specG.addColorStop(1,   'rgba(255,255,255,0)');
-      ctx.beginPath();
-      ctx.arc(CX, CY, orbR, 0, Math.PI * 2);
+      specG.addColorStop(0,    'rgba(255,255,255,0.44)');
+      specG.addColorStop(0.50, 'rgba(255,255,255,0.10)');
+      specG.addColorStop(1,    'rgba(255,255,255,0)');
+      drawOrbPath(1.0);
       ctx.fillStyle = specG;
       ctx.fill();
 
@@ -447,18 +467,19 @@ function BreathOrb({ runningRef, cadenceRef, cpRef }) {
 /* ============================================================
    Breathing Lab
    ============================================================ */
-function BreathingLab() {
+function BreathingLab({ autoFocus, onExit }) {
+  const initFocus  = !!autoFocus;
   const [cadenceId, setCadenceId]  = useState('478');
-  const [running,   setRunning]    = useState(false);
-  const [focused,   setFocused]    = useState(false);
+  const [running,   setRunning]    = useState(initFocus);
+  const [focused,   setFocused]    = useState(initFocus);
   const [, force]                  = useState(0);
   const rerender = useCallback(() => force((v) => (v + 1) | 0), []);
 
   const cadence = CADENCES.find((c) => c.id === cadenceId);
   const stRef   = useRef({ idx: 0, t: 0, elapsed: 0, cycles: 0, prevScale: 0.58 });
 
-  /* Refs passed into the canvas */
-  const runningRef = useRef(false);
+  /* Refs passed into the canvas — initialise runningRef to match initial state */
+  const runningRef = useRef(initFocus);
   const cadenceRef = useRef(cadence);
   const cpRef      = useRef(0);
 
@@ -471,19 +492,21 @@ function BreathingLab() {
     rerender();
   }, [cadenceId, rerender]);
 
-  /* Clean up body class on unmount */
+  /* Manage body class for focus mode */
   useEffect(() => {
+    if (initFocus) document.body.classList.add('breath-focus');
     return () => document.body.classList.remove('breath-focus');
-  }, []);
+  }, []); /* eslint-disable-line react-hooks/exhaustive-deps */
 
-  /* Breath loop — writes globals + cpRef */
+  /* Breath loop — writes globals + cpRef.
+     Canvas reads globals at 60fps; React UI re-renders throttled to ~8fps. */
   useEffect(() => {
     if (!running) {
       window.__mindspaceOverride = false;
       return;
     }
     window.__mindspaceOverride = true;
-    let raf, prev = performance.now();
+    let raf, prev = performance.now(), lastUI = 0;
     const loop = (now) => {
       const dt = Math.min(0.1, (now - prev) / 1000);
       prev = now;
@@ -505,12 +528,12 @@ function BreathingLab() {
         curPh.kind === 'in'  ? 'inhale' :
         curPh.kind === 'out' ? 'exhale' : 'hold';
 
-      /* Cycle progress for the ring arc */
       const totalDur = cadence.phases.reduce((a, p) => a + p.dur, 0);
-      const elapsed  = cadence.phases.slice(0, s.idx).reduce((a, p) => a + p.dur, 0) + curPh.dur * s.t;
-      cpRef.current  = elapsed / totalDur;
+      const elapsedInCycle = cadence.phases.slice(0, s.idx).reduce((a, p) => a + p.dur, 0) + curPh.dur * s.t;
+      cpRef.current = elapsedInCycle / totalDur;
 
-      rerender();
+      /* Throttle React re-renders to ~8 fps — canvas runs at full 60 fps */
+      if (now - lastUI > 125) { rerender(); lastUI = now; }
       raf = requestAnimationFrame(loop);
     };
     raf = requestAnimationFrame(loop);
@@ -528,6 +551,7 @@ function BreathingLab() {
     setRunning(false);
     setFocused(false);
     document.body.classList.remove('breath-focus');
+    if (onExit) onExit();
   };
 
   const s   = stRef.current;
@@ -608,6 +632,17 @@ function BreathingLab() {
               <span className="rk">cycles</span>
               <span className="rv">&nbsp;{String(s.cycles).padStart(2, '0')}</span>
             </div>
+            <div className="lab-focus-cads">
+              {CADENCES.map(c => (
+                <button
+                  key={c.id}
+                  className={'lab-focus-cad' + (c.id === cadenceId ? ' on' : '')}
+                  onClick={() => setCadenceId(c.id)}
+                >
+                  {c.name}
+                </button>
+              ))}
+            </div>
             <button className="lab-focus-exit" onClick={endSession}>end session</button>
           </div>
         </div>
@@ -632,11 +667,19 @@ function Grounding() {
   const [count, setCount] = useState(0);
   const [done, setDone] = useState(false);
   const [transitioning, setTransitioning] = useState(false);
+  const [ripples, setRipples] = useState([]);
 
   const step = GROUND_STEPS[idx];
 
+  const addRipple = useCallback(() => {
+    const id = Date.now();
+    setRipples(r => [...r.slice(-4), { id }]);
+    setTimeout(() => setRipples(r => r.filter(x => x.id !== id)), 900);
+  }, []);
+
   const tap = useCallback(() => {
     if (done || transitioning) return;
+    addRipple();
     setCount((c) => {
       const next = c + 1;
       if (next >= step.n) {
@@ -651,9 +694,9 @@ function Grounding() {
       }
       return next;
     });
-  }, [done, transitioning, idx, step.n]);
+  }, [done, transitioning, idx, step.n, addRipple]);
 
-  const reset = () => { setIdx(0); setCount(0); setDone(false); setTransitioning(false); };
+  const reset = () => { setIdx(0); setCount(0); setDone(false); setTransitioning(false); setRipples([]); };
 
   return (
     <div className="ground">
@@ -663,7 +706,7 @@ function Grounding() {
             key={i}
             className={
               'ground-pip' +
-              ((done || i < idx)   ? ' done'   : '') +
+              ((done || i < idx)    ? ' done'   : '') +
               ((!done && i === idx) ? ' active' : '')
             }
           >
@@ -689,16 +732,26 @@ function Grounding() {
             <span> things you can </span>
             <span className="it">{step.sense}</span>
           </div>
-          <div className="ground-dots">
-            {Array.from({ length: step.n }, (_, i) => (
-              <div key={i} className={'ground-dot ' + (i < count ? 'filled' : '')}/>
+
+          {/* Tap area with ripple feedback */}
+          <div className="ground-tap-zone" onClick={tap} role="button" tabIndex={0}
+               onKeyDown={e => (e.key === ' ' || e.key === 'Enter') && tap()}>
+            <div className="ground-dots">
+              {Array.from({ length: step.n }, (_, i) => (
+                <div key={i} className={'ground-dot ' + (i < count ? 'filled' : '')}/>
+              ))}
+            </div>
+            {/* Ripples */}
+            {ripples.map(r => (
+              <div key={r.id} className="ground-ripple" aria-hidden="true"/>
             ))}
           </div>
+
           <div key={'h' + idx} className={'ground-hint ' + (transitioning ? 'fading' : '')}>
             {step.hint}
           </div>
           <button className="ground-tap" onClick={tap} disabled={transitioning}>
-            <span>{transitioning ? 'breathe' : 'noticed one'}</span>
+            <span>{transitioning ? 'moving on' : 'noticed one'}</span>
             <span className="arrow">→</span>
           </button>
         </>

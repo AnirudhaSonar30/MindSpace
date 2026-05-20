@@ -156,8 +156,8 @@ html { scroll-behavior: smooth; }
   display: block;
   width: 100%;
   aspect-ratio: 1;
-  /* Canvas itself is transparent — scene shows through */
   background: transparent;
+  will-change: transform;
 }
 
 /* Phase label sits centred below the canvas */
@@ -445,6 +445,39 @@ html { scroll-behavior: smooth; }
   to   { opacity: 1; transform: translateY(0); }
 }
 
+/* Tap zone — wraps dots and houses ripple feedback */
+.ground-tap-zone {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 200px;
+  min-height: 72px;
+  padding: 20px 32px;
+  cursor: pointer;
+  border-radius: 24px;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+.ground-tap-zone:focus-visible {
+  outline: 1px solid rgba(243,239,230,0.28);
+  outline-offset: 4px;
+}
+
+/* Ripple — expands outward and fades on each tap */
+.ground-ripple {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  border: 1px solid rgba(243, 239, 230, 0.50);
+  pointer-events: none;
+  animation: groundRipple 900ms var(--ease) forwards;
+}
+@keyframes groundRipple {
+  from { transform: scale(0.70); opacity: 0.65; }
+  to   { transform: scale(1.80); opacity: 0;    }
+}
+
 /* ============================================================
    Right Now — floating reset
    ============================================================ */
@@ -572,60 +605,26 @@ html { scroll-behavior: smooth; }
   color: var(--whisper);
 }
 
-.rn-orb-wrap {
-  position: relative;
-  width: 360px;
-  height: 360px;
+/* Canvas-based RN visualization (replaces CSS orb — no whitish-circle artifact) */
+.rn-canvas-wrap {
+  width: 340px;
+  height: 340px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
-@media (max-height: 720px) {
-  .rn-orb-wrap { width: 280px; height: 280px; }
+@media (max-height: 740px) {
+  .rn-canvas-wrap { width: 260px; height: 260px; }
 }
-.rn-orb-glow {
-  position: absolute;
+@media (max-width: 480px) {
+  .rn-canvas-wrap { width: 280px; height: 280px; }
+}
+.rn-canvas {
+  display: block;
   width: 100%;
-  aspect-ratio: 1;
-  border-radius: 50%;
-  background:
-    radial-gradient(circle at 50% 50%,
-      oklch(0.78 0.11 240 / 0.42) 0%,
-      oklch(0.72 0.10 290 / 0.18) 40%,
-      transparent 70%);
-  filter: blur(28px);
-  transition: transform 140ms linear;
+  height: 100%;
+  background: transparent;
   will-change: transform;
-}
-.rn-orb {
-  position: relative;
-  width: 70%;
-  aspect-ratio: 1;
-  border-radius: 50%;
-  background:
-    radial-gradient(circle at 35% 30%,
-      rgba(255,255,255,0.45) 0%,
-      rgba(255,255,255,0.05) 22%,
-      transparent 42%),
-    radial-gradient(circle at 50% 50%,
-      oklch(0.78 0.11 240 / 0.55) 0%,
-      oklch(0.72 0.10 285 / 0.40) 40%,
-      transparent 100%);
-  box-shadow:
-    0 0 120px oklch(0.7 0.11 240 / 0.5),
-    0 0 220px oklch(0.6 0.10 280 / 0.22),
-    inset 0 0 80px rgba(255, 255, 255, 0.05);
-  transition: transform 140ms linear;
-  will-change: transform;
-}
-.rn-orb-core {
-  position: absolute;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--paper);
-  box-shadow: 0 0 16px rgba(243, 239, 230, 0.7);
-  animation: rnPulse 4s ease-in-out infinite;
 }
 
 .rn-phase {
@@ -651,6 +650,16 @@ html { scroll-behavior: smooth; }
   line-height: 1.7;
   margin-top: 8px;
   text-wrap: pretty;
+  text-align: center;
+}
+.rn-hint-tap {
+  display: block;
+  margin-top: 10px;
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  opacity: 0.50;
 }
 
 /* Adjust counter z-index so the FAB sits beside it cleanly --- */
@@ -742,6 +751,37 @@ html { scroll-behavior: smooth; }
 .lab-focus-exit:hover {
   border-color: rgba(243,239,230,0.40);
   color: var(--paper);
+}
+
+/* ── Focus overlay cadence switcher ── */
+.lab-focus-cads {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 4px;
+}
+.lab-focus-cad {
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(243,239,230,0.14);
+  background: transparent;
+  color: rgba(243,239,230,0.38);
+  font-family: var(--mono);
+  font-size: 8.5px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 360ms var(--ease);
+}
+.lab-focus-cad:hover {
+  border-color: rgba(243,239,230,0.32);
+  color: rgba(243,239,230,0.72);
+}
+.lab-focus-cad.on {
+  border-color: rgba(243,239,230,0.44);
+  color: rgba(243,239,230,0.92);
+  background: rgba(243,239,230,0.06);
 }
 
 /* Dim all chrome when focus overlay is active */

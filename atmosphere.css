@@ -128,6 +128,17 @@
   transition: opacity 1.6s ease;
 }
 
+/* ── Dock subtlety — buttons are quiet until needed ── */
+.snd-widget, .cm-fab, .rn-fab, .scene-sw {
+  opacity: 0.38;
+  transition: opacity 0.55s ease;
+}
+.snd-widget:hover, .cm-fab:hover, .rn-fab:hover, .scene-sw:hover,
+.snd-widget.snd-on, .snd-widget.snd-panel-open {
+  opacity: 1;
+  transition: opacity 0.25s ease;
+}
+
 body:not(.app-ready) .nav-meta   { opacity: 0 !important; pointer-events: none !important; }
 body:not(.app-ready) .scene-sw   { opacity: 0 !important; pointer-events: none !important; }
 body:not(.app-ready) .snd-widget { opacity: 0 !important; pointer-events: none !important; }

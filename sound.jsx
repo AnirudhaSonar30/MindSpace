@@ -276,6 +276,40 @@ function buildOcean(ctx) {
   return { gain, type: 'ocean' };
 }
 
+/* Alpha binaural — 10 Hz beat (200 Hz left, 210 Hz right)
+   Promotes relaxed, open awareness. Use headphones for full effect. */
+function buildAlpha(ctx) {
+  const gain = ctx.createGain(); gain.gain.value = 0;
+  const oL = ctx.createOscillator(); oL.type = 'sine'; oL.frequency.value = 200;
+  const oR = ctx.createOscillator(); oR.type = 'sine'; oR.frequency.value = 210;
+  const panL = ctx.createStereoPanner(); panL.pan.value = -1;
+  const panR = ctx.createStereoPanner(); panR.pan.value =  1;
+  const gL = ctx.createGain(); gL.gain.value = 0.32;
+  const gR = ctx.createGain(); gR.gain.value = 0.32;
+  oL.connect(gL); gL.connect(panL); panL.connect(gain);
+  oR.connect(gR); gR.connect(panR); panR.connect(gain);
+  oL.start(); oR.start();
+  gain.connect(ctx.destination);
+  return { gain, type: 'alpha' };
+}
+
+/* Theta binaural — 4 Hz beat (180 Hz left, 184 Hz right)
+   Deep rest, insight, drowsy meditation. Use headphones. */
+function buildTheta(ctx) {
+  const gain = ctx.createGain(); gain.gain.value = 0;
+  const oL = ctx.createOscillator(); oL.type = 'sine'; oL.frequency.value = 180;
+  const oR = ctx.createOscillator(); oR.type = 'sine'; oR.frequency.value = 184;
+  const panL = ctx.createStereoPanner(); panL.pan.value = -1;
+  const panR = ctx.createStereoPanner(); panR.pan.value =  1;
+  const gL = ctx.createGain(); gL.gain.value = 0.28;
+  const gR = ctx.createGain(); gR.gain.value = 0.28;
+  oL.connect(gL); gL.connect(panL); panL.connect(gain);
+  oR.connect(gR); gR.connect(panR); panR.connect(gain);
+  oL.start(); oR.start();
+  gain.connect(ctx.destination);
+  return { gain, type: 'theta' };
+}
+
 /* Thunder — one-shot crack + low rumble */
 function playThunderOnce(ctx) {
   if (!ctx || ctx.state === 'suspended') return;
@@ -305,27 +339,29 @@ function playThunderOnce(ctx) {
    Scene → sound defaults
 ═══════════════════════════════════════════════════════════════ */
 const SCENE_SOUNDS = {
-  'midnight-rain':  { rainSoft: false, rain: true,  rainStorm: false, wind: false, chime: false, drone: false, fire: false, ocean: false },
-  'soft-morning':   { rainSoft: true,  rain: false, rainStorm: false, wind: true,  chime: true,  drone: false, fire: false, ocean: false },
-  'forest-temple':  { rainSoft: false, rain: false, rainStorm: false, wind: true,  chime: true,  drone: false, fire: false, ocean: false },
-  'ocean-dream':    { rainSoft: false, rain: false, rainStorm: false, wind: false, chime: false, drone: true,  fire: false, ocean: true  },
-  'fireplace-cabin':{ rainSoft: false, rain: false, rainStorm: false, wind: false, chime: false, drone: false, fire: true,  ocean: false },
-  'deep-space':     { rainSoft: false, rain: false, rainStorm: false, wind: false, chime: false, drone: true,  fire: false, ocean: false },
-  'night-train':    { rainSoft: false, rain: false, rainStorm: true,  wind: true,  chime: false, drone: true,  fire: false, ocean: false },
+  'midnight-rain':  { rainSoft: false, rain: true,  rainStorm: false, wind: false, chime: false, drone: false, fire: false, ocean: false, alpha: false, theta: false },
+  'soft-morning':   { rainSoft: true,  rain: false, rainStorm: false, wind: true,  chime: true,  drone: false, fire: false, ocean: false, alpha: true,  theta: false },
+  'forest-temple':  { rainSoft: false, rain: false, rainStorm: false, wind: true,  chime: true,  drone: false, fire: false, ocean: false, alpha: true,  theta: false },
+  'ocean-dream':    { rainSoft: false, rain: false, rainStorm: false, wind: false, chime: false, drone: true,  fire: false, ocean: true,  alpha: true,  theta: false },
+  'fireplace-cabin':{ rainSoft: false, rain: false, rainStorm: false, wind: false, chime: false, drone: false, fire: true,  ocean: false, alpha: false, theta: false },
+  'deep-space':     { rainSoft: false, rain: false, rainStorm: false, wind: false, chime: false, drone: true,  fire: false, ocean: false, alpha: false, theta: true  },
+  'night-train':    { rainSoft: false, rain: false, rainStorm: true,  wind: true,  chime: false, drone: true,  fire: false, ocean: false, alpha: false, theta: false },
 };
 
 /* ═══════════════════════════════════════════════════════════════
    Channel config
 ═══════════════════════════════════════════════════════════════ */
 const CHANNELS = [
-  { id: 'rainSoft',  label: 'Drizzle',  sub: 'light rain',       defOn: false, defVol: 0.55 },
-  { id: 'rain',      label: 'Rain',     sub: 'steady downpour',  defOn: true,  defVol: 0.62 },
-  { id: 'rainStorm', label: 'Storm',    sub: 'heavy rain',       defOn: false, defVol: 0.58 },
-  { id: 'wind',      label: 'Wind',     sub: 'breath-synced',    defOn: false, defVol: 0.48 },
-  { id: 'chime',     label: 'Chimes',   sub: 'pentatonic bells', defOn: false, defVol: 0.38 },
-  { id: 'drone',     label: 'Drone',    sub: 'ambient pad',      defOn: false, defVol: 0.36 },
-  { id: 'fire',      label: 'Fire',     sub: 'warm crackle',     defOn: false, defVol: 0.55 },
-  { id: 'ocean',     label: 'Ocean',    sub: 'wave surge',       defOn: false, defVol: 0.58 },
+  { id: 'rainSoft',  label: 'Drizzle',  sub: 'light rain',        defOn: false, defVol: 0.55 },
+  { id: 'rain',      label: 'Rain',     sub: 'steady downpour',   defOn: true,  defVol: 0.62 },
+  { id: 'rainStorm', label: 'Storm',    sub: 'heavy rain',        defOn: false, defVol: 0.58 },
+  { id: 'wind',      label: 'Wind',     sub: 'breath-synced',     defOn: false, defVol: 0.48 },
+  { id: 'chime',     label: 'Chimes',   sub: 'pentatonic bells',  defOn: false, defVol: 0.38 },
+  { id: 'drone',     label: 'Drone',    sub: 'ambient pad',       defOn: false, defVol: 0.36 },
+  { id: 'fire',      label: 'Fire',     sub: 'warm crackle',      defOn: false, defVol: 0.55 },
+  { id: 'ocean',     label: 'Ocean',    sub: 'wave surge',        defOn: false, defVol: 0.58 },
+  { id: 'alpha',     label: 'Alpha',    sub: '10 Hz · relaxed',   defOn: false, defVol: 0.42 },
+  { id: 'theta',     label: 'Theta',    sub: '4 Hz · deep rest',  defOn: false, defVol: 0.38 },
 ];
 
 /* ═══════════════════════════════════════════════════════════════
@@ -366,6 +402,8 @@ function SoundToggle() {
     chRef.current.drone     = buildDrone(ctx);
     chRef.current.fire      = buildFire(ctx);
     chRef.current.ocean     = buildOcean(ctx);
+    chRef.current.alpha     = buildAlpha(ctx);
+    chRef.current.theta     = buildTheta(ctx);
     return ctx;
   }, []);
 
