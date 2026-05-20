@@ -201,8 +201,11 @@ function App() {
     pendingRef.current = next;
     setLeaving(true);
     setTimeout(() => {
-      setMode(pendingRef.current);
+      const m = pendingRef.current;
+      setMode(m);
       setLeaving(false);
+      // Drive sky scene progression from mode
+      if (window.__mindspaceMode !== undefined) window.__mindspaceMode = m;
     }, 420);
   };
 

@@ -86,6 +86,7 @@
   if (!reducedMotion && !isTouch) {
     let target = window.scrollY;
     let current = window.scrollY;
+    let velocity = 0;
     let running = false;
     let lastNativeScrollAt = 0;
 
@@ -93,14 +94,18 @@
 
     const loop = () => {
       const diff = target - current;
-      if (Math.abs(diff) < 0.4) {
+      /* Spring physics: velocity = velocity * damping + displacement * stiffness
+         Mass 0.1 / stiffness 60 / damping 18 equivalent at 60fps.
+         Gives natural overshoot + settle, weighted feel on big throws. */
+      velocity = velocity * 0.82 + diff * 0.092;
+      if (Math.abs(velocity) < 0.25 && Math.abs(diff) < 0.25) {
         current = target;
+        velocity = 0;
         window.scrollTo(0, current);
         running = false;
         return;
       }
-      // Slightly slower lerp = silkier glide
-      current += diff * 0.105;
+      current = Math.max(0, Math.min(maxY(), current + velocity));
       window.scrollTo(0, current);
       requestAnimationFrame(loop);
     };

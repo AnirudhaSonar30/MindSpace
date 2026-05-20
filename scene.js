@@ -23,6 +23,101 @@
   renderer.autoClear = false;
 
   /* ============================================================
+     Post-processing — soft bloom
+     Pipeline: main render → RT → threshold → H-blur → V-blur → composite to screen
+     All bloom passes run at half resolution for performance.
+     ============================================================ */
+  const _rtOpts = { minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter, format: THREE.RGBFormat };
+  const _w  = () => Math.floor(window.innerWidth  * dpr);
+  const _h  = () => Math.floor(window.innerHeight * dpr);
+  const _bw = () => Math.max(1, Math.floor(_w() / 2));
+  const _bh = () => Math.max(1, Math.floor(_h() / 2));
+
+  const rtMain   = new THREE.WebGLRenderTarget(_w(),  _h(),  _rtOpts);
+  const rtBloom  = [
+    new THREE.WebGLRenderTarget(_bw(), _bh(), _rtOpts),
+    new THREE.WebGLRenderTarget(_bw(), _bh(), _rtOpts),
+  ];
+
+  const _postScene = new THREE.Scene();
+  const _postCam   = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+  const _postQuad  = new THREE.Mesh(new THREE.PlaneGeometry(2, 2));
+  _postScene.add(_postQuad);
+
+  const _vsh = `varying vec2 vUv; void main(){ vUv=uv; gl_Position=vec4(position,1.0); }`;
+
+  /* Pass 1 — luminance threshold: extract bright pixels */
+  const _threshMat = new THREE.ShaderMaterial({
+    uniforms: { tDiffuse: { value: null }, uThreshold: { value: 0.36 } },
+    vertexShader: _vsh,
+    fragmentShader: `
+      precision mediump float;
+      varying vec2 vUv;
+      uniform sampler2D tDiffuse;
+      uniform float uThreshold;
+      void main(){
+        vec4 c = texture2D(tDiffuse, vUv);
+        float luma = dot(c.rgb, vec3(0.299, 0.587, 0.114));
+        float factor = max(0.0, luma - uThreshold) / max(luma, 0.0001);
+        gl_FragColor = vec4(c.rgb * factor, 1.0);
+      }
+    `,
+  });
+
+  /* Pass 2 & 3 — separable Gaussian blur (reused for H and V) */
+  const _blurMat = new THREE.ShaderMaterial({
+    uniforms: {
+      tDiffuse:   { value: null },
+      uTexelSize: { value: new THREE.Vector2(1.0 / _bw(), 1.0 / _bh()) },
+      uDirection: { value: new THREE.Vector2(1, 0) },
+    },
+    vertexShader: _vsh,
+    fragmentShader: `
+      precision mediump float;
+      varying vec2 vUv;
+      uniform sampler2D tDiffuse;
+      uniform vec2 uTexelSize;
+      uniform vec2 uDirection;
+      void main(){
+        vec2 step = uTexelSize * uDirection;
+        vec4 s = vec4(0.0);
+        s += texture2D(tDiffuse, vUv + step * -4.0) * 0.0075;
+        s += texture2D(tDiffuse, vUv + step * -3.0) * 0.0360;
+        s += texture2D(tDiffuse, vUv + step * -2.0) * 0.1096;
+        s += texture2D(tDiffuse, vUv + step * -1.0) * 0.2135;
+        s += texture2D(tDiffuse, vUv + step *  0.0) * 0.2666;
+        s += texture2D(tDiffuse, vUv + step *  1.0) * 0.2135;
+        s += texture2D(tDiffuse, vUv + step *  2.0) * 0.1096;
+        s += texture2D(tDiffuse, vUv + step *  3.0) * 0.0360;
+        s += texture2D(tDiffuse, vUv + step *  4.0) * 0.0075;
+        gl_FragColor = vec4(s.rgb, 1.0);
+      }
+    `,
+  });
+
+  /* Pass 4 — additive composite */
+  const _compositeMat = new THREE.ShaderMaterial({
+    uniforms: {
+      tBase:          { value: null },
+      tBloom:         { value: null },
+      uBloomStrength: { value: 1.6 },
+    },
+    vertexShader: _vsh,
+    fragmentShader: `
+      precision mediump float;
+      varying vec2 vUv;
+      uniform sampler2D tBase;
+      uniform sampler2D tBloom;
+      uniform float uBloomStrength;
+      void main(){
+        vec3 base  = texture2D(tBase,  vUv).rgb;
+        vec3 bloom = texture2D(tBloom, vUv).rgb;
+        gl_FragColor = vec4(base + bloom * uBloomStrength, 1.0);
+      }
+    `,
+  });
+
+  /* ============================================================
      Sky background — full-bleed shader quad
      ============================================================ */
   const skyScene = new THREE.Scene();
@@ -503,11 +598,33 @@
     scrollTarget = Math.min(1, window.scrollY / max);
   }, { passive: true });
 
+  /* Mode-driven scene progression ─────────────────────────────
+     App sets window.__mindspaceMode ('home'|'breathe'|'ground'|'rest').
+     We smoothly lerp a 0-1 progress value and use it to:
+       • lift star brightness in deeper modes
+       • tighten camera FOV slightly (more intimate sky)
+       • deepen the nebula band colour                         */
+  const modeProgress = { home: 0.0, breathe: 0.30, ground: 0.58, rest: 1.0 };
+  let modeT = 0, modeTarget = 0;
+  window.__mindspaceMode = 'home';
+  Object.defineProperty(window, '__mindspaceMode', {
+    set(v) {
+      modeTarget = modeProgress[v] ?? 0;
+    },
+    get() { return modeTarget; },
+    configurable: true,
+  });
+
   function resize() {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight, false);
     skyMat.uniforms.uAspect.value = window.innerWidth / window.innerHeight;
+    // Resize render targets to match new viewport
+    rtMain.setSize(_w(), _h());
+    rtBloom[0].setSize(_bw(), _bh());
+    rtBloom[1].setSize(_bw(), _bh());
+    _blurMat.uniforms.uTexelSize.value.set(1.0 / _bw(), 1.0 / _bh());
   }
   skyMat.uniforms.uAspect.value = window.innerWidth / window.innerHeight;
   window.addEventListener('resize', resize);
@@ -560,6 +677,7 @@
     mouse.x += (mouse.tx - mouse.x) * 0.10;
     mouse.y += (mouse.ty - mouse.y) * 0.10;
     scrollT += (scrollTarget - scrollT) * 0.06;
+    modeT   += (modeTarget  - modeT)   * 0.025; // slow drift between modes
 
     const computedBreath = breathAt(t);
     if (!window.__mindspaceOverride) {
@@ -609,17 +727,51 @@
       nextLightning = 14 + Math.random() * 28; /* reset when scene has no lightning */
     }
 
-    // Camera parallax — mouse drift + slow scroll dolly
-    camera.position.x = mouse.x * 1.6;
-    camera.position.y = mouse.y * 1.0 + scrollT * 4.0;
-    camera.position.z = 22 - scrollT * 4.0;
-    camera.lookAt(0, scrollT * 1.4, 0);
+    // Star brightness rises as user goes deeper into a practice mode
+    skyMat.uniforms.uStarBrightness.value = 0.55 + modeT * 0.38;
 
-    // Render: sky first (depth-less full quad), then world on top
+    // Camera: mouse parallax + scroll dolly + mode intimacy (slight FOV tighten)
+    camera.fov = 40 - modeT * 4.0;
+    camera.updateProjectionMatrix();
+    camera.position.x = mouse.x * 1.6;
+    camera.position.y = mouse.y * 1.0 + scrollT * 4.0 + modeT * 0.8;
+    camera.position.z = 22 - scrollT * 4.0 - modeT * 1.5;
+    camera.lookAt(0, scrollT * 1.4 + modeT * 0.5, 0);
+
+    // Bloom pipeline — render to RT, threshold, blur x2, composite to screen
+    // Step 1: render sky + world to main RT
+    renderer.setRenderTarget(rtMain);
     renderer.clear(true, true, true);
     renderer.render(skyScene, skyCam);
     renderer.clearDepth();
     renderer.render(scene, camera);
+
+    // Step 2: threshold pass → rtBloom[0]
+    renderer.setRenderTarget(rtBloom[0]);
+    _threshMat.uniforms.tDiffuse.value = rtMain.texture;
+    _postQuad.material = _threshMat;
+    renderer.render(_postScene, _postCam);
+
+    // Step 3: horizontal blur → rtBloom[1]
+    renderer.setRenderTarget(rtBloom[1]);
+    _blurMat.uniforms.tDiffuse.value = rtBloom[0].texture;
+    _blurMat.uniforms.uDirection.value.set(1, 0);
+    _postQuad.material = _blurMat;
+    renderer.render(_postScene, _postCam);
+
+    // Step 4: vertical blur → rtBloom[0]
+    renderer.setRenderTarget(rtBloom[0]);
+    _blurMat.uniforms.tDiffuse.value = rtBloom[1].texture;
+    _blurMat.uniforms.uDirection.value.set(0, 1);
+    _postQuad.material = _blurMat;
+    renderer.render(_postScene, _postCam);
+
+    // Step 5: composite (base + bloom) → screen
+    renderer.setRenderTarget(null);
+    _compositeMat.uniforms.tBase.value  = rtMain.texture;
+    _compositeMat.uniforms.tBloom.value = rtBloom[0].texture;
+    _postQuad.material = _compositeMat;
+    renderer.render(_postScene, _postCam);
 
     requestAnimationFrame(animate);
   }
