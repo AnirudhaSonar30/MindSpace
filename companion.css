@@ -9,8 +9,8 @@
    ============================================================ */
 .cm-fab {
   position: fixed;
-  left: 32px;
-  bottom: 32px;
+  left: 28px;
+  bottom: 28px;
   z-index: 75;
   display: inline-flex;
   align-items: center;
@@ -54,7 +54,7 @@
   display: none;
 }
 @media (max-width: 700px) {
-  .cm-fab { left: 18px; bottom: 80px; padding: 11px 16px; }
+  .cm-fab { left: 16px; bottom: 24px; padding: 11px 16px; }
   .cm-fab-sub { display: none; }
 }
 

@@ -14,8 +14,8 @@
 /* ── Scene Switcher ── */
 .scene-sw {
   position: fixed;
-  bottom: 96px;
-  right: 32px;
+  bottom: 80px;
+  right: 28px;
   z-index: 40;
   display: flex;
   flex-direction: column;
@@ -166,9 +166,23 @@ body.zen-mode .cm-fab:hover {
   transition: opacity 0.3s ease;
 }
 
+/* ── Scene transition veil flash ── */
+.scene-veil-flash {
+  position: fixed;
+  inset: 0;
+  z-index: 150;
+  pointer-events: none;
+  background: transparent;
+  transition: background-color 700ms ease;
+}
+body.scene-transitioning .scene-veil-flash {
+  background: rgba(243, 239, 230, 0.10);
+  transition: background-color 90ms ease;
+}
+
 /* ── Mobile ── */
 @media (max-width: 640px) {
-  .scene-sw { bottom: 24px; right: 20px; }
+  .scene-sw { bottom: 78px; right: 16px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

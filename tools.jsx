@@ -450,6 +450,7 @@ function BreathOrb({ runningRef, cadenceRef, cpRef }) {
 function BreathingLab() {
   const [cadenceId, setCadenceId]  = useState('478');
   const [running,   setRunning]    = useState(false);
+  const [focused,   setFocused]    = useState(false);
   const [, force]                  = useState(0);
   const rerender = useCallback(() => force((v) => (v + 1) | 0), []);
 
@@ -469,6 +470,11 @@ function BreathingLab() {
     stRef.current = { idx: 0, t: 0, elapsed: 0, cycles: 0, prevScale: 0.58 };
     rerender();
   }, [cadenceId, rerender]);
+
+  /* Clean up body class on unmount */
+  useEffect(() => {
+    return () => document.body.classList.remove('breath-focus');
+  }, []);
 
   /* Breath loop — writes globals + cpRef */
   useEffect(() => {
@@ -511,62 +517,102 @@ function BreathingLab() {
     return () => { cancelAnimationFrame(raf); window.__mindspaceOverride = false; };
   }, [running, cadenceId, cadence, rerender]);
 
+  const beginSession = () => {
+    stRef.current = { idx: 0, t: 0, elapsed: 0, cycles: 0, prevScale: 0.58 };
+    setRunning(true);
+    setFocused(true);
+    document.body.classList.add('breath-focus');
+  };
+
+  const endSession = () => {
+    setRunning(false);
+    setFocused(false);
+    document.body.classList.remove('breath-focus');
+  };
+
   const s   = stRef.current;
   const ph  = cadence.phases[s.idx];
 
   return (
-    <div className="lab">
-      {/* Cadence picker */}
-      <div className="lab-picker">
-        <div className="lab-picker-label">cadence</div>
-        {CADENCES.map((c) => (
-          <button
-            key={c.id}
-            className={'lab-cad ' + (c.id === cadenceId ? 'active' : '')}
-            onClick={() => setCadenceId(c.id)}
-          >
-            <span className="lab-cad-nums">{c.nums}</span>
-            <span className="lab-cad-name">{c.name}</span>
-          </button>
-        ))}
-      </div>
-
-      {/* Orb stage — canvas replaces old SVG + CSS orb */}
-      <div className="lab-stage">
-        <BreathOrb
-          runningRef={runningRef}
-          cadenceRef={cadenceRef}
-          cpRef={cpRef}
-        />
-        <div className="lab-label">
-          <div className="lab-phase">{ph.label}</div>
-          <div className="lab-phase-dur">{ph.dur.toFixed(1)} s</div>
-        </div>
-      </div>
-
-      {/* Side panel */}
-      <div className="lab-side">
-        <div className="lab-desc">{cadence.desc}</div>
-        <div className="lab-source">— {cadence.source}</div>
-        <div className="lab-stats">
-          <div>
-            <span className="rk">elapsed</span>
-            <span className="rv">{fmtTime(s.elapsed)}</span>
+    <React.Fragment>
+      {/* Normal lab — hidden when focus overlay is active */}
+      {!focused && (
+        <div className="lab">
+          {/* Cadence picker */}
+          <div className="lab-picker">
+            <div className="lab-picker-label">cadence</div>
+            {CADENCES.map((c) => (
+              <button
+                key={c.id}
+                className={'lab-cad ' + (c.id === cadenceId ? 'active' : '')}
+                onClick={() => setCadenceId(c.id)}
+              >
+                <span className="lab-cad-nums">{c.nums}</span>
+                <span className="lab-cad-name">{c.name}</span>
+              </button>
+            ))}
           </div>
-          <div>
-            <span className="rk">cycles</span>
-            <span className="rv">{String(s.cycles).padStart(2, '0')}</span>
+
+          {/* Orb stage */}
+          <div className="lab-stage">
+            <BreathOrb
+              runningRef={runningRef}
+              cadenceRef={cadenceRef}
+              cpRef={cpRef}
+            />
+            <div className="lab-label">
+              <div className="lab-phase">{ph.label}</div>
+              <div className="lab-phase-dur">{ph.dur.toFixed(1)} s</div>
+            </div>
+          </div>
+
+          {/* Side panel */}
+          <div className="lab-side">
+            <div className="lab-desc">{cadence.desc}</div>
+            <div className="lab-source">— {cadence.source}</div>
+            <div className="lab-stats">
+              <div>
+                <span className="rk">elapsed</span>
+                <span className="rv">{fmtTime(s.elapsed)}</span>
+              </div>
+              <div>
+                <span className="rk">cycles</span>
+                <span className="rv">{String(s.cycles).padStart(2, '0')}</span>
+              </div>
+            </div>
+            <button className="lab-btn" onClick={beginSession}>
+              <span className="lab-btn-dot"/>
+              <span>begin</span>
+            </button>
           </div>
         </div>
-        <button
-          className={'lab-btn ' + (running ? 'paused' : '')}
-          onClick={() => setRunning((r) => !r)}
-        >
-          <span className="lab-btn-dot"/>
-          <span>{running ? 'pause' : 'begin'}</span>
-        </button>
-      </div>
-    </div>
+      )}
+
+      {/* Immersive focus overlay */}
+      {focused && (
+        <div className="lab-focus" onClick={endSession}>
+          <div className="lab-focus-inner" onClick={(e) => e.stopPropagation()}>
+            <div className="lab-focus-orb">
+              <BreathOrb
+                runningRef={runningRef}
+                cadenceRef={cadenceRef}
+                cpRef={cpRef}
+              />
+            </div>
+            <div className="lab-focus-phase">{ph.label}</div>
+            <div className="lab-focus-dur">{ph.dur.toFixed(1)} s</div>
+            <div className="lab-focus-meta">
+              <span className="rk">elapsed</span>
+              <span className="rv">&nbsp;{fmtTime(s.elapsed)}</span>
+              <span className="rk">&nbsp;·&nbsp;</span>
+              <span className="rk">cycles</span>
+              <span className="rv">&nbsp;{String(s.cycles).padStart(2, '0')}</span>
+            </div>
+            <button className="lab-focus-exit" onClick={endSession}>end session</button>
+          </div>
+        </div>
+      )}
+    </React.Fragment>
   );
 }
 

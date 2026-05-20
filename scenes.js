@@ -258,6 +258,10 @@
     window.__mindspaceScenePrev = prev;
     window.__mindspaceSceneT    = 0;
 
+    /* Atmospheric veil flash — brief threshold crossing */
+    document.body.classList.add('scene-transitioning');
+    setTimeout(() => document.body.classList.remove('scene-transitioning'), 900);
+
     listeners.forEach(cb => cb(current, prev));
   }
 

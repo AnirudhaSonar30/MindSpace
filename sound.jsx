@@ -88,6 +88,54 @@ function buildRain(ctx) {
   return { gain, type: 'rain' };
 }
 
+/* Drizzle — light pink-noise rain */
+function buildRainSoft(ctx) {
+  const gain = ctx.createGain(); gain.gain.value = 0;
+  const src  = ctx.createBufferSource(); src.buffer = makePink(ctx, 10); src.loop = true;
+  const hp   = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 1100; hp.Q.value = 0.4;
+  const pk   = ctx.createBiquadFilter(); pk.type = 'peaking';  pk.frequency.value = 2200; pk.Q.value = 2.5; pk.gain.value = 5;
+  const lp   = ctx.createBiquadFilter(); lp.type = 'lowpass';  lp.frequency.value = 8000; lp.Q.value = 0.3;
+  const gA   = ctx.createGain(); gA.gain.value = 0.52;
+  const srcB = ctx.createBufferSource(); srcB.buffer = makeBrown(ctx, 6); srcB.loop = true;
+  const lpB  = ctx.createBiquadFilter(); lpB.type = 'lowpass'; lpB.frequency.value = 200; lpB.Q.value = 0.5;
+  const gB   = ctx.createGain(); gB.gain.value = 0.12;
+  const lfo  = ctx.createOscillator(); lfo.type = 'sine'; lfo.frequency.value = 0.14;
+  const lfoG = ctx.createGain(); lfoG.gain.value = 0.10;
+  lfo.connect(lfoG); lfoG.connect(gA.gain);
+  src.connect(hp); hp.connect(pk); pk.connect(lp); lp.connect(gA); gA.connect(gain);
+  srcB.connect(lpB); lpB.connect(gB); gB.connect(gain);
+  [src, srcB].forEach(s => s.start());
+  lfo.start();
+  gain.connect(ctx.destination);
+  return { gain, type: 'rainSoft' };
+}
+
+/* Storm — heavy rain + low rumble */
+function buildRainStorm(ctx) {
+  const gain = ctx.createGain(); gain.gain.value = 0;
+  const srcA  = ctx.createBufferSource(); srcA.buffer = makeWhite(ctx, 10); srcA.loop = true;
+  const hpA   = ctx.createBiquadFilter(); hpA.type = 'highpass'; hpA.frequency.value = 400; hpA.Q.value = 0.5;
+  const pkA   = ctx.createBiquadFilter(); pkA.type = 'peaking';  pkA.frequency.value = 800; pkA.Q.value = 2.5; pkA.gain.value = 8;
+  const lpA   = ctx.createBiquadFilter(); lpA.type = 'lowpass';  lpA.frequency.value = 7000; lpA.Q.value = 0.4;
+  const gA    = ctx.createGain(); gA.gain.value = 0.68;
+  const srcB  = ctx.createBufferSource(); srcB.buffer = makeBrown(ctx, 8); srcB.loop = true;
+  const hpB   = ctx.createBiquadFilter(); hpB.type = 'highpass'; hpB.frequency.value = 30; hpB.Q.value = 0.5;
+  const lpB   = ctx.createBiquadFilter(); lpB.type = 'lowpass';  lpB.frequency.value = 180; lpB.Q.value = 0.6;
+  const gB    = ctx.createGain(); gB.gain.value = 0.38;
+  const lfoA  = ctx.createOscillator(); lfoA.type = 'sine'; lfoA.frequency.value = 0.18;
+  const lfoGA = ctx.createGain(); lfoGA.gain.value = 0.22;
+  lfoA.connect(lfoGA); lfoGA.connect(gA.gain);
+  const lfoB  = ctx.createOscillator(); lfoB.type = 'sine'; lfoB.frequency.value = 0.08;
+  const lfoGB = ctx.createGain(); lfoGB.gain.value = 0.16;
+  lfoB.connect(lfoGB); lfoGB.connect(gB.gain);
+  srcA.connect(hpA); hpA.connect(pkA); pkA.connect(lpA); lpA.connect(gA); gA.connect(gain);
+  srcB.connect(hpB); hpB.connect(lpB); lpB.connect(gB); gB.connect(gain);
+  [srcA, srcB].forEach(s => s.start());
+  [lfoA, lfoB].forEach(l => l.start());
+  gain.connect(ctx.destination);
+  return { gain, type: 'rainStorm' };
+}
+
 /* Wind — breath-synced pink noise */
 function buildWind(ctx) {
   const gain = ctx.createGain(); gain.gain.value = 0;
@@ -257,25 +305,27 @@ function playThunderOnce(ctx) {
    Scene → sound defaults
 ═══════════════════════════════════════════════════════════════ */
 const SCENE_SOUNDS = {
-  'midnight-rain':  { rain: true,  wind: false, chime: false, drone: false, fire: false, ocean: false },
-  'soft-morning':   { rain: false, wind: true,  chime: true,  drone: false, fire: false, ocean: false },
-  'forest-temple':  { rain: false, wind: true,  chime: true,  drone: false, fire: false, ocean: false },
-  'ocean-dream':    { rain: false, wind: false, chime: false, drone: true,  fire: false, ocean: true  },
-  'fireplace-cabin':{ rain: false, wind: false, chime: false, drone: false, fire: true,  ocean: false },
-  'deep-space':     { rain: false, wind: false, chime: false, drone: true,  fire: false, ocean: false },
-  'night-train':    { rain: false, wind: true,  chime: false, drone: true,  fire: false, ocean: false },
+  'midnight-rain':  { rainSoft: false, rain: true,  rainStorm: false, wind: false, chime: false, drone: false, fire: false, ocean: false },
+  'soft-morning':   { rainSoft: true,  rain: false, rainStorm: false, wind: true,  chime: true,  drone: false, fire: false, ocean: false },
+  'forest-temple':  { rainSoft: false, rain: false, rainStorm: false, wind: true,  chime: true,  drone: false, fire: false, ocean: false },
+  'ocean-dream':    { rainSoft: false, rain: false, rainStorm: false, wind: false, chime: false, drone: true,  fire: false, ocean: true  },
+  'fireplace-cabin':{ rainSoft: false, rain: false, rainStorm: false, wind: false, chime: false, drone: false, fire: true,  ocean: false },
+  'deep-space':     { rainSoft: false, rain: false, rainStorm: false, wind: false, chime: false, drone: true,  fire: false, ocean: false },
+  'night-train':    { rainSoft: false, rain: false, rainStorm: true,  wind: true,  chime: false, drone: true,  fire: false, ocean: false },
 };
 
 /* ═══════════════════════════════════════════════════════════════
    Channel config
 ═══════════════════════════════════════════════════════════════ */
 const CHANNELS = [
-  { id: 'rain',  label: 'Rain',     sub: 'heavy downpour',    defOn: true,  defVol: 0.62 },
-  { id: 'wind',  label: 'Wind',     sub: 'breath-synced',     defOn: false, defVol: 0.48 },
-  { id: 'chime', label: 'Chimes',   sub: 'pentatonic bells',  defOn: false, defVol: 0.38 },
-  { id: 'drone', label: 'Drone',    sub: 'ambient pad',       defOn: false, defVol: 0.36 },
-  { id: 'fire',  label: 'Fire',     sub: 'warm crackle',      defOn: false, defVol: 0.55 },
-  { id: 'ocean', label: 'Ocean',    sub: 'wave surge',        defOn: false, defVol: 0.58 },
+  { id: 'rainSoft',  label: 'Drizzle',  sub: 'light rain',       defOn: false, defVol: 0.55 },
+  { id: 'rain',      label: 'Rain',     sub: 'steady downpour',  defOn: true,  defVol: 0.62 },
+  { id: 'rainStorm', label: 'Storm',    sub: 'heavy rain',       defOn: false, defVol: 0.58 },
+  { id: 'wind',      label: 'Wind',     sub: 'breath-synced',    defOn: false, defVol: 0.48 },
+  { id: 'chime',     label: 'Chimes',   sub: 'pentatonic bells', defOn: false, defVol: 0.38 },
+  { id: 'drone',     label: 'Drone',    sub: 'ambient pad',      defOn: false, defVol: 0.36 },
+  { id: 'fire',      label: 'Fire',     sub: 'warm crackle',     defOn: false, defVol: 0.55 },
+  { id: 'ocean',     label: 'Ocean',    sub: 'wave surge',       defOn: false, defVol: 0.58 },
 ];
 
 /* ═══════════════════════════════════════════════════════════════
@@ -308,12 +358,14 @@ function SoundToggle() {
     const AC = window.AudioContext || window.webkitAudioContext;
     const ctx = new AC();
     ctxRef.current = ctx;
-    chRef.current.rain  = buildRain(ctx);
-    chRef.current.wind  = buildWind(ctx);
-    chRef.current.chime = buildChimes(ctx);
-    chRef.current.drone = buildDrone(ctx);
-    chRef.current.fire  = buildFire(ctx);
-    chRef.current.ocean = buildOcean(ctx);
+    chRef.current.rainSoft  = buildRainSoft(ctx);
+    chRef.current.rain      = buildRain(ctx);
+    chRef.current.rainStorm = buildRainStorm(ctx);
+    chRef.current.wind      = buildWind(ctx);
+    chRef.current.chime     = buildChimes(ctx);
+    chRef.current.drone     = buildDrone(ctx);
+    chRef.current.fire      = buildFire(ctx);
+    chRef.current.ocean     = buildOcean(ctx);
     return ctx;
   }, []);
 
