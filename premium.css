@@ -91,19 +91,11 @@ body.premium-locked { overflow: hidden; }
 
 /* The body fades back in after the loader leaves */
 body.premium-revealed .stage,
-body.premium-revealed .nav,
-body.premium-revealed .rail,
-body.premium-revealed .counter,
-body.premium-revealed .rn-fab,
-body.premium-revealed .snd-widget {
+body.premium-revealed .nav {
   animation: premiumReveal 1.4s var(--ease-premium) both;
 }
-body.premium-revealed .nav         { animation-delay: 0.10s; }
-body.premium-revealed .rail        { animation-delay: 0.32s; }
-body.premium-revealed .counter     { animation-delay: 0.50s; }
-body.premium-revealed .snd-widget  { animation-delay: 0.62s; }
-body.premium-revealed .rn-fab      { animation-delay: 0.78s; }
-body.premium-revealed .stage       { animation-delay: 0.20s; }
+body.premium-revealed .nav   { animation-delay: 0.10s; }
+body.premium-revealed .stage { animation-delay: 0.20s; }
 @keyframes premiumReveal {
   from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: translateY(0); }
@@ -463,25 +455,4 @@ body.time-day   .veil { filter: none; transition: filter 3s ease; }
 body.time-dusk  .veil { filter: sepia(0.08) hue-rotate(8deg); transition: filter 3s ease; }
 body.time-night .veil { filter: hue-rotate(14deg) brightness(0.96); transition: filter 3s ease; }
 
-/* ============================================================
-   9) Phase 7 — Section mask-wipe on entry
-   ============================================================ */
-.act[data-screen-label] {
-  --mask-done: 0;
-}
-@media (prefers-reduced-motion: no-preference) {
-  .act.act-entered::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: var(--ink);
-    clip-path: inset(0 0% 0 0);
-    animation: maskWipeOut 1.4s var(--ease-premium) forwards;
-    pointer-events: none;
-    z-index: 2;
-  }
-}
-@keyframes maskWipeOut {
-  0%   { clip-path: inset(0 0% 0 0); }
-  100% { clip-path: inset(0 100% 0 0); }
-}
+/* Section mask-wipe removed — was causing black rectangles on scroll */

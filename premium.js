@@ -44,7 +44,7 @@
         setTimeout(() => {
           loader.classList.add('done');
           document.body.classList.remove('premium-locked');
-          document.body.classList.add('premium-revealed');
+          document.body.classList.add('premium-revealed', 'app-ready');
           // unmount after the fade so it stops blocking pointer events
           setTimeout(() => loader.remove(), 1200);
         }, 280);
@@ -52,7 +52,7 @@
     };
     requestAnimationFrame(tick);
   } else {
-    document.body.classList.add('premium-revealed');
+    document.body.classList.add('premium-revealed', 'app-ready');
   }
 
   /* ============================================================
@@ -297,32 +297,6 @@
   }, 350);
 
   /* ============================================================
-     5) Section mask-wipe (Phase 7)
-     Adds .act-entered to each .act when it crosses into view.
-     CSS keyframe handles the wipe animation.
-     ============================================================ */
-  if (!reducedMotion) {
-    let actIo;
-    const setupActWipes = () => {
-      if (actIo) actIo.disconnect();
-      const acts = document.querySelectorAll('.act[data-screen-label]');
-      if (!acts.length) return;
-      actIo = new IntersectionObserver((entries) => {
-        entries.forEach((en) => {
-          if (en.isIntersecting && !en.target.classList.contains('act-entered')) {
-            en.target.classList.add('act-entered');
-            actIo.unobserve(en.target);
-          }
-        });
-      }, { threshold: 0.08 });
-      acts.forEach((el) => actIo.observe(el));
-    };
-    // Run after React renders
-    setTimeout(setupActWipes, 800);
-    setTimeout(setupActWipes, 2400);
-  }
-
-  /* ============================================================
      6) Zen mode — UI softens after 9s of inactivity
      ============================================================ */
   let zenTimer;
@@ -339,29 +313,5 @@
 
   resetZen();
 
-  /* ============================================================
-     7) Progressive UI reveal — staggered by section
-        show-nav:   when anatomy scrolls into view  (rail, scene-sw, nav-meta)
-        show-sound: when breathe scrolls into view  (sound widget)
-        show-tools: when practices scrolls into view (companion, right-now)
-     ============================================================ */
-  const updateScrollLevels = () => {
-    const vh = window.innerHeight;
-    const threshold = vh * 0.75;
-
-    const anatomy   = document.getElementById('anatomy');
-    const breathe   = document.getElementById('breathe');
-    const practices = document.getElementById('practices');
-
-    document.body.classList.toggle('show-nav',
-      anatomy   ? anatomy.getBoundingClientRect().top   < threshold : false);
-    document.body.classList.toggle('show-sound',
-      breathe   ? breathe.getBoundingClientRect().top   < threshold : false);
-    document.body.classList.toggle('show-tools',
-      practices ? practices.getBoundingClientRect().top < threshold : false);
-  };
-
-  window.addEventListener('scroll', updateScrollLevels, { passive: true });
-  window.addEventListener('resize', updateScrollLevels);
-  updateScrollLevels();
+  /* Progressive reveal is handled by app-ready class set by loader */
 })();
