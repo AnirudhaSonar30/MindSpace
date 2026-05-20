@@ -48,7 +48,7 @@
 
   /* Pass 1 — luminance threshold: extract bright pixels */
   const _threshMat = new THREE.ShaderMaterial({
-    uniforms: { tDiffuse: { value: null }, uThreshold: { value: 0.36 } },
+    uniforms: { tDiffuse: { value: null }, uThreshold: { value: 0.42 } },
     vertexShader: _vsh,
     fragmentShader: `
       precision mediump float;
@@ -100,7 +100,7 @@
     uniforms: {
       tBase:          { value: null },
       tBloom:         { value: null },
-      uBloomStrength: { value: 1.6 },
+      uBloomStrength: { value: 0.85 },
     },
     vertexShader: _vsh,
     fragmentShader: `
