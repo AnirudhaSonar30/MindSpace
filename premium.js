@@ -22,32 +22,45 @@
   const loader = document.querySelector('.premium-loader');
   if (loader) {
     document.body.classList.add('premium-locked');
-    const bar = loader.querySelector('.premium-loader-bar');
+    const bar   = loader.querySelector('.premium-loader-bar');
     const count = loader.querySelector('.premium-loader-count');
     let p = 0;
+    let finished = false;
+    let pageLoaded = document.readyState === 'complete';
     const startedAt = performance.now();
-    const minDur = reducedMotion ? 200 : 800;
+    const minDur = reducedMotion ? 200 : 1000;
+
+    /* Wait for ALL scripts (including CDN libs + Babel transpile) to finish.
+       The window 'load' event fires after every resource is fully parsed.  */
+    if (!pageLoaded) window.addEventListener('load', () => { pageLoaded = true; });
+
+    const dismiss = () => {
+      if (finished) return;
+      finished = true;
+      if (count) count.textContent = '100';
+      if (bar)   bar.style.transform = 'scaleX(1)';
+      setTimeout(() => {
+        loader.classList.add('done');
+        document.body.classList.remove('premium-locked');
+        document.body.classList.add('premium-revealed', 'app-ready');
+        setTimeout(() => loader.remove(), 1200);
+      }, 320);
+    };
+
     const tick = () => {
+      if (finished) return;
       const elapsed = performance.now() - startedAt;
-      const target = Math.min(1, elapsed / minDur);
-      // ease the count so it doesn't feel mechanical
-      p += (target - p) * 0.15;
-      const pct = Math.floor(p * 100);
+      /* Hold at 88% until the page is actually loaded — then race to 100.
+         Hard-cap at 5s so a stalled CDN doesn't freeze the loader forever. */
+      const ceiling = (pageLoaded || elapsed > 5000) ? 1.0 : 0.88;
+      const timeTarget = Math.min(ceiling, elapsed / minDur);
+      p += (timeTarget - p) * 0.11;
       if (bar)   bar.style.transform = `scaleX(${p})`;
-      if (count) count.textContent = String(pct).padStart(3, '0');
-      if (elapsed < minDur || p < 0.985) {
-        requestAnimationFrame(tick);
+      if (count) count.textContent = String(Math.floor(p * 100)).padStart(3, '0');
+      if (ceiling >= 1.0 && p >= 0.985) {
+        dismiss();
       } else {
-        if (count) count.textContent = '100';
-        if (bar)   bar.style.transform = 'scaleX(1)';
-        // pause a beat at 100, then dismiss
-        setTimeout(() => {
-          loader.classList.add('done');
-          document.body.classList.remove('premium-locked');
-          document.body.classList.add('premium-revealed', 'app-ready');
-          // unmount after the fade so it stops blocking pointer events
-          setTimeout(() => loader.remove(), 1200);
-        }, 280);
+        requestAnimationFrame(tick);
       }
     };
     requestAnimationFrame(tick);
