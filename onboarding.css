@@ -1,668 +1,92 @@
-/* ─────────────────────────────────────────────────────────────────────────
-   MindSpace — Cinematic Onboarding
-   4-card deep-space sequence. Pure CSS animation, no video.
-   ─────────────────────────────────────────────────────────────────────────*/
+/* MindSpace — Onboarding intro  (simple, lightweight)
+   Two text slides auto-advance in ~4 s, then mood check opens.
+   Zero background animations — just clean opacity crossfades.        */
 
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   OVERLAY — sits above the loaded app, beneath the premium loader
-═══════════════════════════════════════════════════════════════════════════ */
 .ob-overlay {
   position: fixed;
   inset: 0;
   z-index: 500;
   background: #06061a;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
   overflow: hidden;
+  /* Fade in after the loader clears */
   opacity: 0;
-  animation: obOverlayIn 1000ms cubic-bezier(0.16, 1, 0.3, 1) 100ms both;
+  animation: obIn 600ms ease 100ms both;
 }
-@keyframes obOverlayIn {
-  from { opacity: 0; }
-  to   { opacity: 1; }
+@keyframes obIn {
+  to { opacity: 1; }
 }
-.ob-overlay-leaving {
+.ob-overlay-out {
   opacity: 0;
-  transition: opacity 900ms cubic-bezier(0.4, 0, 1, 1);
+  transition: opacity 700ms ease;
   pointer-events: none;
 }
 
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   STAR FIELD — three parallax layers (small / medium / large)
-   Box-shadow trick: single px element cloned across entire 3000×3000 field
-   Layer speeds: 120s / 80s / 55s — creates natural depth parallax
-═══════════════════════════════════════════════════════════════════════════ */
-.ob-starfield {
+/* ── Slide ───────────────────────────────────────────────── */
+.ob-slide {
   position: absolute;
   inset: 0;
-  overflow: hidden;
-  pointer-events: none;
-}
-.ob-stars {
-  position: absolute;
-  top: 0; left: 0;
-  width: 1px;
-  height: 1px;
-  background: transparent;
-  border-radius: 50%;
-}
-.ob-stars-sm {
-  animation: obStarDrift 120s linear infinite;
-}
-.ob-stars-md {
-  animation: obStarDrift 80s linear infinite;
-}
-.ob-stars-lg {
-  animation: obStarDrift 55s linear infinite, obTwinkle 5s ease-in-out infinite;
-}
-@keyframes obStarDrift {
-  from { transform: translateY(0px); }
-  to   { transform: translateY(-3000px); }
-}
-@keyframes obTwinkle {
-  0%, 100% { opacity: 1; }
-  40%      { opacity: 0.35; }
-  70%      { opacity: 0.85; }
-}
-
-/* Shooting star — random, looping */
-.ob-shoot {
-  position: absolute;
-  top: 18%;
-  left: -5%;
-  width: 160px;
-  height: 1px;
-  background: linear-gradient(90deg, rgba(243,239,230,0), rgba(243,239,230,0.75) 50%, rgba(243,239,230,0));
-  transform: rotate(18deg);
-  opacity: 0;
-  animation: obShoot 9s ease-in-out 3.5s infinite;
-}
-@keyframes obShoot {
-  0%, 82%, 100% { opacity: 0; left: -5%; top: 18%; }
-  84%  { opacity: 0; left:  2%; top: 19%; }
-  85%  { opacity: 0.9; }
-  90%  { opacity: 0; left: 55%; top: 30%; }
-}
-
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   NEBULA — per-card colour wash, cross-fades on step change
-═══════════════════════════════════════════════════════════════════════════ */
-.ob-nebula {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  transition: background 1600ms cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   CARD — the main content pane
-═══════════════════════════════════════════════════════════════════════════ */
-.ob-card-wrap {
-  position: relative;
-  z-index: 10;
-  width: 100%;
-  max-width: 540px;
-  padding: 0 40px;
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   text-align: center;
+  padding: 0 40px;
+  opacity: 0;
+  pointer-events: none;
+  will-change: opacity;
+}
+.ob-slide.ob-active {
+  opacity: 1;
+  pointer-events: auto;
+  transition: opacity 600ms ease;
+}
+.ob-slide.ob-gone {
+  opacity: 0;
+  transition: opacity 500ms ease;
+  pointer-events: none;
 }
 
-/* Enter: emerge from void */
-@keyframes obCardEnter {
-  0%   { opacity: 0; transform: scale(1.06) translateY(22px); filter: blur(14px); }
-  55%  { filter: blur(0px); }
-  100% { opacity: 1; transform: scale(1) translateY(0); filter: blur(0px); }
-}
-/* Exit: recede into void */
-@keyframes obCardExit {
-  0%   { opacity: 1; transform: scale(1) translateY(0); filter: blur(0px); }
-  100% { opacity: 0; transform: scale(0.94) translateY(-18px); filter: blur(10px); }
-}
-
-.ob-card-enter { animation: obCardEnter 1050ms cubic-bezier(0.16, 1, 0.3, 1) both; }
-.ob-card-exit  { animation: obCardExit   620ms cubic-bezier(0.4, 0, 1, 1)  both; }
-.ob-card-idle  { opacity: 1; }
-
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   EYEBROW
-═══════════════════════════════════════════════════════════════════════════ */
-.ob-eyebrow {
-  font-family: var(--mono);
-  font-size: 9.5px;
-  letter-spacing: 0.44em;
-  text-transform: uppercase;
-  color: rgba(243, 239, 230, 0.32);
-  margin-bottom: 26px;
-  animation: obFadeUp 800ms cubic-bezier(0.16, 1, 0.3, 1) 120ms both;
-}
-
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   TITLE — each line staggers in from below
-═══════════════════════════════════════════════════════════════════════════ */
-.ob-title {
+/* ── Typography ──────────────────────────────────────────── */
+.ob-line {
+  display: block;
   font-family: "Cormorant Garamond", "Instrument Serif", Georgia, serif;
   font-weight: 300;
-  font-size: clamp(38px, 9vw, 72px);
-  line-height: 1.06;
-  letter-spacing: -0.02em;
-  color: var(--paper);
-  margin: 0 0 28px;
-  text-wrap: pretty;
-}
-.ob-title-line {
-  display: block;
-  opacity: 0;
-  transform: translateY(28px);
-  animation: obLineRise 900ms cubic-bezier(0.16, 1, 0.3, 1) both;
-  animation-delay: calc(var(--tl, 0) * 130ms + 200ms);
-}
-@keyframes obLineRise {
-  to { opacity: 1; transform: translateY(0); }
-}
-
-/* Line 0 gets moonlight shimmer like the home screen */
-.ob-title-line:first-child {
-  background: linear-gradient(
-    105deg,
-    rgba(243,239,230,0.62) 0%,
-    rgba(243,239,230,0.90) 30%,
-    rgba(210,228,255,1.00) 48%,
-    rgba(243,239,230,0.90) 66%,
-    rgba(243,239,230,0.62) 100%
-  );
-  background-size: 300% 100%;
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  animation:
-    obLineRise    900ms cubic-bezier(0.16, 1, 0.3, 1) 200ms both,
-    obShimmer      9s  linear 1100ms infinite;
-}
-@keyframes obShimmer {
-  0%   { background-position: 200% 50%; }
-  100% { background-position: -100% 50%; }
-}
-
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   BODY TEXT
-═══════════════════════════════════════════════════════════════════════════ */
-.ob-body {
-  font-size: 15px;
-  font-weight: 300;
-  line-height: 1.70;
-  color: rgba(243, 239, 230, 0.58);
-  max-width: 400px;
-  text-wrap: pretty;
-  margin-bottom: 36px;
-  animation: obFadeUp 900ms cubic-bezier(0.16, 1, 0.3, 1) 460ms both;
-}
-
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   CARD 2 — MODE PREVIEW GRID
-═══════════════════════════════════════════════════════════════════════════ */
-.ob-modes {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 10px;
-  width: 100%;
-  max-width: 340px;
-  margin: 4px 0 32px;
-}
-.ob-mode-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 7px;
-  padding: 20px 14px 18px;
-  background: rgba(243, 239, 230, 0.03);
-  border: 1px solid rgba(243, 239, 230, 0.08);
-  border-radius: 14px;
-  opacity: 0;
-  transform: translateY(14px);
-  animation: obCardItemIn 600ms cubic-bezier(0.16, 1, 0.3, 1) both;
-  animation-delay: calc(var(--i, 0) * 85ms + 560ms);
-  transition: background 400ms ease, border-color 400ms ease;
-}
-.ob-mode-card:hover {
-  background: rgba(243, 239, 230, 0.06);
-  border-color: rgba(243, 239, 230, 0.16);
-}
-@keyframes obCardItemIn {
-  to { opacity: 1; transform: translateY(0); }
-}
-.ob-mode-glyph {
-  font-size: 20px;
-  color: var(--paper);
-  line-height: 1;
-  opacity: 0.80;
-}
-.ob-mode-name {
-  font-family: "Instrument Serif", "Cormorant Garamond", serif;
   font-style: italic;
-  font-size: 16px;
-  color: var(--paper);
-  line-height: 1;
-}
-.ob-mode-desc {
-  font-family: var(--mono);
-  font-size: 8.5px;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: rgba(243, 239, 230, 0.32);
-  line-height: 1.4;
-  text-align: center;
-}
-
-/* Card 2 ambient — breathing orb */
-.ob-breathe-orb {
-  position: absolute;
-  width: min(380px, 88vw);
-  height: min(380px, 88vw);
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  pointer-events: none;
-  z-index: 0;
-}
-.ob-breathe-ring {
-  position: absolute;
-  inset: 8%;
-  border-radius: 50%;
-  border: 1px solid rgba(100, 200, 230, 0.20);
-  animation: obBreatheRing 7s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
-}
-.ob-br2 {
-  inset: 22%;
-  border-color: rgba(100, 200, 230, 0.13);
-  animation-delay: -2.8s;
-}
-.ob-br3 {
-  inset: 36%;
-  border-color: rgba(100, 200, 230, 0.09);
-  animation-delay: -5s;
-}
-.ob-breathe-core {
-  position: absolute;
-  inset: 34%;
-  border-radius: 50%;
-  background: radial-gradient(
-    circle,
-    oklch(0.78 0.11 220 / 0.30) 0%,
-    oklch(0.72 0.11 290 / 0.12) 50%,
-    transparent 100%
-  );
-  animation: obBreatheCore 7s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
-}
-@keyframes obBreatheRing {
-  0%, 100% { transform: scale(0.90); opacity: 0.38; }
-  50%       { transform: scale(1.14); opacity: 0.88; }
-}
-@keyframes obBreatheCore {
-  0%, 100% { transform: scale(0.80); opacity: 0.45; }
-  50%       { transform: scale(1.28); opacity: 0.95; }
-}
-
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   CARD 3 — CONSTELLATION
-═══════════════════════════════════════════════════════════════════════════ */
-.ob-const-wrap {
-  position: absolute;
-  width: min(300px, 80vw);
-  height: min(300px, 80vw);
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  pointer-events: none;
-  z-index: 0;
-  opacity: 0.45;
-}
-.ob-constellation {
-  width: 100%;
-  height: 100%;
-  overflow: visible;
-}
-.ob-const-line {
-  stroke: rgba(243, 239, 230, 0.28);
-  stroke-width: 0.5;
-  fill: none;
-  stroke-dasharray: 120;
-  stroke-dashoffset: 120;
-  animation: obDrawLine 900ms cubic-bezier(0.16, 1, 0.3, 1) both;
-  animation-delay: calc(var(--li, 0) * 100ms + 400ms);
-}
-@keyframes obDrawLine {
-  to { stroke-dashoffset: 0; }
-}
-.ob-const-dot {
-  fill: rgba(243, 239, 230, 0.65);
-  transform-box: fill-box;
-  transform-origin: center;
-  transform: scale(0);
-  animation: obDotPop 500ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
-  animation-delay: calc(var(--di, 0) * 80ms + 300ms);
-  filter: drop-shadow(0 0 3px rgba(243, 239, 230, 0.55));
-}
-@keyframes obDotPop {
-  to { transform: scale(1); }
-}
-/* Pulse dots slowly */
-.ob-const-dot {
-  animation:
-    obDotPop   500ms cubic-bezier(0.34, 1.56, 0.64, 1) both,
-    obDotPulse 4s   ease-in-out calc(var(--di, 0) * 300ms + 1200ms) infinite;
-}
-@keyframes obDotPulse {
-  0%, 100% { opacity: 0.65; }
-  50%      { opacity: 1; filter: drop-shadow(0 0 6px rgba(243,239,230,0.85)); }
-}
-
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   CARD 4 — PORTAL
-═══════════════════════════════════════════════════════════════════════════ */
-.ob-portal {
-  position: absolute;
-  width: min(480px, 90vw);
-  height: min(480px, 90vw);
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  pointer-events: none;
-  z-index: 0;
-}
-.ob-portal-ring {
-  position: absolute;
-  border-radius: 50%;
-  border: 1px solid oklch(0.75 0.10 65 / 0.22);
-  animation: obPortalRing 4s ease-in-out infinite;
-  animation-delay: calc(var(--ri, 0) * 1s);
-}
-.ob-portal-ring:nth-child(1) { inset: 38%; }
-.ob-portal-ring:nth-child(2) { inset: 26%; }
-.ob-portal-ring:nth-child(3) { inset: 14%; }
-.ob-portal-ring:nth-child(4) { inset:  2%; }
-@keyframes obPortalRing {
-  0%, 100% { transform: scale(0.96); opacity: 0.30; }
-  50%      { transform: scale(1.06); opacity: 0.68; }
-}
-.ob-portal-core {
-  position: absolute;
-  inset: 40%;
-  border-radius: 50%;
-  background: radial-gradient(
-    circle,
-    oklch(0.90 0.11 65 / 0.45) 0%,
-    oklch(0.78 0.10 55 / 0.20) 45%,
-    transparent 100%
-  );
-  box-shadow: 0 0 60px oklch(0.78 0.10 60 / 0.30), 0 0 120px oklch(0.70 0.08 55 / 0.15);
-  animation: obPortalCore 3s ease-in-out infinite;
-}
-@keyframes obPortalCore {
-  0%, 100% { transform: scale(0.82); opacity: 0.55; }
-  50%      { transform: scale(1.22); opacity: 1; }
-}
-/* Slow rotating god-ray conic behind the portal */
-.ob-portal::after {
-  content: '';
-  position: absolute;
-  inset: -20%;
-  background: repeating-conic-gradient(
-    oklch(0.75 0.10 60 / 0.045) 0deg,
-    transparent 12deg,
-    oklch(0.70 0.08 55 / 0.025) 24deg
-  );
-  animation: obRayRotate 22s linear infinite;
-  pointer-events: none;
-}
-@keyframes obRayRotate {
-  to { transform: rotate(360deg); }
-}
-
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   CONTINUE BUTTON (cards 1–3)
-═══════════════════════════════════════════════════════════════════════════ */
-.ob-next {
-  display: inline-flex;
-  align-items: center;
-  gap: 14px;
-  background: transparent;
-  border: none;
-  color: rgba(243, 239, 230, 0.45);
-  font-family: var(--mono);
-  font-size: 9.5px;
-  letter-spacing: 0.36em;
-  text-transform: uppercase;
-  cursor: pointer;
-  padding: 10px 0;
-  margin-top: 32px;
-  transition: color 420ms ease, gap 420ms cubic-bezier(0.16, 1, 0.3, 1);
-  animation: obFadeUp 900ms cubic-bezier(0.16, 1, 0.3, 1) 800ms both;
-}
-.ob-next:hover {
   color: rgba(243, 239, 230, 0.90);
-  gap: 22px;
-}
-.ob-next-line {
-  width: 26px;
-  height: 1px;
-  background: currentColor;
-  flex-shrink: 0;
-  transition: width 420ms cubic-bezier(0.16, 1, 0.3, 1);
-}
-.ob-next:hover .ob-next-line { width: 42px; }
-.ob-next-glyph {
-  font-size: 12px;
-  transition: transform 420ms cubic-bezier(0.16, 1, 0.3, 1);
-}
-.ob-next:hover .ob-next-glyph { transform: translateX(4px); }
-
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   ENTER BUTTON (card 4) — cinematic CTA
-═══════════════════════════════════════════════════════════════════════════ */
-.ob-enter {
-  position: relative;
-  margin-top: 44px;
-  padding: 22px 68px;
-  font-family: "Cormorant Garamond", "Instrument Serif", serif;
-  font-style: italic;
-  font-size: clamp(32px, 6vw, 48px);
   letter-spacing: -0.01em;
-  color: var(--paper);
-  background: rgba(243, 239, 230, 0.02);
-  border: 1px solid rgba(243, 239, 230, 0.30);
-  border-radius: 999px;
-  cursor: pointer;
-  overflow: hidden;
-  transition:
-    border-color 600ms cubic-bezier(0.16, 1, 0.3, 1),
-    transform    600ms cubic-bezier(0.16, 1, 0.3, 1),
-    box-shadow   600ms cubic-bezier(0.16, 1, 0.3, 1),
-    background   600ms cubic-bezier(0.16, 1, 0.3, 1);
-  animation: obEnterIn 1200ms cubic-bezier(0.16, 1, 0.3, 1) 700ms both;
+  line-height: 1.12;
+  margin: 0;
 }
-@keyframes obEnterIn {
-  from { opacity: 0; transform: scale(0.88); filter: blur(10px); }
-  to   { opacity: 1; transform: scale(1);    filter: blur(0);    }
-}
-.ob-enter:hover {
-  border-color: rgba(243, 239, 230, 0.72);
-  transform: scale(1.05);
-  background: rgba(243, 239, 230, 0.04);
-  box-shadow:
-    0 0 50px oklch(0.78 0.10 60 / 0.22),
-    0 0 100px oklch(0.70 0.08 55 / 0.12),
-    inset 0 0 30px rgba(243, 239, 230, 0.03);
-}
-.ob-enter:active { transform: scale(0.98); }
-.ob-enter-text { position: relative; z-index: 1; }
-
-/* Rotating warm-gold glow behind text */
-.ob-enter-glow {
-  position: absolute;
-  inset: -60%;
-  background: conic-gradient(
-    from 0deg,
-    transparent 0deg,
-    oklch(0.78 0.10 60 / 0.18) 60deg,
-    transparent 120deg,
-    oklch(0.72 0.08 55 / 0.10) 200deg,
-    transparent 280deg,
-    oklch(0.78 0.10 60 / 0.15) 340deg,
-    transparent 360deg
-  );
-  animation: obGlowSpin 5s linear infinite;
-  pointer-events: none;
-}
-@keyframes obGlowSpin {
-  to { transform: rotate(360deg); }
-}
-
-/* Pulse the border on idle */
-@keyframes obBorderPulse {
-  0%, 100% { border-color: rgba(243, 239, 230, 0.30); }
-  50%      { border-color: rgba(243, 239, 230, 0.55); }
-}
-.ob-enter {
-  animation:
-    obEnterIn      1200ms cubic-bezier(0.16, 1, 0.3, 1) 700ms both,
-    obBorderPulse  3s    ease-in-out                    2000ms infinite;
-}
-
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   PROGRESS DOTS
-═══════════════════════════════════════════════════════════════════════════ */
-.ob-dots {
-  position: absolute;
-  bottom: 40px;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  gap: 9px;
-  align-items: center;
-  animation: obFadeUp 800ms cubic-bezier(0.16, 1, 0.3, 1) 1200ms both;
-}
-.ob-dot {
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: rgba(243, 239, 230, 0.20);
-  transition: width 500ms cubic-bezier(0.16, 1, 0.3, 1),
-              border-radius 500ms cubic-bezier(0.16, 1, 0.3, 1),
-              background 500ms ease;
-}
-.ob-dot-active {
-  width: 22px;
-  border-radius: 2px;
-  background: rgba(243, 239, 230, 0.78);
-}
-
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   SKIP BUTTON
-═══════════════════════════════════════════════════════════════════════════ */
-.ob-skip {
-  position: absolute;
-  top: 26px;
-  right: 28px;
-  background: transparent;
-  border: none;
-  color: rgba(243, 239, 230, 0.22);
-  font-family: var(--mono);
-  font-size: 9px;
-  letter-spacing: 0.32em;
+.ob-line-lg { font-size: clamp(36px, 9vw, 68px); }
+.ob-line-sm {
+  font-size: clamp(14px, 3.5vw, 22px);
+  color: rgba(243, 239, 230, 0.42);
+  font-style: normal;
+  font-family: "JetBrains Mono", monospace;
+  letter-spacing: 0.30em;
   text-transform: uppercase;
-  cursor: pointer;
-  padding: 10px 8px;
-  transition: color 350ms ease;
-  animation: obFadeIn 1000ms ease 2000ms both;
-}
-.ob-skip:hover { color: rgba(243, 239, 230, 0.55); }
-
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   SHARED UTILITIES
-═══════════════════════════════════════════════════════════════════════════ */
-@keyframes obFadeUp {
-  from { opacity: 0; transform: translateY(18px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-@keyframes obFadeIn {
-  from { opacity: 0; }
-  to   { opacity: 1; }
+  margin-top: 22px;
+  font-size: clamp(10px, 2.5vw, 13px);
 }
 
+/* Very subtle static nebula — no animation, zero cost */
+.ob-bg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 60% 50% at 30% 70%, rgba(80, 50, 140, 0.18) 0%, transparent 65%),
+    radial-gradient(ellipse 50% 40% at 75% 25%, rgba(30, 55, 160, 0.12) 0%, transparent 60%);
+}
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   MOBILE ADJUSTMENTS
-═══════════════════════════════════════════════════════════════════════════ */
 @media (max-width: 560px) {
-  .ob-card-wrap {
-    padding: 0 28px;
-  }
-  .ob-title {
-    font-size: clamp(34px, 10vw, 52px);
-    margin-bottom: 20px;
-  }
-  .ob-body {
-    font-size: 14px;
-    margin-bottom: 24px;
-  }
-  .ob-modes {
-    gap: 8px;
-  }
-  .ob-mode-card {
-    padding: 16px 10px 14px;
-  }
-  .ob-enter {
-    padding: 18px 52px;
-  }
-  .ob-next {
-    margin-top: 24px;
-  }
-  .ob-dots {
-    bottom: 28px;
-  }
-  .ob-skip {
-    top: 18px;
-    right: 18px;
-  }
-  .ob-portal {
-    width: min(320px, 90vw);
-    height: min(320px, 90vw);
-  }
-}
-@media (max-width: 380px) {
-  .ob-card-wrap {
-    padding: 0 18px;
-  }
-  .ob-modes {
-    max-width: 280px;
-  }
+  .ob-slide { padding: 0 28px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .ob-stars-sm, .ob-stars-md, .ob-stars-lg,
-  .ob-breathe-ring, .ob-breathe-core,
-  .ob-portal-ring, .ob-portal-core,
-  .ob-shoot,
-  .ob-enter-glow { animation: none !important; }
-  .ob-card-enter, .ob-card-exit { animation: none !important; opacity: 1; }
-  .ob-title-line { animation: none !important; opacity: 1; transform: none; }
+  .ob-overlay    { animation: none; opacity: 1; }
+  .ob-slide      { transition: none !important; }
 }
