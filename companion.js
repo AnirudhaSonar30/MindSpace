@@ -148,11 +148,12 @@ Never break character. Never mention you are an AI unless directly and repeatedl
       }
 
       try {
-        /* Standard system + conversation history format understood by all major APIs */
+        /* Keep last 10 messages so history never grows unbounded */
+        const recent = this.messages.slice(-10);
         const out = await window.claude.complete({
           messages: [
             { role: 'system', content: SYSTEM_PROMPT },
-            ...this.messages,
+            ...recent,
           ],
         });
         const text = (out || '').trim() || fallbackReply(userText);
