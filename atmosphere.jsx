@@ -146,9 +146,9 @@ function AtmosphereCanvas() {
          The shape fills from the undulating top edge down to H.        */
       const layerDefs = [
         /* [baseYFrac, ySpread, nPts, windAmp, color, opacity] */
-        [0.86, 0.030, 22, H * 0.010, 'rgba(12,44,18,1)', 0.50],  /* far   */
-        [0.80, 0.035, 17, H * 0.013, 'rgba(6,30,12,1)',  0.68],  /* mid   */
-        [0.74, 0.040, 13, H * 0.017, 'rgba(3,18,7,1)',   0.86],  /* near  */
+        [0.86, 0.030, 22, H * 0.010, 'rgba(4,18,8,1)',   0.88],  /* far   */
+        [0.80, 0.035, 17, H * 0.013, 'rgba(2,11,5,1)',   0.94],  /* mid   */
+        [0.74, 0.040, 13, H * 0.017, 'rgba(1,6,2,1)',    1.00],  /* near  */
       ];
 
       for (const [baseYF, ySpread, nPts, windAmp, color, op] of layerDefs) {
@@ -336,17 +336,17 @@ function AtmosphereCanvas() {
       const wind = 0.48 + 0.44 * Math.sin(t * 0.13)
                  + 0.08 * Math.sin(t * 0.44 + 0.7);
 
-      /* Atmospheric haze sits just above the treeline — drawn before trees */
-      for (let i = 0; i < 3; i++) {
-        const hazeY  = H * (0.68 + i * 0.06);
-        const hazeOp = (0.05 + i * 0.03) * alpha * (0.75 + 0.25 * Math.sin(t * 0.19 + i));
-        const hg     = ctx.createLinearGradient(0, hazeY - H * 0.06, 0, hazeY + H * 0.04);
-        hg.addColorStop(0, 'rgba(0,0,0,0)');
-        hg.addColorStop(0.5, `rgba(10,38,15,${hazeOp})`);
-        hg.addColorStop(1, 'rgba(0,0,0,0)');
-        ctx.fillStyle = hg;
-        ctx.fillRect(0, hazeY - H * 0.06, W, H * 0.10);
-      }
+      /* Sky luminance band — moonlit mist above the treeline creates contrast
+         so dark tree silhouettes are clearly visible against a lighter sky. */
+      const breathe = 0.88 + 0.12 * Math.sin(t * 0.07);
+      const skyG = ctx.createLinearGradient(0, H * 0.38, 0, H * 0.86);
+      skyG.addColorStop(0,    'rgba(0,0,0,0)');
+      skyG.addColorStop(0.18, `rgba(18, 62, 30, ${0.28 * alpha * breathe})`);
+      skyG.addColorStop(0.48, `rgba(26, 82, 42, ${0.54 * alpha * breathe})`);
+      skyG.addColorStop(0.72, `rgba(14, 50, 24, ${0.30 * alpha * breathe})`);
+      skyG.addColorStop(1,    'rgba(0,0,0,0)');
+      ctx.fillStyle = skyG;
+      ctx.fillRect(0, H * 0.38, W, H * 0.48);
 
       /* Draw each treeline layer back → front */
       for (const layer of forestTrees) {

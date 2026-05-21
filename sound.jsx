@@ -393,7 +393,7 @@ function buildForest(ctx) {
 const SCENE_SOUNDS = {
   'midnight-rain':  { rainSoft: false, rain: true,  rainStorm: false, wind: false, chime: false, drone: false, fire: false, ocean: false, alpha: false, theta: false, forest: false },
   'soft-morning':   { rainSoft: true,  rain: false, rainStorm: false, wind: true,  chime: true,  drone: false, fire: false, ocean: false, alpha: true,  theta: false, forest: false },
-  'forest-temple':  { rainSoft: false, rain: false, rainStorm: false, wind: false, chime: false, drone: false, fire: false, ocean: false, alpha: false, theta: false, forest: true  },
+  'forest-temple':  { rainSoft: false, rain: false, rainStorm: false, wind: true,  chime: true,  drone: false, fire: false, ocean: false, alpha: true,  theta: false, forest: false },
   'ocean-dream':    { rainSoft: false, rain: false, rainStorm: false, wind: false, chime: false, drone: true,  fire: false, ocean: true,  alpha: true,  theta: false, forest: false },
   'fireplace-cabin':{ rainSoft: false, rain: false, rainStorm: false, wind: false, chime: false, drone: false, fire: true,  ocean: false, alpha: false, theta: false, forest: false },
   'deep-space':     { rainSoft: false, rain: false, rainStorm: false, wind: false, chime: false, drone: true,  fire: false, ocean: false, alpha: false, theta: true,  forest: false },
