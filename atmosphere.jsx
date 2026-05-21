@@ -357,12 +357,12 @@ function AtmosphereCanvas() {
       /* Narrow horizon glow just above the near treeline — moonlit canopy mist.
          Spans only H*0.55→H*0.76 so it doesn't wash the whole sky. */
       const breathe = 0.90 + 0.10 * Math.sin(t * 0.07);
-      const hg = ctx.createLinearGradient(0, H * 0.60, 0, H * 0.78);
-      hg.addColorStop(0,   'rgba(0,0,0,0)');
-      hg.addColorStop(0.5, `rgba(18, 58, 26, ${0.30 * alpha * breathe})`);
-      hg.addColorStop(1,   'rgba(0,0,0,0)');
+      const hg = ctx.createLinearGradient(0, H * 0.64, 0, H * 0.80);
+      hg.addColorStop(0,    'rgba(0,0,0,0)');
+      hg.addColorStop(0.38, `rgba(20, 62, 28, ${0.72 * alpha * breathe})`);
+      hg.addColorStop(1,    'rgba(0,0,0,0)');
       ctx.fillStyle = hg;
-      ctx.fillRect(0, H * 0.60, W, H * 0.18);
+      ctx.fillRect(0, H * 0.64, W, H * 0.16);
 
       /* Draw each layer back → front as a continuous crown-profile path */
       for (const layer of forestTrees) {
@@ -428,8 +428,8 @@ function AtmosphereCanvas() {
 
         ctx.save();
         ctx.globalAlpha = b.op * alpha;
-        ctx.strokeStyle = 'rgba(190, 230, 200, 1)';
-        ctx.lineWidth   = 2.0;
+        ctx.strokeStyle = 'rgba(220, 245, 225, 1)';
+        ctx.lineWidth   = 2.2;
         ctx.lineCap     = 'round';
         ctx.lineJoin    = 'round';
         ctx.beginPath();
@@ -652,7 +652,7 @@ function AtmosphereCanvas() {
       if (scene.caustics)                    { drawCaustics(t, eT); }
       if (scene.flicker)                     { drawFireFlicker(t, eT); }
       if (scene.cityLights)                  { drawCityLights(dt, t, eT); }
-      if (scene.id === 'forest-temple')      { drawForestEdge(t, eT); drawForestBirds(update ? dt : 0, t, eT); }
+      if (scene.id === 'forest-temple')      { const fa = eT > 0.01 ? eT : 1; drawForestEdge(t, fa); drawForestBirds(dt, t, fa); }
 
       /* Lightning (midnight rain) — one event fires canvas bolt + CSS veil + sound */
       if (scene.lightning) {
