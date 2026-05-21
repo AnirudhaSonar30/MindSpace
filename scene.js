@@ -569,14 +569,17 @@
      Lightning — triggered when the active scene has lightning:true
      ============================================================ */
   const _flashEl = document.querySelector('.scene-veil-flash');
-  let nextLightning = 12 + Math.random() * 25;
   function triggerLightning() {
     if (!_flashEl) return;
     _flashEl.classList.remove('lightning-active');
     void _flashEl.offsetWidth; /* force reflow to restart animation */
     _flashEl.classList.add('lightning-active');
     setTimeout(() => _flashEl.classList.remove('lightning-active'), 700);
+    /* Thunder sound follows the flash; atmosphere.jsx drives canvas bolt in sync */
+    setTimeout(() => { if (window.MindSpacePlayThunder) window.MindSpacePlayThunder(); }, 180);
   }
+  /* atmosphere.jsx calls this so both visuals + sound fire as one event */
+  window.MindSpaceTriggerLightning = triggerLightning;
 
   /* ============================================================
      Interaction
@@ -716,16 +719,7 @@
       }
     }
 
-    /* Lightning — only when scene defines lightning:true */
-    if (!lite && window.__mindspaceScene && window.__mindspaceScene.lightning) {
-      nextLightning -= dt;
-      if (nextLightning <= 0) {
-        triggerLightning();
-        nextLightning = 14 + Math.random() * 28;
-      }
-    } else {
-      nextLightning = 14 + Math.random() * 28; /* reset when scene has no lightning */
-    }
+    /* Lightning timing is driven by atmosphere.jsx; it calls MindSpaceTriggerLightning */
 
     // Star brightness rises as user goes deeper into a practice mode
     skyMat.uniforms.uStarBrightness.value = 0.55 + modeT * 0.38;

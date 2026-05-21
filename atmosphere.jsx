@@ -504,15 +504,14 @@ function AtmosphereCanvas() {
       if (scene.flicker)   { drawFireFlicker(t, eT); }
       if (scene.cityLights){ drawCityLights(dt, t, eT); }
 
-      /* Lightning (midnight rain) */
+      /* Lightning (midnight rain) — one event fires canvas bolt + CSS veil + sound */
       if (scene.lightning) {
         nextFlash -= dt;
         if (nextFlash <= 0) {
           flashT = 1;
           boltPath = generateBolt();
           nextFlash = 6 + Math.random() * 18;
-          // Brief delay so thunder follows the flash visually
-          setTimeout(() => { if (window.MindSpacePlayThunder) window.MindSpacePlayThunder(); }, 180);
+          if (window.MindSpaceTriggerLightning) window.MindSpaceTriggerLightning();
         }
       }
       if (flashT > 0) {
