@@ -1,0 +1,423 @@
+/* ─────────────────────────────────────────────────────────────────────────
+   MindSpace — Mobile Layer
+   All phone-specific layout, sizing, and composition overrides.
+   Inspiration: editorial restraint — one surface at a time, nothing cluttered.
+
+   Breakpoints:
+     700px  large phone / landscape phone / small tablet
+     560px  standard phone (iPhone 14 etc.)
+     480px  compact phone
+     380px  very small phone (SE, budget Androids)
+   ─────────────────────────────────────────────────────────────────────────*/
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   GLOBAL — prevent horizontal bleed
+═══════════════════════════════════════════════════════════════════════════ */
+@media (max-width: 700px) {
+  html, body {
+    overflow-x: hidden;
+    max-width: 100vw;
+  }
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   NAV BAR
+   Tighter padding, hide the ambient tagline ("breathing · rest · space")
+═══════════════════════════════════════════════════════════════════════════ */
+@media (max-width: 700px) {
+  .nav {
+    padding: 14px 20px;
+  }
+  .brand {
+    font-size: 19px;
+    gap: 8px;
+  }
+  .nav-meta {
+    display: none;
+  }
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   HOME SCREEN
+   Reduce horizontal padding; scale down mandala so it doesn't bleed off-screen
+═══════════════════════════════════════════════════════════════════════════ */
+@media (max-width: 700px) {
+  .hs {
+    padding: 0 28px;
+    gap: 12px;
+  }
+  .hs-mandala {
+    width: min(82vw, 340px);
+    height: min(82vw, 340px);
+  }
+}
+@media (max-width: 380px) {
+  .hs {
+    padding: 0 16px;
+  }
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   MODE PANEL  (breathe / ground / rest content container)
+   Nav is 48px, mode-nav pill is ~46px tall at ~18px bottom  → 74px clearance.
+   Top needs to clear the 48px nav + safe area.
+═══════════════════════════════════════════════════════════════════════════ */
+@media (max-width: 700px) {
+  .mode-panel {
+    padding: 70px 20px 94px;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+@media (max-width: 480px) {
+  .mode-panel {
+    padding: 66px 16px 90px;
+  }
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   REST SCREEN
+═══════════════════════════════════════════════════════════════════════════ */
+@media (max-width: 560px) {
+  .rest-screen {
+    gap: 18px;
+    padding: 0 4px;
+  }
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   BREATHING LAB
+   Collapses to a single column, tightens header margin
+═══════════════════════════════════════════════════════════════════════════ */
+@media (max-width: 700px) {
+  .reset-head {
+    margin-bottom: 36px;
+  }
+  .reset-lede {
+    font-size: 14px;
+  }
+}
+@media (max-width: 560px) {
+  .reset-head h2 {
+    font-size: clamp(30px, 8vw, 48px);
+  }
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   GROUND PRACTICE — ensure it scrolls and fits
+═══════════════════════════════════════════════════════════════════════════ */
+@media (max-width: 700px) {
+  .ground-rich {
+    padding: 0 16px;
+    gap: 28px;
+  }
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   MODE NAVIGATION (bottom pill)
+   On ≤480px:  tighter buttons
+   On ≤360px:  glyph size reduced
+═══════════════════════════════════════════════════════════════════════════ */
+@media (max-width: 480px) {
+  .mode-nav {
+    bottom: 18px;
+    padding: 4px;
+    gap: 1px;
+  }
+  .mode-btn {
+    padding: 8px 10px 9px;
+    min-width: 52px;
+  }
+  .mode-btn-label {
+    font-size: 6.5px;
+    letter-spacing: 0.10em;
+  }
+}
+@media (max-width: 360px) {
+  .mode-btn {
+    padding: 7px 8px 8px;
+    min-width: 46px;
+  }
+  .mode-btn-glyph { font-size: 11px; }
+  .mode-btn-label { font-size: 6px; }
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   COMPANION FAB — icon-only on mobile
+   Aligns vertically with mode-nav so the three form a clean bottom bar:
+   [companion]  [◯ home breathe ground rest]  [right-now]
+═══════════════════════════════════════════════════════════════════════════ */
+@media (max-width: 700px) {
+  .cm-fab {
+    left: 14px;
+    bottom: 19px;
+    padding: 0;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    justify-content: center;
+    gap: 0;
+  }
+  /* Hide all text; keep only the SVG glyph */
+  .cm-fab > *:not(.cm-fab-glyph) {
+    display: none !important;
+  }
+}
+
+/* Safe-area bump for notched phones (iPhone X+) */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  @media (max-width: 700px) {
+    .cm-fab {
+      bottom: calc(19px + env(safe-area-inset-bottom));
+    }
+  }
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   RIGHT NOW FAB — compact, then icon-only on very small phones
+═══════════════════════════════════════════════════════════════════════════ */
+@media (max-width: 700px) {
+  .rn-fab {
+    right: 14px;
+    bottom: 19px;
+    padding: 11px 14px;
+  }
+}
+@media (max-width: 480px) {
+  /* Circular icon-only to mirror companion FAB */
+  .rn-fab {
+    padding: 0;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    justify-content: center;
+    gap: 0;
+  }
+  .rn-fab-text,
+  .rn-fab-sub {
+    display: none !important;
+  }
+}
+
+/* Safe-area bump */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  @media (max-width: 700px) {
+    .rn-fab {
+      bottom: calc(19px + env(safe-area-inset-bottom));
+    }
+  }
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SOUND WIDGET — glyph-only on mobile, positioned above companion FAB
+═══════════════════════════════════════════════════════════════════════════ */
+@media (max-width: 700px) {
+  .snd-widget {
+    left: 14px;
+    bottom: 76px;
+  }
+  /* Show only the icon button; hide label, bars, expand chevron */
+  .snd-label      { display: none; }
+  .snd-bars       { display: none; }
+  .snd-expand-btn { display: none; }
+  .snd-master-btn {
+    padding: 10px 12px;
+  }
+  /* Keep the panel wide enough to be useful */
+  .snd-panel {
+    min-width: 190px;
+  }
+}
+
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  @media (max-width: 700px) {
+    .snd-widget {
+      bottom: calc(76px + env(safe-area-inset-bottom));
+    }
+  }
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SCENE SWITCHER — glyph-only on mobile, positioned above right-now FAB
+═══════════════════════════════════════════════════════════════════════════ */
+@media (max-width: 700px) {
+  .scene-sw {
+    bottom: 76px;
+    right: 14px;
+  }
+  .scene-toggle {
+    padding: 10px 13px;
+    gap: 0;
+  }
+  /* Show only the glyph; hide the text label */
+  .scene-toggle-label { display: none; }
+  /* Align panel to right edge so it doesn't bleed off-screen */
+  .scene-panel {
+    min-width: 196px;
+  }
+}
+
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  @media (max-width: 700px) {
+    .scene-sw {
+      bottom: calc(76px + env(safe-area-inset-bottom));
+    }
+  }
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   MODE NAV safe-area (home bar on notched iPhones)
+═══════════════════════════════════════════════════════════════════════════ */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  @media (max-width: 700px) {
+    .mode-nav {
+      bottom: calc(18px + env(safe-area-inset-bottom));
+    }
+  }
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   COMPANION PANEL — bottom sheet on phone (slides up from bottom)
+   Replaces the side-panel pattern which is desktop-only behaviour
+═══════════════════════════════════════════════════════════════════════════ */
+@media (max-width: 640px) {
+  .cm-overlay {
+    align-items: flex-end;
+    justify-content: stretch;
+  }
+  .cm-panel {
+    width: 100vw;
+    max-height: 88dvh;       /* dvh = dynamic viewport height, respects keyboard */
+    height: auto;
+    border-left: none;
+    border-top: 1px solid rgba(243, 239, 230, 0.12);
+    border-radius: 22px 22px 0 0;
+    transform: translateY(100%);
+    box-shadow: 0 -24px 60px rgba(0, 0, 0, 0.40);
+  }
+  .cm-opening .cm-panel,
+  .cm-open    .cm-panel { transform: translateY(0); }
+  .cm-closing .cm-panel { transform: translateY(100%); }
+
+  /* Drag handle indicator */
+  .cm-head {
+    padding-top: 28px;
+    position: relative;
+  }
+  .cm-head::before {
+    content: '';
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 36px;
+    height: 4px;
+    border-radius: 2px;
+    background: rgba(243, 239, 230, 0.18);
+    pointer-events: none;
+  }
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   WELCOME BACK CARD — full-width strip on mobile
+═══════════════════════════════════════════════════════════════════════════ */
+@media (max-width: 700px) {
+  .wb-card {
+    top: 56px;
+    left: 16px;
+    right: 16px;
+    width: auto;
+    transform: none;
+  }
+  .wb-card-inner {
+    min-width: unset;
+    max-width: 100%;
+  }
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SCENE WHISPER LINE
+═══════════════════════════════════════════════════════════════════════════ */
+@media (max-width: 700px) {
+  .whisper-line {
+    font-size: 10.5px;
+    letter-spacing: 0.06em;
+    padding: 0 20px;
+    text-align: center;
+    max-width: 100vw;
+  }
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   MOOD CHECK PANEL
+   (grid already collapses to 3 cols at 900px and 2 cols at 560px — just tighten)
+═══════════════════════════════════════════════════════════════════════════ */
+@media (max-width: 560px) {
+  .mc-panel {
+    padding: 32px 18px 28px;
+  }
+  .mc-title {
+    font-size: clamp(30px, 8vw, 48px);
+    margin-bottom: 32px;
+  }
+  .moodm {
+    width: 44px;
+    height: 44px;
+  }
+  .mc-word {
+    font-size: 18px;
+  }
+  .mc-blurb {
+    font-size: 11px;
+  }
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   MINIMUM TOUCH TARGETS — 44px (Apple HIG recommendation)
+═══════════════════════════════════════════════════════════════════════════ */
+@media (max-width: 700px) {
+  .mode-btn,
+  .scene-toggle,
+  .snd-master-btn,
+  .cm-close,
+  .cm-send {
+    min-height: 44px;
+  }
+  .mc-card {
+    min-height: 80px;
+  }
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   LOADER — tighten spacing on small phones
+═══════════════════════════════════════════════════════════════════════════ */
+@media (max-width: 480px) {
+  .premium-loader {
+    gap: 28px;
+  }
+  .premium-loader-mark {
+    font-size: 38px !important;
+  }
+  .premium-loader-track,
+  .premium-loader-meta {
+    width: 200px;
+  }
+}
