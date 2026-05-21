@@ -276,17 +276,25 @@ function AtmosphereCanvas() {
         const angle = (20 + i * 18) * Math.PI / 180;
         const ox = W * (0.25 + i * 0.25);
         const len = H * 1.4;
-        const w2 = 60 + i * 40;
-        const op = (0.028 + i * 0.008) * (0.6 + 0.4 * Math.sin(t * 0.15 + i)) * alpha;
+        const w2 = 55 + i * 35;
+        const op = (0.022 + i * 0.006) * (0.6 + 0.4 * Math.sin(t * 0.15 + i)) * alpha;
         ctx.save();
         ctx.translate(ox, -20);
         ctx.rotate(angle);
         const g2 = ctx.createLinearGradient(0, 0, 0, len);
-        g2.addColorStop(0, `rgba(210, 230, 160, ${op})`);
-        g2.addColorStop(0.5, `rgba(200, 220, 140, ${op * 0.6})`);
-        g2.addColorStop(1, 'rgba(0,0,0,0)');
+        g2.addColorStop(0,   `rgba(210, 230, 160, ${op})`);
+        g2.addColorStop(0.5, `rgba(200, 220, 140, ${op * 0.5})`);
+        g2.addColorStop(1,   'rgba(0,0,0,0)');
         ctx.fillStyle = g2;
-        ctx.fillRect(-w2 / 2, 0, w2, len);
+        /* Tapered wedge — pinches to a point at the top, fans out below.
+           This eliminates the hard rectangular edges. */
+        ctx.beginPath();
+        ctx.moveTo(-3, 0);
+        ctx.lineTo(3, 0);
+        ctx.lineTo(w2, len);
+        ctx.lineTo(-w2, len);
+        ctx.closePath();
+        ctx.fill();
         ctx.restore();
       }
     }
