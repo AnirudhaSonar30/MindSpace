@@ -139,50 +139,27 @@ function AtmosphereCanvas() {
     let forestTrees = [];
     function buildForestTrees() {
       const rng = (a, b) => a + Math.random() * (b - a);
-
-      /* Each foliage circle: offset from canopy centre, radius, individual wind response */
-      function makeCanopyCircles(canopyR, n) {
-        return Array.from({ length: n }, () => ({
-          offX:      rng(-canopyR * 0.60, canopyR * 0.60),
-          offY:      rng(-canopyR * 0.45, canopyR * 0.18), // bias upward
-          r:         canopyR * rng(0.42, 0.82),
-          phase:     rng(0, Math.PI * 2),
-          swayMul:   rng(0.5, 1.5),  // circle-level wind response variation
-        }));
-      }
-
-      function makeTree(layer, x, h, color, opRange, maxSwayPx) {
-        const trunkH  = h * rng(0.28, 0.42);
-        const canopyR = h * rng(0.26, 0.36);
-        const n       = 5 + Math.floor(Math.random() * 4); // 5-8 circles per canopy
-        return {
-          layer, x, h, color,
-          op:       rng(...opRange),
-          phase:    rng(0, Math.PI * 2),
-          windMul:  rng(0.80, 1.20),
-          maxSwayPx,
-          trunkH,
-          trunkW:   h * 0.036,
-          canopyY:  -(trunkH + canopyR * 0.48), // canopy centre above trunk
-          canopyR,
-          circles:  makeCanopyCircles(canopyR, n),
-        };
-      }
-
       forestTrees = [];
-      for (let i = 0; i < 13; i++)
-        forestTrees.push(makeTree(0, rng(0, W), H*rng(0.07,0.13), 'rgba(5,28,11,1)', [0.58,0.78], H*0.006));
-      for (let i = 0; i < 10; i++)
-        forestTrees.push(makeTree(1, rng(0, W), H*rng(0.14,0.22), 'rgba(3,19,8,1)',  [0.72,0.90], H*0.010));
-      const fgXs = [
-        rng(0,W*0.10), rng(W*0.06,W*0.22), rng(W*0.17,W*0.30),
-        rng(W*0.38,W*0.54),
-        rng(W*0.68,W*0.82), rng(W*0.79,W*0.92), rng(W*0.88,W),
-      ];
-      for (const x of fgXs)
-        forestTrees.push(makeTree(2, x, H*rng(0.23,0.34), 'rgba(2,12,5,1)', [0.86,1.0], H*0.016));
 
-      forestTrees.sort((a, b) => a.layer - b.layer);
+      /* Three continuous treeline layers — distant → near
+         Each is a list of control points whose y-values wave gently.
+         The shape fills from the undulating top edge down to H.        */
+      const layerDefs = [
+        /* [baseYFrac, ySpread, nPts, windAmp, color, opacity] */
+        [0.86, 0.030, 22, H * 0.010, 'rgba(12,44,18,1)', 0.50],  /* far   */
+        [0.80, 0.035, 17, H * 0.013, 'rgba(6,30,12,1)',  0.68],  /* mid   */
+        [0.74, 0.040, 13, H * 0.017, 'rgba(3,18,7,1)',   0.86],  /* near  */
+      ];
+
+      for (const [baseYF, ySpread, nPts, windAmp, color, op] of layerDefs) {
+        const pts = Array.from({ length: nPts + 2 }, (_, i) => ({
+          x:     ((i - 1) / nPts) * W,  /* slight overshoot left/right */
+          baseY: H * baseYF + rng(-H * ySpread, H * ySpread),
+          phase: rng(0, Math.PI * 2),
+          amp:   windAmp * rng(0.55, 1.45),
+        }));
+        forestTrees.push({ pts, color, op, windAmp });
+      }
     }
 
     function initPools() {
@@ -351,102 +328,66 @@ function AtmosphereCanvas() {
       }
     }
 
-    /* ── Forest edge — circle-cluster canopy trees with natural wind sway ── */
+    /* ── Continuous treeline silhouette (back → front, 3 depth layers) ── */
     function drawForestEdge(t, alpha) {
       if (!forestTrees.length) return;
 
-      /* Layered wind: slow base pulse + faster gust overtone */
-      const wind = 0.42 + 0.50 * Math.sin(t * 0.14)
-                 + 0.08 * Math.sin(t * 0.47 + 0.8);
+      /* Two-harmonic wind: slow swell + faster gust */
+      const wind = 0.48 + 0.44 * Math.sin(t * 0.13)
+                 + 0.08 * Math.sin(t * 0.44 + 0.7);
 
-      /* ── Drifting mist bands between tree layers ── */
+      /* Atmospheric haze sits just above the treeline — drawn before trees */
       for (let i = 0; i < 3; i++) {
-        const speed  = 5 + i * 3.5;
-        const mCx    = W * 0.5 + Math.sin(t * speed * 0.01 + i * 2.1) * W * 0.55;
-        const mCy    = H * (0.62 + i * 0.08);
-        const mRx    = W  * (0.55 + i * 0.12);
-        const mRy    = H  * (0.055 + i * 0.018);
-        const mOp    = (0.055 + i * 0.025) * alpha * (0.7 + 0.3 * Math.sin(t * 0.22 + i));
-        const mg     = ctx.createRadialGradient(mCx, mCy, 0, mCx, mCy, mRx);
-        mg.addColorStop(0, `rgba(18,55,22,${mOp})`);
-        mg.addColorStop(1, 'rgba(0,0,0,0)');
-        ctx.fillStyle = mg;
-        ctx.beginPath();
-        ctx.ellipse(mCx, mCy, mRx, mRy, 0, 0, Math.PI * 2);
-        ctx.fill();
+        const hazeY  = H * (0.68 + i * 0.06);
+        const hazeOp = (0.05 + i * 0.03) * alpha * (0.75 + 0.25 * Math.sin(t * 0.19 + i));
+        const hg     = ctx.createLinearGradient(0, hazeY - H * 0.06, 0, hazeY + H * 0.04);
+        hg.addColorStop(0, 'rgba(0,0,0,0)');
+        hg.addColorStop(0.5, `rgba(10,38,15,${hazeOp})`);
+        hg.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = hg;
+        ctx.fillRect(0, hazeY - H * 0.06, W, H * 0.10);
       }
 
-      /* ── Ground fog ── */
-      const fogH = H * 0.26;
-      const fogG = ctx.createLinearGradient(0, H - fogH, 0, H);
-      fogG.addColorStop(0,    'rgba(0,0,0,0)');
-      fogG.addColorStop(0.40, `rgba(3,15,6,${0.32 * alpha})`);
-      fogG.addColorStop(1,    `rgba(2,10,4,${0.60 * alpha})`);
-      ctx.fillStyle = fogG;
-      ctx.fillRect(0, H - fogH, W, fogH);
-
-      /* ── Trees back → front ── */
-      for (const tr of forestTrees) {
-        const bx = tr.x, by = H + 2;
-
-        /* Two-harmonic trunk sway for organic feel */
-        const mainSway =
-          (Math.sin(t * 0.55 * tr.windMul + tr.phase)       * 0.78
-         + Math.sin(t * 1.30 * tr.windMul + tr.phase + 1.3) * 0.22)
-          * tr.maxSwayPx * wind;
+      /* Draw each treeline layer back → front */
+      for (const layer of forestTrees) {
+        /* Animate each control point's y with two wind harmonics */
+        const animPts = layer.pts.map(p => ({
+          x: p.x,
+          y: p.baseY
+            + Math.sin(t * 0.50 + p.phase)       * p.amp * wind
+            + Math.sin(t * 1.15 + p.phase * 1.9) * p.amp * 0.30 * wind,
+        }));
 
         ctx.save();
-        ctx.globalAlpha = alpha * tr.op;
-        ctx.fillStyle   = tr.color;
+        ctx.globalAlpha = alpha * layer.op;
+        ctx.fillStyle   = layer.color;
 
-        /* Tapered trunk curves in wind direction */
-        const tw   = tr.trunkW;
-        const tipX = bx + mainSway;
-        const tipY = by - tr.trunkH;
+        /* Build closed path: left edge → treeline curve → right edge → bottom */
         ctx.beginPath();
-        ctx.moveTo(bx - tw, by);
-        ctx.quadraticCurveTo(bx + mainSway * 0.42 - tw * 0.3, by - tr.trunkH * 0.52, tipX - tw * 0.1, tipY);
-        ctx.quadraticCurveTo(tipX, tipY - 1, tipX + tw * 0.1, tipY);
-        ctx.quadraticCurveTo(bx + mainSway * 0.42 + tw * 0.3, by - tr.trunkH * 0.52, bx + tw, by);
+        ctx.moveTo(animPts[0].x, H + 4);
+        ctx.lineTo(animPts[0].x, animPts[0].y);
+
+        /* Smooth bezier through points via midpoint technique */
+        for (let i = 0; i < animPts.length - 1; i++) {
+          const a = animPts[i], b = animPts[i + 1];
+          ctx.quadraticCurveTo(a.x, a.y, (a.x + b.x) / 2, (a.y + b.y) / 2);
+        }
+        const last = animPts[animPts.length - 1];
+        ctx.lineTo(last.x, last.y);
+        ctx.lineTo(last.x, H + 4);
         ctx.closePath();
         ctx.fill();
-
-        /* Canopy centre follows trunk tip */
-        const canopyCX = tipX + mainSway * 0.25;
-        const canopyCY = by + tr.canopyY;
-
-        /* Foreground glow pass */
-        if (tr.layer === 2) {
-          ctx.save();
-          ctx.filter = 'blur(7px)';
-          ctx.globalAlpha = alpha * tr.op * 0.20;
-          ctx.fillStyle = 'rgba(30,92,40,1)';
-          ctx.beginPath();
-          for (const c of tr.circles) {
-            const cs = Math.sin(t * 0.88 * tr.windMul + c.phase) * c.swayMul * tr.maxSwayPx * 0.45 * wind;
-            ctx.moveTo(canopyCX + c.offX + cs + c.r * 1.15, canopyCY + c.offY);
-            ctx.arc(canopyCX + c.offX + cs, canopyCY + c.offY, c.r * 1.15, 0, Math.PI * 2);
-          }
-          ctx.fill();
-          ctx.restore();
-          ctx.globalAlpha = alpha * tr.op;
-          ctx.fillStyle   = tr.color;
-        }
-
-        /* Main canopy — all circles batched in one fill for performance */
-        ctx.beginPath();
-        for (const c of tr.circles) {
-          /* Each circle sways independently — produces "leaves rustling" feel */
-          const cs = Math.sin(t * 0.88 * tr.windMul + c.phase) * c.swayMul * tr.maxSwayPx * 0.45 * wind;
-          const cx2 = canopyCX + c.offX + cs;
-          const cy2 = canopyCY + c.offY;
-          ctx.moveTo(cx2 + c.r, cy2);
-          ctx.arc(cx2, cy2, c.r, 0, Math.PI * 2);
-        }
-        ctx.fill();
-
         ctx.restore();
       }
+
+      /* Ground fog anchors the treeline to the scene floor */
+      const fogH = H * 0.22;
+      const fogG = ctx.createLinearGradient(0, H - fogH, 0, H);
+      fogG.addColorStop(0,   'rgba(0,0,0,0)');
+      fogG.addColorStop(0.5, `rgba(3,14,6,${0.30 * alpha})`);
+      fogG.addColorStop(1,   `rgba(2,9,4,${0.55 * alpha})`);
+      ctx.fillStyle = fogG;
+      ctx.fillRect(0, H - fogH, W, fogH);
     }
 
     function drawDrift(dt, t, scene, alpha) {
@@ -660,6 +601,7 @@ function AtmosphereCanvas() {
       if (scene.caustics)                    { drawCaustics(t, eT); }
       if (scene.flicker)                     { drawFireFlicker(t, eT); }
       if (scene.cityLights)                  { drawCityLights(dt, t, eT); }
+      if (scene.id === 'forest-temple')      { drawForestEdge(t, eT); }
 
       /* Lightning (midnight rain) — one event fires canvas bolt + CSS veil + sound */
       if (scene.lightning) {

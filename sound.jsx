@@ -335,17 +335,69 @@ function playThunderOnce(ctx) {
   crack.start(now);  crack.stop(now + 0.25);
 }
 
+/* Forest — crickets · jungle hum · distant birds */
+function buildForest(ctx) {
+  const gain = ctx.createGain(); gain.gain.value = 0;
+
+  /* ── Cricket layer: AM-modulated bandpass white noise ── */
+  const srcC = ctx.createBufferSource(); srcC.buffer = makeWhite(ctx, 8); srcC.loop = true;
+  const hp1  = ctx.createBiquadFilter(); hp1.type = 'highpass';  hp1.frequency.value = 3400; hp1.Q.value = 0.6;
+  const bp1  = ctx.createBiquadFilter(); bp1.type = 'bandpass';  bp1.frequency.value = 5200; bp1.Q.value = 1.8;
+  const hp2  = ctx.createBiquadFilter(); hp2.type = 'highpass';  hp2.frequency.value = 4200; hp2.Q.value = 0.5;
+  const gC   = ctx.createGain(); gC.gain.value = 0.58;
+  /* AM chirp modulator — 14 Hz ≈ natural cricket rhythm */
+  const amOsc = ctx.createOscillator(); amOsc.type = 'sine'; amOsc.frequency.value = 14;
+  const amG   = ctx.createGain(); amG.gain.value = 0.38;
+  amOsc.connect(amG); amG.connect(gC.gain); /* oscillates 0.20–0.96 */
+  srcC.connect(hp1); hp1.connect(bp1); bp1.connect(hp2); hp2.connect(gC); gC.connect(gain);
+
+  /* ── Second cricket colony at slightly different pitch/rate ── */
+  const srcC2 = ctx.createBufferSource(); srcC2.buffer = makeWhite(ctx, 10); srcC2.loop = true;
+  const bp2   = ctx.createBiquadFilter(); bp2.type = 'bandpass'; bp2.frequency.value = 6100; bp2.Q.value = 2.2;
+  const gC2   = ctx.createGain(); gC2.gain.value = 0.32;
+  const amOsc2 = ctx.createOscillator(); amOsc2.type = 'sine'; amOsc2.frequency.value = 17.5;
+  const amG2   = ctx.createGain(); amG2.gain.value = 0.28;
+  amOsc2.connect(amG2); amG2.connect(gC2.gain);
+  srcC2.connect(bp2); bp2.connect(gC2); gC2.connect(gain);
+
+  /* ── Jungle ambience: deep brown rumble + slow swell ── */
+  const srcJ  = ctx.createBufferSource(); srcJ.buffer = makeBrown(ctx, 12); srcJ.loop = true;
+  const lpJ   = ctx.createBiquadFilter(); lpJ.type = 'lowpass'; lpJ.frequency.value = 140; lpJ.Q.value = 0.5;
+  const gJ    = ctx.createGain(); gJ.gain.value = 0.14;
+  const swellOsc = ctx.createOscillator(); swellOsc.type = 'sine'; swellOsc.frequency.value = 0.07;
+  const swellG   = ctx.createGain(); swellG.gain.value = 0.06;
+  swellOsc.connect(swellG); swellG.connect(gJ.gain);
+  srcJ.connect(lpJ); lpJ.connect(gJ); gJ.connect(gain);
+
+  /* ── Distant bird — slow tremolo oscillator ── */
+  const birdOsc  = ctx.createOscillator(); birdOsc.type = 'sine'; birdOsc.frequency.value = 1340;
+  const birdLFO  = ctx.createOscillator(); birdLFO.type = 'sine'; birdLFO.frequency.value = 0.09;
+  const birdLFOG = ctx.createGain(); birdLFOG.gain.value = 180; /* ±180 Hz drift */
+  birdLFO.connect(birdLFOG); birdLFOG.connect(birdOsc.frequency);
+  const birdTrem = ctx.createOscillator(); birdTrem.type = 'sine'; birdTrem.frequency.value = 0.22;
+  const birdTremG = ctx.createGain(); birdTremG.gain.value = 0.03;
+  const birdG     = ctx.createGain(); birdG.gain.value = 0.03;
+  birdTrem.connect(birdTremG); birdTremG.connect(birdG.gain);
+  const birdHP = ctx.createBiquadFilter(); birdHP.type = 'bandpass'; birdHP.frequency.value = 1400; birdHP.Q.value = 8;
+  birdOsc.connect(birdHP); birdHP.connect(birdG); birdG.connect(gain);
+
+  [srcC, srcC2, srcJ].forEach(s => s.start());
+  [amOsc, amOsc2, swellOsc, birdOsc, birdLFO, birdTrem].forEach(o => o.start());
+  gain.connect(ctx.destination);
+  return { gain, type: 'forest' };
+}
+
 /* ═══════════════════════════════════════════════════════════════
    Scene → sound defaults
 ═══════════════════════════════════════════════════════════════ */
 const SCENE_SOUNDS = {
-  'midnight-rain':  { rainSoft: false, rain: true,  rainStorm: false, wind: false, chime: false, drone: false, fire: false, ocean: false, alpha: false, theta: false },
-  'soft-morning':   { rainSoft: true,  rain: false, rainStorm: false, wind: true,  chime: true,  drone: false, fire: false, ocean: false, alpha: true,  theta: false },
-  'forest-temple':  { rainSoft: false, rain: false, rainStorm: false, wind: true,  chime: true,  drone: false, fire: false, ocean: false, alpha: true,  theta: false },
-  'ocean-dream':    { rainSoft: false, rain: false, rainStorm: false, wind: false, chime: false, drone: true,  fire: false, ocean: true,  alpha: true,  theta: false },
-  'fireplace-cabin':{ rainSoft: false, rain: false, rainStorm: false, wind: false, chime: false, drone: false, fire: true,  ocean: false, alpha: false, theta: false },
-  'deep-space':     { rainSoft: false, rain: false, rainStorm: false, wind: false, chime: false, drone: true,  fire: false, ocean: false, alpha: false, theta: true  },
-  'night-train':    { rainSoft: false, rain: false, rainStorm: true,  wind: true,  chime: false, drone: true,  fire: false, ocean: false, alpha: false, theta: false },
+  'midnight-rain':  { rainSoft: false, rain: true,  rainStorm: false, wind: false, chime: false, drone: false, fire: false, ocean: false, alpha: false, theta: false, forest: false },
+  'soft-morning':   { rainSoft: true,  rain: false, rainStorm: false, wind: true,  chime: true,  drone: false, fire: false, ocean: false, alpha: true,  theta: false, forest: false },
+  'forest-temple':  { rainSoft: false, rain: false, rainStorm: false, wind: false, chime: false, drone: false, fire: false, ocean: false, alpha: false, theta: false, forest: true  },
+  'ocean-dream':    { rainSoft: false, rain: false, rainStorm: false, wind: false, chime: false, drone: true,  fire: false, ocean: true,  alpha: true,  theta: false, forest: false },
+  'fireplace-cabin':{ rainSoft: false, rain: false, rainStorm: false, wind: false, chime: false, drone: false, fire: true,  ocean: false, alpha: false, theta: false, forest: false },
+  'deep-space':     { rainSoft: false, rain: false, rainStorm: false, wind: false, chime: false, drone: true,  fire: false, ocean: false, alpha: false, theta: true,  forest: false },
+  'night-train':    { rainSoft: false, rain: false, rainStorm: true,  wind: true,  chime: false, drone: true,  fire: false, ocean: false, alpha: false, theta: false, forest: false },
 };
 
 /* ═══════════════════════════════════════════════════════════════
@@ -362,6 +414,7 @@ const CHANNELS = [
   { id: 'ocean',     label: 'Ocean',    sub: 'wave surge',        defOn: false, defVol: 0.58 },
   { id: 'alpha',     label: 'Alpha',    sub: '10 Hz · relaxed',   defOn: false, defVol: 0.42 },
   { id: 'theta',     label: 'Theta',    sub: '4 Hz · deep rest',  defOn: false, defVol: 0.38 },
+  { id: 'forest',    label: 'Forest',   sub: 'crickets · birds',  defOn: false, defVol: 0.52 },
 ];
 
 /* ═══════════════════════════════════════════════════════════════
@@ -404,6 +457,7 @@ function SoundToggle() {
     chRef.current.ocean     = buildOcean(ctx);
     chRef.current.alpha     = buildAlpha(ctx);
     chRef.current.theta     = buildTheta(ctx);
+    chRef.current.forest    = buildForest(ctx);
     return ctx;
   }, []);
 
