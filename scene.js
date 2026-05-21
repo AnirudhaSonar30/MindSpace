@@ -697,9 +697,11 @@
     if (!lite || (liteFrame & 1) === 0) {
       updateMotes(dt * (lite ? 2 : 1), t, breath);
     }
-    /* Show/hide planes based on ambient mode */
+    /* Show/hide planes: hidden in sleep/nothing modes and on forest-temple (birds replace them) */
+    const curScene = window.MindSpaceSceneEngine && window.MindSpaceSceneEngine.getScene();
     const hidePlanes = body.classList.contains('amb-sleep') ||
-                       body.classList.contains('amb-nothing');
+                       body.classList.contains('amb-nothing') ||
+                       (curScene && curScene.id === 'forest-temple');
     for (let i = 0; i < planes.length; i++) {
       planes[i].mesh.visible  = !hidePlanes;
       planes[i].trail.visible = !hidePlanes;

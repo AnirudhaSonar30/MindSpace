@@ -96,17 +96,17 @@ const CITY_LIGHT_COLORS = [
   [255, 200, 120], // orange-amber
 ];
 function makeBird(W, H, init = false) {
-  const hw = 9 + Math.random() * 9;
+  const hw = 22 + Math.random() * 16;
   return {
     x:        Math.random() * W,
-    y:        init ? H * 0.10 + Math.random() * H * 0.50 : -20,
+    y:        init ? H * 0.08 + Math.random() * H * 0.48 : -30,
     hw,
-    op:       0.40 + Math.random() * 0.35,
-    vx:       (Math.random() < 0.5 ? -1 : 1) * (18 + Math.random() * 24),
-    vy:       (Math.random() - 0.5) * 4,
+    op:       0.65 + Math.random() * 0.22,
+    vx:       (Math.random() < 0.5 ? -1 : 1) * (14 + Math.random() * 18),
+    vy:       (Math.random() - 0.5) * 3,
     phase:    Math.random() * Math.PI * 2,
-    flapRate: 1.0 + Math.random() * 2.0,
-    flapAmp:  hw * (0.20 + Math.random() * 0.15),
+    flapRate: 0.7 + Math.random() * 1.4,
+    flapAmp:  hw * (0.22 + Math.random() * 0.14),
   };
 }
 function makeCityLight(W, H) {
@@ -420,21 +420,22 @@ function AtmosphereCanvas() {
         if (b.y < H * 0.08) b.vy =  Math.abs(b.vy) + 1;
         if (b.y > H * 0.64) b.vy = -(Math.abs(b.vy) + 1);
 
-        /* One connected path: left tip → body → right tip = natural bird "M" silhouette */
+        /* Connected arc: left tip → body center → right tip
+           bow = 0.48 * hw makes the "M" clearly pronounced */
         const flap = Math.sin(t * b.flapRate + b.phase) * b.flapAmp;
-        const bow  = b.hw * 0.28;
-        const tipY = b.y + flap * 0.6;
+        const bow  = b.hw * 0.48;
+        const tipY = b.y + flap * 0.55;
 
         ctx.save();
         ctx.globalAlpha = b.op * alpha;
-        ctx.strokeStyle = 'rgba(160, 210, 170, 1)';
-        ctx.lineWidth   = 1.0;
+        ctx.strokeStyle = 'rgba(190, 230, 200, 1)';
+        ctx.lineWidth   = 2.0;
         ctx.lineCap     = 'round';
         ctx.lineJoin    = 'round';
         ctx.beginPath();
         ctx.moveTo(b.x - b.hw, tipY);
-        ctx.quadraticCurveTo(b.x - b.hw * 0.30, b.y - bow, b.x, b.y);
-        ctx.quadraticCurveTo(b.x + b.hw * 0.30, b.y - bow, b.x + b.hw, tipY);
+        ctx.quadraticCurveTo(b.x - b.hw * 0.28, b.y - bow, b.x, b.y);
+        ctx.quadraticCurveTo(b.x + b.hw * 0.28, b.y - bow, b.x + b.hw, tipY);
         ctx.stroke();
         ctx.restore();
       }
