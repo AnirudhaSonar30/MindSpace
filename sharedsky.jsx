@@ -246,7 +246,26 @@ function SharedSky() {
     const ref = _db.ref('/neurons').orderByChild('ts').limitToLast(500);
     const handler = (snap) => {
       const val = snap.val();
-      if (!val) return;
+
+      /* Seeds are always kept as a baseline so the sky is never empty */
+      const seeds = SEEDS.map((s, i) => {
+        const p = placeNeuron(s.t, s.r, 'seed-' + i);
+        return {
+          id: 'seed-' + i, text: s.t,
+          x: p.x, y: p.y, hue: p.hue, sat: p.sat, lit: p.lit,
+          regionId: s.r, mine: false, seed: true,
+          born: Date.now() - (SEEDS.length - i) * 86400000,
+          twinkle: (i * 0.73) % (Math.PI * 2),
+          size: 0.85 + (i % 6) * 0.18,
+        };
+      });
+
+      if (!val) {
+        setNeurons(seeds);
+        setTotalCount(seeds.length);
+        return;
+      }
+
       const remote = Object.entries(val).map(([id, n]) => {
         const p = placeNeuron(n.text, n.regionId, id);
         const mine = myNeuronsRef.current.has(id);
@@ -261,8 +280,10 @@ function SharedSky() {
           size: mine ? 1.6 : 1.0,
         };
       });
-      setNeurons(remote);
-      setTotalCount(remote.length);
+
+      /* Merge: seeds first, then real neurons (seeds never overwritten) */
+      setNeurons([...seeds, ...remote]);
+      setTotalCount(seeds.length + remote.length);
     };
     ref.on('value', handler);
     return () => ref.off('value', handler);
