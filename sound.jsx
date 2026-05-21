@@ -7,7 +7,7 @@
 
 const { useState, useEffect, useRef, useCallback } = React;
 
-const PREF_KEY = 'mindspace.sound.v4';
+const PREF_KEY = 'mindspace.sound.v5';
 const loadP = () => { try { return JSON.parse(localStorage.getItem(PREF_KEY)) || {}; } catch { return {}; } };
 const saveP = (p) => { try { localStorage.setItem(PREF_KEY, JSON.stringify(p)); } catch {} };
 
