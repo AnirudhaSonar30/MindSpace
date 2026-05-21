@@ -96,17 +96,17 @@ const CITY_LIGHT_COLORS = [
   [255, 200, 120], // orange-amber
 ];
 function makeBird(W, H, init = false) {
-  const hw = 8 + Math.random() * 10;
+  const hw = 14 + Math.random() * 12;
   return {
     x:        Math.random() * W,
-    y:        init ? H * 0.10 + Math.random() * H * 0.50 : -16,
+    y:        init ? H * 0.12 + Math.random() * H * 0.46 : -20,
     hw,
-    op:       0.26 + Math.random() * 0.30,
-    vx:       (Math.random() < 0.5 ? -1 : 1) * (20 + Math.random() * 28),
+    op:       0.55 + Math.random() * 0.30,
+    vx:       (Math.random() < 0.5 ? -1 : 1) * (22 + Math.random() * 26),
     vy:       (Math.random() - 0.5) * 5,
     phase:    Math.random() * Math.PI * 2,
-    flapRate: 1.4 + Math.random() * 1.6,
-    flapAmp:  hw * (0.16 + Math.random() * 0.18),
+    flapRate: 1.2 + Math.random() * 1.8,
+    flapAmp:  hw * (0.18 + Math.random() * 0.16),
   };
 }
 function makeCityLight(W, H) {
@@ -159,8 +159,8 @@ function AtmosphereCanvas() {
          Each tree is a pointed-crown silhouette drawn with two quadratic bezier arcs. */
       const layerDefs = [
         /* [baseYFrac, nTrees, treeHFrac, color, op] */
-        [0.81, 32, 0.068, 'rgba(3,15,6,1)',  0.92],  /* far  — dense canopy */
-        [0.74, 20, 0.100, 'rgba(1,6,2,1)',   1.00],  /* near — taller trees */
+        [0.82, 28, 0.082, 'rgba(1,7,2,1)',   1.00],  /* far  — dense canopy */
+        [0.74, 16, 0.120, 'rgba(0,3,1,1)',   1.00],  /* near — taller trees */
       ];
 
       for (const [baseYF, n, hF, color, op] of layerDefs) {
@@ -357,12 +357,13 @@ function AtmosphereCanvas() {
       /* Narrow horizon glow just above the near treeline — moonlit canopy mist.
          Spans only H*0.55→H*0.76 so it doesn't wash the whole sky. */
       const breathe = 0.90 + 0.10 * Math.sin(t * 0.07);
-      const hg = ctx.createLinearGradient(0, H * 0.55, 0, H * 0.76);
-      hg.addColorStop(0,   'rgba(0,0,0,0)');
-      hg.addColorStop(0.5, `rgba(16, 52, 24, ${0.36 * alpha * breathe})`);
-      hg.addColorStop(1,   'rgba(0,0,0,0)');
+      const hg = ctx.createLinearGradient(0, H * 0.52, 0, H * 0.78);
+      hg.addColorStop(0,    'rgba(0,0,0,0)');
+      hg.addColorStop(0.45, `rgba(20, 68, 30, ${0.58 * alpha * breathe})`);
+      hg.addColorStop(0.60, `rgba(24, 78, 36, ${0.65 * alpha * breathe})`);
+      hg.addColorStop(1,    'rgba(0,0,0,0)');
       ctx.fillStyle = hg;
-      ctx.fillRect(0, H * 0.55, W, H * 0.21);
+      ctx.fillRect(0, H * 0.52, W, H * 0.26);
 
       /* Draw each layer back → front as a continuous crown-profile path */
       for (const layer of forestTrees) {
@@ -425,8 +426,8 @@ function AtmosphereCanvas() {
 
         ctx.save();
         ctx.globalAlpha   = b.op * alpha;
-        ctx.strokeStyle   = 'rgba(58, 135, 70, 1)';
-        ctx.lineWidth     = 1.2;
+        ctx.strokeStyle   = 'rgba(65, 160, 80, 1)';
+        ctx.lineWidth     = 1.6;
         ctx.lineCap       = 'round';
         ctx.shadowColor   = 'rgba(40, 110, 52, 0.5)';
         ctx.shadowBlur    = 4;
