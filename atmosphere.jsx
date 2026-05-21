@@ -657,11 +657,9 @@ function AtmosphereCanvas() {
       drawParticles(pid, dt, t, scene, pAlpha2 > 0.01 ? pAlpha2 : 1, true);
 
       /* Special effects */
-      if (scene.rays)                        { drawLightRays(t, eT); }
       if (scene.caustics)                    { drawCaustics(t, eT); }
       if (scene.flicker)                     { drawFireFlicker(t, eT); }
       if (scene.cityLights)                  { drawCityLights(dt, t, eT); }
-      if (scene.id === 'forest-temple')      { drawForestEdge(t, eT); }
 
       /* Lightning (midnight rain) — one event fires canvas bolt + CSS veil + sound */
       if (scene.lightning) {
