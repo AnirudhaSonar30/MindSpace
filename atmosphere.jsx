@@ -96,17 +96,17 @@ const CITY_LIGHT_COLORS = [
   [255, 200, 120], // orange-amber
 ];
 function makeBird(W, H, init = false) {
-  const hw = 14 + Math.random() * 12;
+  const hw = 9 + Math.random() * 9;
   return {
     x:        Math.random() * W,
-    y:        init ? H * 0.12 + Math.random() * H * 0.46 : -20,
+    y:        init ? H * 0.10 + Math.random() * H * 0.50 : -20,
     hw,
-    op:       0.55 + Math.random() * 0.30,
-    vx:       (Math.random() < 0.5 ? -1 : 1) * (22 + Math.random() * 26),
-    vy:       (Math.random() - 0.5) * 5,
+    op:       0.40 + Math.random() * 0.35,
+    vx:       (Math.random() < 0.5 ? -1 : 1) * (18 + Math.random() * 24),
+    vy:       (Math.random() - 0.5) * 4,
     phase:    Math.random() * Math.PI * 2,
-    flapRate: 1.2 + Math.random() * 1.8,
-    flapAmp:  hw * (0.18 + Math.random() * 0.16),
+    flapRate: 1.0 + Math.random() * 2.0,
+    flapAmp:  hw * (0.20 + Math.random() * 0.15),
   };
 }
 function makeCityLight(W, H) {
@@ -357,13 +357,12 @@ function AtmosphereCanvas() {
       /* Narrow horizon glow just above the near treeline — moonlit canopy mist.
          Spans only H*0.55→H*0.76 so it doesn't wash the whole sky. */
       const breathe = 0.90 + 0.10 * Math.sin(t * 0.07);
-      const hg = ctx.createLinearGradient(0, H * 0.52, 0, H * 0.78);
-      hg.addColorStop(0,    'rgba(0,0,0,0)');
-      hg.addColorStop(0.45, `rgba(20, 68, 30, ${0.58 * alpha * breathe})`);
-      hg.addColorStop(0.60, `rgba(24, 78, 36, ${0.65 * alpha * breathe})`);
-      hg.addColorStop(1,    'rgba(0,0,0,0)');
+      const hg = ctx.createLinearGradient(0, H * 0.60, 0, H * 0.78);
+      hg.addColorStop(0,   'rgba(0,0,0,0)');
+      hg.addColorStop(0.5, `rgba(18, 58, 26, ${0.30 * alpha * breathe})`);
+      hg.addColorStop(1,   'rgba(0,0,0,0)');
       ctx.fillStyle = hg;
-      ctx.fillRect(0, H * 0.52, W, H * 0.26);
+      ctx.fillRect(0, H * 0.60, W, H * 0.18);
 
       /* Draw each layer back → front as a continuous crown-profile path */
       for (const layer of forestTrees) {
@@ -421,21 +420,21 @@ function AtmosphereCanvas() {
         if (b.y < H * 0.08) b.vy =  Math.abs(b.vy) + 1;
         if (b.y > H * 0.64) b.vy = -(Math.abs(b.vy) + 1);
 
+        /* One connected path: left tip → body → right tip = natural bird "M" silhouette */
         const flap = Math.sin(t * b.flapRate + b.phase) * b.flapAmp;
-        const bow  = b.hw * 0.16;
+        const bow  = b.hw * 0.28;
+        const tipY = b.y + flap * 0.6;
 
         ctx.save();
-        ctx.globalAlpha   = b.op * alpha;
-        ctx.strokeStyle   = 'rgba(65, 160, 80, 1)';
-        ctx.lineWidth     = 1.6;
-        ctx.lineCap       = 'round';
-        ctx.shadowColor   = 'rgba(40, 110, 52, 0.5)';
-        ctx.shadowBlur    = 4;
+        ctx.globalAlpha = b.op * alpha;
+        ctx.strokeStyle = 'rgba(160, 210, 170, 1)';
+        ctx.lineWidth   = 1.0;
+        ctx.lineCap     = 'round';
+        ctx.lineJoin    = 'round';
         ctx.beginPath();
-        ctx.moveTo(b.x, b.y);
-        ctx.quadraticCurveTo(b.x - b.hw * 0.52, b.y - bow + flap, b.x - b.hw, b.y - flap * 0.5);
-        ctx.moveTo(b.x, b.y);
-        ctx.quadraticCurveTo(b.x + b.hw * 0.52, b.y - bow + flap, b.x + b.hw, b.y - flap * 0.5);
+        ctx.moveTo(b.x - b.hw, tipY);
+        ctx.quadraticCurveTo(b.x - b.hw * 0.30, b.y - bow, b.x, b.y);
+        ctx.quadraticCurveTo(b.x + b.hw * 0.30, b.y - bow, b.x + b.hw, tipY);
         ctx.stroke();
         ctx.restore();
       }
