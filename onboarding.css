@@ -1,8 +1,8 @@
-/* MindSpace — Onboarding intro  (simple, lightweight)
-   Two text slides auto-advance in ~4 s, then mood check opens.
-   Zero background animations — just clean opacity crossfades.        */
+/* MindSpace — Cinematic intro  (pure CSS, zero JS animation)
+   A slow light blooms behind the title. Letterbox bars frame it.
+   Everything is GPU-composited opacity + transform only.            */
 
-.ob-overlay {
+.ob-intro {
   position: fixed;
   inset: 0;
   z-index: 500;
@@ -11,82 +11,108 @@
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  /* Fade in after the loader clears */
-  opacity: 0;
-  animation: obIn 600ms ease 100ms both;
-}
-@keyframes obIn {
-  to { opacity: 1; }
-}
-.ob-overlay-out {
-  opacity: 0;
-  transition: opacity 700ms ease;
+  /* No pointer events — app loads & becomes interactive behind this */
   pointer-events: none;
 }
 
-/* ── Slide ───────────────────────────────────────────────── */
-.ob-slide {
+/* ── Letterbox bars ─────────────────────────────────────────── */
+.ob-intro::before,
+.ob-intro::after {
+  content: '';
   position: absolute;
-  inset: 0;
+  left: 0; right: 0;
+  height: 9vh;
+  min-height: 44px;
+  background: #000;
+  z-index: 4;
+  transform: scaleY(1);
+  transform-origin: top;
+  animation: obBarOut 700ms cubic-bezier(0.4, 0, 1, 1) 4600ms both;
+}
+.ob-intro::before { top: 0; transform-origin: top; }
+.ob-intro::after  { bottom: 0; transform-origin: bottom; }
+@keyframes obBarOut {
+  to { transform: scaleY(0); }
+}
+
+/* ── Radial light bloom ─────────────────────────────────────── */
+.ob-glow {
+  position: absolute;
+  width: min(70vw, 70vh);
+  height: min(70vw, 70vh);
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 50% 50%,
+    rgba(160, 190, 255, 0.28) 0%,
+    rgba(100, 140, 220, 0.12) 35%,
+    rgba(80,  60, 160, 0.06)  65%,
+    transparent 100%
+  );
+  /* GPU-only: opacity + transform */
+  animation: obGlow 4800ms cubic-bezier(0.16, 1, 0.3, 1) 1600ms both;
+  will-change: transform, opacity;
+}
+@keyframes obGlow {
+  0%   { transform: scale(0.20); opacity: 0; }
+  18%  { opacity: 1; }
+  55%  { transform: scale(1.60); opacity: 0.70; }
+  85%  { transform: scale(2.20); opacity: 0.30; }
+  100% { transform: scale(2.80); opacity: 0; }
+}
+
+/* ── Text container ─────────────────────────────────────────── */
+.ob-text {
+  position: relative;
+  z-index: 3;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  gap: 6px;
   text-align: center;
-  padding: 0 40px;
-  opacity: 0;
-  pointer-events: none;
-  will-change: opacity;
-}
-.ob-slide.ob-active {
-  opacity: 1;
-  pointer-events: auto;
-  transition: opacity 600ms ease;
-}
-.ob-slide.ob-gone {
-  opacity: 0;
-  transition: opacity 500ms ease;
-  pointer-events: none;
+  padding: 0 32px;
 }
 
-/* ── Typography ──────────────────────────────────────────── */
-.ob-line {
+/* ── Line 1 ─────────────────────────────────────────────────── */
+.ob-t1 {
   display: block;
   font-family: "Cormorant Garamond", "Instrument Serif", Georgia, serif;
-  font-weight: 300;
   font-style: italic;
-  color: rgba(243, 239, 230, 0.90);
+  font-weight: 300;
+  font-size: clamp(34px, 9vw, 66px);
+  line-height: 1.08;
   letter-spacing: -0.01em;
-  line-height: 1.12;
-  margin: 0;
-}
-.ob-line-lg { font-size: clamp(36px, 9vw, 68px); }
-.ob-line-sm {
-  font-size: clamp(14px, 3.5vw, 22px);
-  color: rgba(243, 239, 230, 0.42);
-  font-style: normal;
-  font-family: "JetBrains Mono", monospace;
-  letter-spacing: 0.30em;
-  text-transform: uppercase;
-  margin-top: 22px;
-  font-size: clamp(10px, 2.5vw, 13px);
+  color: rgba(243, 239, 230, 0.88);
+  will-change: opacity, transform;
+  animation: obLine 4000ms cubic-bezier(0.16, 1, 0.3, 1) 1700ms both;
 }
 
-/* Very subtle static nebula — no animation, zero cost */
-.ob-bg {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background:
-    radial-gradient(ellipse 60% 50% at 30% 70%, rgba(80, 50, 140, 0.18) 0%, transparent 65%),
-    radial-gradient(ellipse 50% 40% at 75% 25%, rgba(30, 55, 160, 0.12) 0%, transparent 60%);
+/* ── Line 2 ─────────────────────────────────────────────────── */
+.ob-t2 {
+  display: block;
+  font-family: "Cormorant Garamond", "Instrument Serif", Georgia, serif;
+  font-style: italic;
+  font-weight: 300;
+  font-size: clamp(34px, 9vw, 66px);
+  line-height: 1.08;
+  letter-spacing: -0.01em;
+  color: rgba(243, 239, 230, 0.88);
+  will-change: opacity, transform;
+  animation: obLine 4000ms cubic-bezier(0.16, 1, 0.3, 1) 1950ms both;
 }
 
-@media (max-width: 560px) {
-  .ob-slide { padding: 0 28px; }
+@keyframes obLine {
+  0%   { opacity: 0; transform: translateY(14px); }
+  18%  { opacity: 1; transform: translateY(0); }
+  72%  { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(-6px); }
+}
+
+/* ── Overlay fade-out ───────────────────────────────────────── */
+.ob-intro.ob-out {
+  opacity: 0;
+  transition: opacity 700ms ease;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .ob-overlay    { animation: none; opacity: 1; }
-  .ob-slide      { transition: none !important; }
+  .ob-intro { display: none !important; }
 }
