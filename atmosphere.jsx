@@ -138,57 +138,49 @@ function AtmosphereCanvas() {
     /* Forest tree configs — regenerated on resize */
     let forestTrees = [];
     function buildForestTrees() {
-      const rng  = (a, b) => a + Math.random() * (b - a);
-      /* Pre-generate an organic blob shape — stored once, reused every frame */
-      const makeBlob = (rx, ry) =>
-        Array.from({ length: 9 }, (_, i) => ({
-          a:  (i / 9) * Math.PI * 2,
-          rx: rx * rng(0.70, 1.30),
-          ry: ry * rng(0.68, 1.32),
-        }));
+      const rng = (a, b) => a + Math.random() * (b - a);
 
-      function makeTree(layer, x, h, color, opRange, swayFrac) {
-        const n = 3 + Math.floor(Math.random() * 3); // 3-5 foliage clusters
-        const clusters = Array.from({ length: n }, (_, i) => {
-          const hf  = 0.22 + (i / Math.max(n - 1, 1)) * 0.70; // height fraction 0.22–0.92
-          const rx  = h * rng(0.13, 0.21) * (1.0 - hf * 0.38);
-          const ry  = rx * rng(0.52, 0.82);
-          return {
-            relX:      rng(-h * 0.11, h * 0.11),
-            relY:      -h * hf,
-            rx, ry,
-            heightFrac: hf,
-            phase:     rng(0, Math.PI * 2),
-            ownSwayPx: rx * 0.32,       // higher clusters carry more of this
-            verts:     makeBlob(rx, ry),
-          };
-        });
+      /* Each foliage circle: offset from canopy centre, radius, individual wind response */
+      function makeCanopyCircles(canopyR, n) {
+        return Array.from({ length: n }, () => ({
+          offX:      rng(-canopyR * 0.60, canopyR * 0.60),
+          offY:      rng(-canopyR * 0.45, canopyR * 0.18), // bias upward
+          r:         canopyR * rng(0.42, 0.82),
+          phase:     rng(0, Math.PI * 2),
+          swayMul:   rng(0.5, 1.5),  // circle-level wind response variation
+        }));
+      }
+
+      function makeTree(layer, x, h, color, opRange, maxSwayPx) {
+        const trunkH  = h * rng(0.28, 0.42);
+        const canopyR = h * rng(0.26, 0.36);
+        const n       = 5 + Math.floor(Math.random() * 4); // 5-8 circles per canopy
         return {
           layer, x, h, color,
-          op:         rng(...opRange),
-          phase:      rng(0, Math.PI * 2),
-          maxSwayPx:  h * swayFrac,
-          windMul:    rng(0.82, 1.18),
-          trunkW:     h * 0.038,
-          clusters,
+          op:       rng(...opRange),
+          phase:    rng(0, Math.PI * 2),
+          windMul:  rng(0.80, 1.20),
+          maxSwayPx,
+          trunkH,
+          trunkW:   h * 0.036,
+          canopyY:  -(trunkH + canopyR * 0.48), // canopy centre above trunk
+          canopyR,
+          circles:  makeCanopyCircles(canopyR, n),
         };
       }
 
       forestTrees = [];
-      /* Layer 0 — distant, many small trees full width */
-      for (let i = 0; i < 15; i++)
-        forestTrees.push(makeTree(0, rng(0, W), H * rng(0.07, 0.13), 'rgba(5,26,10,1)', [0.62, 0.82], 0.022));
-      /* Layer 1 — midground */
+      for (let i = 0; i < 13; i++)
+        forestTrees.push(makeTree(0, rng(0, W), H*rng(0.07,0.13), 'rgba(5,28,11,1)', [0.58,0.78], H*0.006));
       for (let i = 0; i < 10; i++)
-        forestTrees.push(makeTree(1, rng(0, W), H * rng(0.14, 0.22), 'rgba(3,17,7,1)',  [0.74, 0.92], 0.030));
-      /* Layer 2 — foreground, tallest, more towards edges */
+        forestTrees.push(makeTree(1, rng(0, W), H*rng(0.14,0.22), 'rgba(3,19,8,1)',  [0.72,0.90], H*0.010));
       const fgXs = [
-        rng(0, W * 0.10), rng(W * 0.06, W * 0.22), rng(W * 0.16, W * 0.30),
-        rng(W * 0.38, W * 0.54),
-        rng(W * 0.68, W * 0.82), rng(W * 0.78, W * 0.92), rng(W * 0.88, W),
+        rng(0,W*0.10), rng(W*0.06,W*0.22), rng(W*0.17,W*0.30),
+        rng(W*0.38,W*0.54),
+        rng(W*0.68,W*0.82), rng(W*0.79,W*0.92), rng(W*0.88,W),
       ];
       for (const x of fgXs)
-        forestTrees.push(makeTree(2, x, H * rng(0.23, 0.34), 'rgba(2,11,5,1)', [0.88, 1.0], 0.038));
+        forestTrees.push(makeTree(2, x, H*rng(0.23,0.34), 'rgba(2,12,5,1)', [0.86,1.0], H*0.016));
 
       forestTrees.sort((a, b) => a.layer - b.layer);
     }
@@ -359,91 +351,99 @@ function AtmosphereCanvas() {
       }
     }
 
-    /* ── Organic foliage blob at (cx, cy), optionally scaled ── */
-    function drawBlob(cx, cy, verts, scale) {
-      const s = scale || 1;
-      ctx.beginPath();
-      ctx.moveTo(cx + Math.cos(verts[0].a) * verts[0].rx * s,
-                 cy + Math.sin(verts[0].a) * verts[0].ry * s);
-      for (let i = 1; i <= verts.length; i++) {
-        const v = verts[i % verts.length];
-        /* Smooth bezier through the irregular vertices */
-        const vp = verts[(i - 1 + verts.length) % verts.length];
-        const mx = (cx + Math.cos(vp.a) * vp.rx * s + cx + Math.cos(v.a) * v.rx * s) / 2;
-        const my = (cy + Math.sin(vp.a) * vp.ry * s + cy + Math.sin(v.a) * v.ry * s) / 2;
-        ctx.quadraticCurveTo(
-          cx + Math.cos(vp.a) * vp.rx * s, cy + Math.sin(vp.a) * vp.ry * s,
-          mx, my
-        );
-      }
-      ctx.closePath();
-      ctx.fill();
-    }
-
-    /* ── Forest edge — organic cluster trees with per-cluster wind sway ── */
+    /* ── Forest edge — circle-cluster canopy trees with natural wind sway ── */
     function drawForestEdge(t, alpha) {
       if (!forestTrees.length) return;
 
-      /* Global wind pulse — slow breath that drives all sway */
-      const wind = 0.45 + 0.55 * Math.sin(t * 0.16)
-                 + 0.12 * Math.sin(t * 0.41);   // subtle gust layering
+      /* Layered wind: slow base pulse + faster gust overtone */
+      const wind = 0.42 + 0.50 * Math.sin(t * 0.14)
+                 + 0.08 * Math.sin(t * 0.47 + 0.8);
 
-      /* Ground fog anchors trees to the scene */
-      const fogH = H * 0.24;
+      /* ── Drifting mist bands between tree layers ── */
+      for (let i = 0; i < 3; i++) {
+        const speed  = 5 + i * 3.5;
+        const mCx    = W * 0.5 + Math.sin(t * speed * 0.01 + i * 2.1) * W * 0.55;
+        const mCy    = H * (0.62 + i * 0.08);
+        const mRx    = W  * (0.55 + i * 0.12);
+        const mRy    = H  * (0.055 + i * 0.018);
+        const mOp    = (0.055 + i * 0.025) * alpha * (0.7 + 0.3 * Math.sin(t * 0.22 + i));
+        const mg     = ctx.createRadialGradient(mCx, mCy, 0, mCx, mCy, mRx);
+        mg.addColorStop(0, `rgba(18,55,22,${mOp})`);
+        mg.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = mg;
+        ctx.beginPath();
+        ctx.ellipse(mCx, mCy, mRx, mRy, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      /* ── Ground fog ── */
+      const fogH = H * 0.26;
       const fogG = ctx.createLinearGradient(0, H - fogH, 0, H);
-      fogG.addColorStop(0,   'rgba(0,0,0,0)');
-      fogG.addColorStop(0.45, `rgba(3,14,6,${0.35 * alpha})`);
-      fogG.addColorStop(1,   `rgba(2,10,4,${0.65 * alpha})`);
+      fogG.addColorStop(0,    'rgba(0,0,0,0)');
+      fogG.addColorStop(0.40, `rgba(3,15,6,${0.32 * alpha})`);
+      fogG.addColorStop(1,    `rgba(2,10,4,${0.60 * alpha})`);
       ctx.fillStyle = fogG;
       ctx.fillRect(0, H - fogH, W, fogH);
 
+      /* ── Trees back → front ── */
       for (const tr of forestTrees) {
         const bx = tr.x, by = H + 2;
 
-        /* Main trunk sway in pixels — two harmonics give organic feel */
+        /* Two-harmonic trunk sway for organic feel */
         const mainSway =
-          (Math.sin(t * 0.58 * tr.windMul + tr.phase)       * 0.75
-         + Math.sin(t * 1.35 * tr.windMul + tr.phase + 1.1) * 0.25)
+          (Math.sin(t * 0.55 * tr.windMul + tr.phase)       * 0.78
+         + Math.sin(t * 1.30 * tr.windMul + tr.phase + 1.3) * 0.22)
           * tr.maxSwayPx * wind;
 
         ctx.save();
         ctx.globalAlpha = alpha * tr.op;
         ctx.fillStyle   = tr.color;
 
-        /* Tapered trunk — curves slightly with mainSway */
-        const tw  = tr.trunkW;
+        /* Tapered trunk curves in wind direction */
+        const tw   = tr.trunkW;
         const tipX = bx + mainSway;
+        const tipY = by - tr.trunkH;
         ctx.beginPath();
         ctx.moveTo(bx - tw, by);
-        ctx.quadraticCurveTo(bx + mainSway * 0.45 - tw * 0.35, by - tr.h * 0.55,
-                              tipX - tw * 0.12, by - tr.h);
-        ctx.quadraticCurveTo(tipX, by - tr.h - 1, tipX + tw * 0.12, by - tr.h);
-        ctx.quadraticCurveTo(bx + mainSway * 0.45 + tw * 0.35, by - tr.h * 0.55,
-                              bx + tw, by);
+        ctx.quadraticCurveTo(bx + mainSway * 0.42 - tw * 0.3, by - tr.trunkH * 0.52, tipX - tw * 0.1, tipY);
+        ctx.quadraticCurveTo(tipX, tipY - 1, tipX + tw * 0.1, tipY);
+        ctx.quadraticCurveTo(bx + mainSway * 0.42 + tw * 0.3, by - tr.trunkH * 0.52, bx + tw, by);
         ctx.closePath();
         ctx.fill();
 
-        /* Foliage clusters — each sways independently, amount ∝ height */
-        for (const cl of tr.clusters) {
-          /* Local oscillation layered on top of trunk sway */
-          const localSway = Math.sin(t * 1.02 * tr.windMul + cl.phase)
-                          * cl.ownSwayPx * wind;
-          const cx2 = bx + cl.relX + mainSway * cl.heightFrac + localSway * cl.heightFrac;
-          const cy2 = by + cl.relY;
+        /* Canopy centre follows trunk tip */
+        const canopyCX = tipX + mainSway * 0.25;
+        const canopyCY = by + tr.canopyY;
 
-          /* Green rim-glow on foreground clusters — ambient temple light leaking through */
-          if (tr.layer === 2) {
-            ctx.save();
-            ctx.filter      = 'blur(5px)';
-            ctx.globalAlpha = alpha * tr.op * 0.26;
-            ctx.fillStyle   = 'rgba(30,90,38,1)';
-            drawBlob(cx2, cy2, cl.verts, 1.14);
-            ctx.restore();
-            ctx.globalAlpha = alpha * tr.op;
-            ctx.fillStyle   = tr.color;
+        /* Foreground glow pass */
+        if (tr.layer === 2) {
+          ctx.save();
+          ctx.filter = 'blur(7px)';
+          ctx.globalAlpha = alpha * tr.op * 0.20;
+          ctx.fillStyle = 'rgba(30,92,40,1)';
+          ctx.beginPath();
+          for (const c of tr.circles) {
+            const cs = Math.sin(t * 0.88 * tr.windMul + c.phase) * c.swayMul * tr.maxSwayPx * 0.45 * wind;
+            ctx.moveTo(canopyCX + c.offX + cs + c.r * 1.15, canopyCY + c.offY);
+            ctx.arc(canopyCX + c.offX + cs, canopyCY + c.offY, c.r * 1.15, 0, Math.PI * 2);
           }
-          drawBlob(cx2, cy2, cl.verts, 1.0);
+          ctx.fill();
+          ctx.restore();
+          ctx.globalAlpha = alpha * tr.op;
+          ctx.fillStyle   = tr.color;
         }
+
+        /* Main canopy — all circles batched in one fill for performance */
+        ctx.beginPath();
+        for (const c of tr.circles) {
+          /* Each circle sways independently — produces "leaves rustling" feel */
+          const cs = Math.sin(t * 0.88 * tr.windMul + c.phase) * c.swayMul * tr.maxSwayPx * 0.45 * wind;
+          const cx2 = canopyCX + c.offX + cs;
+          const cy2 = canopyCY + c.offY;
+          ctx.moveTo(cx2 + c.r, cy2);
+          ctx.arc(cx2, cy2, c.r, 0, Math.PI * 2);
+        }
+        ctx.fill();
 
         ctx.restore();
       }
