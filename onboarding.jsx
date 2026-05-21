@@ -5,8 +5,8 @@
   var el = document.getElementById('onboarding');
   if (!el) return;
 
-  /* Skip entirely for returning visitors */
-  if (localStorage.getItem('ms_onboarded')) {
+  /* Skip entirely for returning visitors (v2 key — fresh for all users) */
+  if (localStorage.getItem('ms_ob2')) {
     el.remove();
     return;
   }
@@ -46,7 +46,7 @@
 
       /* Remove overlay + fire mood check */
       var t3 = setTimeout(function () {
-        localStorage.setItem('ms_onboarded', '1');
+        localStorage.setItem('ms_ob2', '1');
         el.remove();
         window.dispatchEvent(new CustomEvent('mindspace:open-mood'));
       }, 1800 + 1600 + 700);
