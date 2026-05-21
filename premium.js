@@ -230,10 +230,10 @@
     });
 
     const tick = () => {
-      dx += (mx - dx) * 0.42;
-      dy += (my - dy) * 0.42;
-      rx += (mx - rx) * 0.16;
-      ry += (my - ry) * 0.16;
+      dx += (mx - dx) * 0.92;
+      dy += (my - dy) * 0.92;
+      rx += (mx - rx) * 0.30;
+      ry += (my - ry) * 0.30;
       dot.style.transform  = `translate3d(${dx - 3}px, ${dy - 3}px, 0)`;
       ring.style.transform = `translate3d(${rx - 18}px, ${ry - 18}px, 0)`;
       requestAnimationFrame(tick);
