@@ -95,6 +95,20 @@ const CITY_LIGHT_COLORS = [
   [200, 225, 255], // ice white
   [255, 200, 120], // orange-amber
 ];
+function makeBird(W, H, init = false) {
+  const hw = 8 + Math.random() * 10;
+  return {
+    x:        Math.random() * W,
+    y:        init ? H * 0.10 + Math.random() * H * 0.50 : -16,
+    hw,
+    op:       0.26 + Math.random() * 0.30,
+    vx:       (Math.random() < 0.5 ? -1 : 1) * (20 + Math.random() * 28),
+    vy:       (Math.random() - 0.5) * 5,
+    phase:    Math.random() * Math.PI * 2,
+    flapRate: 1.4 + Math.random() * 1.6,
+    flapAmp:  hw * (0.16 + Math.random() * 0.18),
+  };
+}
 function makeCityLight(W, H) {
   const side = Math.random() < 0.5 ? 'left' : 'right';
   const col = CITY_LIGHT_COLORS[Math.floor(Math.random() * CITY_LIGHT_COLORS.length)];
@@ -133,7 +147,7 @@ function AtmosphereCanvas() {
     };
 
     /* ── particle pools ── */
-    let rain = [], mist = [], pollen = [], drift = [], embers = [], stars = [], streaks = [], cityLights = [];
+    let rain = [], mist = [], pollen = [], drift = [], embers = [], stars = [], streaks = [], cityLights = [], birds = [];
 
     /* Forest tree configs — regenerated on resize */
     let forestTrees = [];
@@ -176,6 +190,7 @@ function AtmosphereCanvas() {
       stars    = Array.from({ length: 190 }, () => makeStar(W, H));
       streaks  = Array.from({ length: 28  }, () => makeStreak(W, H, true));
       cityLights = Array.from({ length: 12 }, () => makeCityLight(W, H));
+      birds      = Array.from({ length: 9  }, () => makeBird(W, H, true));
       buildForestTrees();
     }
 
@@ -393,6 +408,38 @@ function AtmosphereCanvas() {
       ctx.fillRect(0, H - fogH, W, fogH);
     }
 
+    function drawForestBirds(dt, t, alpha) {
+      const ms = 0.32;
+      for (let i = 0; i < birds.length; i++) {
+        const b = birds[i];
+        b.x += b.vx * ms * dt;
+        b.y += (b.vy + Math.sin(t * 0.18 + b.phase) * 6) * ms * dt;
+
+        if (b.x < -b.hw - 6) b.x = W + b.hw + 6;
+        if (b.x > W + b.hw + 6) b.x = -b.hw - 6;
+        if (b.y < H * 0.08) b.vy =  Math.abs(b.vy) + 1;
+        if (b.y > H * 0.64) b.vy = -(Math.abs(b.vy) + 1);
+
+        const flap = Math.sin(t * b.flapRate + b.phase) * b.flapAmp;
+        const bow  = b.hw * 0.16;
+
+        ctx.save();
+        ctx.globalAlpha   = b.op * alpha;
+        ctx.strokeStyle   = 'rgba(58, 135, 70, 1)';
+        ctx.lineWidth     = 1.2;
+        ctx.lineCap       = 'round';
+        ctx.shadowColor   = 'rgba(40, 110, 52, 0.5)';
+        ctx.shadowBlur    = 4;
+        ctx.beginPath();
+        ctx.moveTo(b.x, b.y);
+        ctx.quadraticCurveTo(b.x - b.hw * 0.52, b.y - bow + flap, b.x - b.hw, b.y - flap * 0.5);
+        ctx.moveTo(b.x, b.y);
+        ctx.quadraticCurveTo(b.x + b.hw * 0.52, b.y - bow + flap, b.x + b.hw, b.y - flap * 0.5);
+        ctx.stroke();
+        ctx.restore();
+      }
+    }
+
     function drawDrift(dt, t, scene, alpha) {
       const ms = scene.motionSpeed;
       for (let i = 0; i < drift.length; i++) {
@@ -604,7 +651,7 @@ function AtmosphereCanvas() {
       if (scene.caustics)                    { drawCaustics(t, eT); }
       if (scene.flicker)                     { drawFireFlicker(t, eT); }
       if (scene.cityLights)                  { drawCityLights(dt, t, eT); }
-      if (scene.id === 'forest-temple')      { drawForestEdge(t, eT); }
+      if (scene.id === 'forest-temple')      { drawForestEdge(t, eT); drawForestBirds(update ? dt : 0, t, eT); }
 
       /* Lightning (midnight rain) — one event fires canvas bolt + CSS veil + sound */
       if (scene.lightning) {
