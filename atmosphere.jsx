@@ -273,24 +273,25 @@ function AtmosphereCanvas() {
 
     function drawLightRays(t, alpha) {
       for (let i = 0; i < 3; i++) {
-        const angle = (20 + i * 18) * Math.PI / 180;
-        const ox = W * (0.25 + i * 0.25);
-        const len = H * 1.4;
-        const w2 = 55 + i * 35;
-        const op = (0.022 + i * 0.006) * (0.6 + 0.4 * Math.sin(t * 0.15 + i)) * alpha;
+        const angle = (15 + i * 20) * Math.PI / 180;
+        const ox = W * (0.22 + i * 0.28);
+        const len = H * 1.3;
+        const w2 = 70 + i * 45;
+        const op = (0.055 + i * 0.01) * (0.65 + 0.35 * Math.sin(t * 0.12 + i)) * alpha;
         ctx.save();
-        ctx.translate(ox, -20);
+        /* Blur kills all hard edges — shapes become pure ambient light */
+        ctx.filter = 'blur(18px)';
+        ctx.translate(ox, -H * 0.08);
         ctx.rotate(angle);
         const g2 = ctx.createLinearGradient(0, 0, 0, len);
-        g2.addColorStop(0,   `rgba(210, 230, 160, ${op})`);
-        g2.addColorStop(0.5, `rgba(200, 220, 140, ${op * 0.5})`);
-        g2.addColorStop(1,   'rgba(0,0,0,0)');
+        g2.addColorStop(0,    `rgba(190, 225, 145, 0)`);
+        g2.addColorStop(0.04, `rgba(190, 225, 145, ${op})`);
+        g2.addColorStop(0.55, `rgba(180, 215, 130, ${op * 0.35})`);
+        g2.addColorStop(1,    'rgba(0,0,0,0)');
         ctx.fillStyle = g2;
-        /* Tapered wedge — pinches to a point at the top, fans out below.
-           This eliminates the hard rectangular edges. */
         ctx.beginPath();
-        ctx.moveTo(-3, 0);
-        ctx.lineTo(3, 0);
+        ctx.moveTo(-8, 0);
+        ctx.lineTo(8, 0);
         ctx.lineTo(w2, len);
         ctx.lineTo(-w2, len);
         ctx.closePath();
