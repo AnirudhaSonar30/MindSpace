@@ -135,6 +135,49 @@ function AtmosphereCanvas() {
     /* ── particle pools ── */
     let rain = [], mist = [], pollen = [], drift = [], embers = [], stars = [], streaks = [], cityLights = [];
 
+    /* Forest tree configs — regenerated on resize */
+    let forestTrees = [];
+    function buildForestTrees() {
+      const rng = (a, b) => a + Math.random() * (b - a);
+      forestTrees = [];
+      /* Layer 0 — distant silhouettes, full width, shortest */
+      for (let i = 0; i < 16; i++) {
+        const h = H * rng(0.07, 0.13);
+        forestTrees.push({
+          layer: 0, x: rng(0, W), h, w: h * rng(0.38, 0.52),
+          phase: rng(0, Math.PI * 2), swayAmp: 0.006, windMul: 0.9,
+          color: 'rgba(5,26,10,1)', op: rng(0.70, 0.90),
+        });
+      }
+      /* Layer 1 — midground, slightly taller */
+      for (let i = 0; i < 11; i++) {
+        const h = H * rng(0.13, 0.21);
+        forestTrees.push({
+          layer: 1, x: rng(0, W), h, w: h * rng(0.36, 0.50),
+          phase: rng(0, Math.PI * 2), swayAmp: 0.010, windMul: 1.0,
+          color: 'rgba(3,16,7,1)', op: rng(0.80, 0.95),
+        });
+      }
+      /* Layer 2 — foreground, tallest, edges + a few centre */
+      const fgPositions = [
+        rng(0, W * 0.12), rng(W * 0.04, W * 0.18),
+        rng(W * 0.15, W * 0.30),
+        rng(W * 0.38, W * 0.52), rng(W * 0.48, W * 0.58),
+        rng(W * 0.70, W * 0.85), rng(W * 0.80, W * 0.92),
+        rng(W * 0.88, W),
+      ];
+      for (let i = 0; i < fgPositions.length; i++) {
+        const h = H * rng(0.21, 0.32);
+        forestTrees.push({
+          layer: 2, x: fgPositions[i], h, w: h * rng(0.34, 0.46),
+          phase: rng(0, Math.PI * 2), swayAmp: 0.015, windMul: 1.1,
+          color: 'rgba(2,10,5,1)', op: rng(0.88, 1.0),
+        });
+      }
+      /* Sort back-to-front within each layer by x for natural overlap */
+      forestTrees.sort((a, b) => a.layer - b.layer);
+    }
+
     function initPools() {
       rain     = Array.from({ length: 55  }, () => makeRainDrop(W, H, true));
       mist     = Array.from({ length: 18  }, () => makeMistPuff(W, H));
@@ -144,6 +187,7 @@ function AtmosphereCanvas() {
       stars    = Array.from({ length: 190 }, () => makeStar(W, H));
       streaks  = Array.from({ length: 28  }, () => makeStreak(W, H, true));
       cityLights = Array.from({ length: 12 }, () => makeCityLight(W, H));
+      buildForestTrees();
     }
 
     let lastTs = 0;
@@ -297,6 +341,69 @@ function AtmosphereCanvas() {
         ctx.closePath();
         ctx.fill();
         ctx.restore();
+      }
+    }
+
+    /* ── Pine-tree silhouette (used by drawForestEdge) ── */
+    function drawPineTree(cx, baseY, h, w, sway, color, a) {
+      ctx.save();
+      ctx.translate(cx, baseY);
+      ctx.rotate(sway);
+      ctx.globalAlpha = a;
+      ctx.fillStyle = color;
+      /* Trunk */
+      ctx.fillRect(-w * 0.045, -h * 0.10, w * 0.09, h * 0.12);
+      /* Three tiers — bottom widest, top narrowest */
+      const tiers = [
+        { apexF: 0.34, hwF: 0.50, baseF: 0.01 },
+        { apexF: 0.58, hwF: 0.36, baseF: 0.26 },
+        { apexF: 1.00, hwF: 0.21, baseF: 0.52 },
+      ];
+      for (const { apexF, hwF, baseF } of tiers) {
+        const apex  = -h * apexF;
+        const base  = -h * baseF;
+        const hw    = w * hwF;
+        const mid   = apex + (base - apex) * 0.58;
+        ctx.beginPath();
+        ctx.moveTo(0, apex);
+        ctx.quadraticCurveTo( hw * 0.55, mid,  hw, base);
+        ctx.lineTo(-hw, base);
+        ctx.quadraticCurveTo(-hw * 0.55, mid, 0, apex);
+        ctx.closePath();
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+
+    /* ── Forest edge — dark silhouette treeline with wind sway ── */
+    function drawForestEdge(t, alpha) {
+      if (!forestTrees.length) return;
+
+      /* Slow wind pulse shared across all trees */
+      const wind = 0.55 + 0.45 * Math.sin(t * 0.18);
+
+      /* Ground fog gradient — anchors the trees to the earth */
+      const fogH = H * 0.22;
+      const fogG = ctx.createLinearGradient(0, H - fogH, 0, H);
+      fogG.addColorStop(0,   'rgba(0,0,0,0)');
+      fogG.addColorStop(0.5, `rgba(3,14,6,${0.40 * alpha})`);
+      fogG.addColorStop(1,   `rgba(2,10,4,${0.72 * alpha})`);
+      ctx.fillStyle = fogG;
+      ctx.fillRect(0, H - fogH, W, fogH);
+
+      /* Trees back → front */
+      for (const tr of forestTrees) {
+        const sway = Math.sin(t * 0.65 * tr.windMul + tr.phase) * tr.swayAmp * wind
+                   + Math.sin(t * 1.20 * tr.windMul + tr.phase * 2.1) * tr.swayAmp * 0.28 * wind;
+        /* Subtle rim glow on foreground trees — feels like moonlight/temple light */
+        if (tr.layer === 2) {
+          ctx.save();
+          ctx.filter = 'blur(6px)';
+          drawPineTree(tr.x, H + 2, tr.h * 1.02, tr.w * 1.08, sway,
+            'rgba(30,90,40,0.22)', alpha * tr.op * 0.6);
+          ctx.restore();
+        }
+        drawPineTree(tr.x, H + 2, tr.h, tr.w, sway, tr.color, alpha * tr.op);
       }
     }
 
@@ -508,10 +615,11 @@ function AtmosphereCanvas() {
       drawParticles(pid, dt, t, scene, pAlpha2 > 0.01 ? pAlpha2 : 1, true);
 
       /* Special effects */
-      if (scene.rays)      { drawLightRays(t, eT); }
-      if (scene.caustics)  { drawCaustics(t, eT); }
-      if (scene.flicker)   { drawFireFlicker(t, eT); }
-      if (scene.cityLights){ drawCityLights(dt, t, eT); }
+      if (scene.rays)                        { drawLightRays(t, eT); }
+      if (scene.caustics)                    { drawCaustics(t, eT); }
+      if (scene.flicker)                     { drawFireFlicker(t, eT); }
+      if (scene.cityLights)                  { drawCityLights(dt, t, eT); }
+      if (scene.id === 'forest-temple')      { drawForestEdge(t, eT); }
 
       /* Lightning (midnight rain) — one event fires canvas bolt + CSS veil + sound */
       if (scene.lightning) {
