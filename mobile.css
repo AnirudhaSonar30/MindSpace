@@ -386,3 +386,141 @@
   .premium-loader { gap: 28px; }
   .premium-loader-mark { font-size: 34px !important; }
 }
+
+
+/* ═══════════════════════════════════════════════════════════════════════
+   BREATHE FOCUS OVERLAY
+   – wrap both pill rows so they don't bleed off-screen
+   – shrink pills on small phones
+   – fix "END SESSION" button clip
+═══════════════════════════════════════════════════════════════════════ */
+@media (max-width: 700px) {
+  /* Orb: give it room to breathe */
+  .lab-focus-orb {
+    width: min(54vw, 54vh);
+    height: min(54vw, 54vh);
+  }
+
+  /* Both pill rows: wrap + centre */
+  .lab-focus-cads,
+  .lab-focus-styles {
+    flex-wrap: wrap !important;
+    justify-content: center !important;
+    max-width: 92vw;
+    gap: 6px !important;
+  }
+
+  /* Smaller pills so more fit per row */
+  .lab-focus-cad,
+  .lab-focus-style {
+    padding: 6px 11px !important;
+    font-size: 8px !important;
+    letter-spacing: 0.16em !important;
+  }
+
+  /* END SESSION button — prevent text clip */
+  .lab-focus-exit {
+    top: 16px !important;
+    right: 16px !important;
+    padding: 8px 14px !important;
+    font-size: 8.5px !important;
+    letter-spacing: 0.20em !important;
+    max-width: calc(100vw - 32px);
+    white-space: nowrap;
+    overflow: visible;
+  }
+
+  /* Phase label font size */
+  .lab-focus-phase {
+    font-size: clamp(36px, 9vw, 72px) !important;
+  }
+
+  /* Inner container: tighter gap so everything fits */
+  .lab-focus-inner {
+    gap: 10px !important;
+  }
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════
+   GROUND PRACTICE
+   – 5 dots × 56 px + 4 × 16 px gap = 344 px → overflows on phones
+   – shrink dots and gaps so 5 fit comfortably on 360 px+
+═══════════════════════════════════════════════════════════════════════ */
+@media (max-width: 700px) {
+  .ground-tap-zone-rich {
+    width: calc(100vw - 32px) !important;
+    padding: 22px 16px 16px !important;
+  }
+
+  .ground-dots-rich {
+    gap: 10px !important;
+  }
+
+  .ground-dot-rich {
+    width: 48px !important;
+    height: 48px !important;
+    font-size: 18px !important;
+  }
+
+  .ground-tap-hint {
+    font-size: 9px !important;
+    letter-spacing: 0.18em;
+  }
+
+  .ground-num-big {
+    font-size: clamp(44px, 11vw, 80px) !important;
+  }
+  .ground-sense-big {
+    font-size: clamp(30px, 8vw, 56px) !important;
+  }
+
+  .ground-stage-rich {
+    gap: 24px !important;
+  }
+}
+
+@media (max-width: 380px) {
+  .ground-dot-rich {
+    width: 42px !important;
+    height: 42px !important;
+    font-size: 16px !important;
+  }
+  .ground-dots-rich {
+    gap: 8px !important;
+  }
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════
+   MODE NAV — boost contrast on mobile (no hover state on touch)
+   Inactive buttons too faint in bright outdoor light
+═══════════════════════════════════════════════════════════════════════ */
+@media (max-width: 700px) {
+  .mode-btn {
+    color: rgba(243, 239, 230, 0.72) !important;
+  }
+  .mode-btn-glyph {
+    opacity: 0.80 !important;
+  }
+  .mode-btn.active {
+    color: var(--paper) !important;
+  }
+  .mode-btn.active .mode-btn-glyph {
+    opacity: 1 !important;
+  }
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════
+   COMPANION FAB + RIGHT NOW FAB — boost opacity on mobile
+   (atmosphere.css sets them to 0.38 — too faint on phone screens)
+═══════════════════════════════════════════════════════════════════════ */
+@media (max-width: 700px) {
+  .cm-fab,
+  .rn-fab,
+  .snd-widget,
+  .scene-sw {
+    opacity: 0.75 !important;
+  }
+}
