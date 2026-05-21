@@ -1,223 +1,274 @@
-/* MindSpace — Shared Sky v2
-   --------------------------------------------------------------
-   A truly inhabited night sky. Pan/zoom. Stars cluster by theme.
-   Constellation lines connect related thoughts. New stars arrive
-   from outside the frame with a small visible trail. Seeded with
-   curated anonymous thoughts so first visit feels alive.
+/* MindSpace — Neural Memory Network
+   ─────────────────────────────────────────────────────────────
+   Each thought becomes a neuron. Shared feelings form synapses.
+   Activation pulses travel the network in real time.
+   No identity. No replies. Just the collective mind.
+
+   REAL-TIME SYNC (optional):
+   1. Create a Firebase project at console.firebase.google.com
+   2. Enable Realtime Database (start in test mode)
+   3. Enable Authentication → Sign-in method → Anonymous
+   4. Create firebase-config.js next to index.html with:
+        window.MINDSPACE_FIREBASE = { apiKey:"...", authDomain:"...",
+          databaseURL:"https://YOUR-PROJECT-default-rtdb.firebaseio.com",
+          projectId:"...", appId:"..." };
+   5. Add these two lines before sharedsky.jsx in index.html:
+        <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+        <script src="firebase-config.js"></script>
+   Without that setup the network runs in local-only mode (current device only).
 */
 
 const { useState, useEffect, useRef, useCallback } = React;
 
-const SS_KEY   = 'mindspace.sharedsky.v2';
-const SS_LIMIT = 120;
+/* ── Firebase (opt-in) ──────────────────────────────────────── */
+const FIREBASE_CFG = (typeof window !== 'undefined') && window.MINDSPACE_FIREBASE;
+let _db   = null;
+let _authReady = false;
 
-/* ── content moderation ── */
+if (FIREBASE_CFG && typeof firebase !== 'undefined') {
+  try {
+    if (!firebase.apps || !firebase.apps.length) firebase.initializeApp(FIREBASE_CFG);
+    _db = firebase.database();
+    firebase.auth().signInAnonymously()
+      .then(() => { _authReady = true; })
+      .catch(() => {});
+  } catch (e) {
+    console.warn('MindSpace Firebase init failed:', e.message);
+    _db = null;
+  }
+}
+
+/* ── Moderation ─────────────────────────────────────────────── */
 const BLOCKED = [
   'fuck','shit','bitch','cunt','dick','cock','pussy','bastard','asshole',
   'nigger','nigga','faggot','kike','spic','chink','retard',
-  'whore','slut','slag',
-  'kill yourself','kys','kms','go die',
-  'rape','molest',
-  'hate you','hate everyone',
+  'whore','slut','slag','kill yourself','kys','kms','go die',
+  'rape','molest','hate you','hate everyone',
 ];
 function isAllowed(text) {
   const t = text.toLowerCase();
   return !BLOCKED.some(w => {
-    try { return new RegExp('\\b' + w.replace(/ /g,'\\s+') + '\\b').test(t); }
+    try { return new RegExp('\\b' + w.replace(/ /g, '\\s+') + '\\b').test(t); }
     catch { return t.includes(w); }
   });
 }
 
-/* Themed regions of the sky — soft attractors */
-const THEMES = [
-  { id: 'tired',   cx: 0.22, cy: 0.34, color: [210, 38, 72], words: ['tired', 'exhausted', 'spent', 'drained', 'sleep', 'rest'] },
-  { id: 'lonely',  cx: 0.68, cy: 0.28, color: [264, 36, 68], words: ['lonely', 'alone', 'missing', 'gone', 'empty'] },
-  { id: 'okay',    cx: 0.52, cy: 0.58, color: [156, 30, 68], words: ['okay', 'small win', 'breathing', 'good', 'thank', 'thanks'] },
-  { id: 'anxious', cx: 0.30, cy: 0.74, color: [38,  56, 68], words: ['anxious', 'scared', 'worried', 'panic', 'racing'] },
-  { id: 'love',    cx: 0.78, cy: 0.66, color: [346, 50, 72], words: ['love', 'mum', 'father', 'baby', 'son', 'daughter', 'home'] },
-  { id: 'work',    cx: 0.46, cy: 0.20, color: [188, 42, 70], words: ['work', 'deadline', 'job', 'boss'] },
-  { id: 'grief',   cx: 0.14, cy: 0.62, color: [288, 28, 64], words: ['grief', 'died', 'lost', 'crying', 'tears'] },
+/* ── Brain regions ──────────────────────────────────────────── */
+const REGIONS = [
+  { id: 'memory',  label: 'Memory',   cx: 0.28, cy: 0.33, hue: 210, sat: 55, lit: 70,
+    words: ['remember', 'miss', 'used to', 'when i', 'years ago', 'childhood', 'back then', 'yesterday'] },
+  { id: 'calm',    label: 'Calm',     cx: 0.54, cy: 0.55, hue: 156, sat: 45, lit: 68,
+    words: ['okay', 'peace', 'quiet', 'rest', 'breathing', 'gentle', 'small win', 'thank', 'better', 'fine'] },
+  { id: 'anxiety', label: 'Anxiety',  cx: 0.23, cy: 0.70, hue: 38,  sat: 60, lit: 66,
+    words: ['anxious', 'scared', 'worried', 'panic', 'racing', 'nervous', 'afraid', 'dread', 'shaking'] },
+  { id: 'love',    label: 'Love',     cx: 0.76, cy: 0.63, hue: 346, sat: 55, lit: 70,
+    words: ['love', 'mum', 'mom', 'dad', 'father', 'baby', 'son', 'daughter', 'home', 'friend', 'miss you', 'told'] },
+  { id: 'grief',   label: 'Grief',    cx: 0.16, cy: 0.53, hue: 288, sat: 35, lit: 64,
+    words: ['grief', 'died', 'lost', 'crying', 'tears', 'missing', 'gone', 'alone', 'lonely', 'broke'] },
+  { id: 'tired',   label: 'Fatigue',  cx: 0.70, cy: 0.27, hue: 240, sat: 40, lit: 67,
+    words: ['tired', 'exhausted', 'spent', 'drained', 'sleep', "can't sleep", 'long day', 'holding on'] },
+  { id: 'wonder',  label: 'Wonder',   cx: 0.47, cy: 0.19, hue: 188, sat: 50, lit: 70,
+    words: ['beautiful', 'sky', 'stars', 'wonder', 'amazed', 'grateful', 'lucky', 'awe', 'magic', 'proud'] },
 ];
+const REGION_MAP = Object.fromEntries(REGIONS.map(r => [r.id, r]));
 
-/* Larger seed corpus — varied, anonymous, real */
+/* Which regions form synaptic connections */
+const ADJACENT = {
+  memory:  new Set(['calm', 'grief', 'tired', 'memory', 'wonder']),
+  calm:    new Set(['memory', 'wonder', 'anxiety', 'love', 'tired', 'calm', 'grief']),
+  anxiety: new Set(['grief', 'calm', 'tired', 'anxiety']),
+  love:    new Set(['calm', 'wonder', 'grief', 'love']),
+  grief:   new Set(['memory', 'anxiety', 'love', 'grief', 'tired']),
+  tired:   new Set(['memory', 'calm', 'anxiety', 'tired']),
+  wonder:  new Set(['calm', 'love', 'memory', 'wonder']),
+};
+
+/* ── Seed neurons ───────────────────────────────────────────── */
 const SEEDS = [
-  'i am tired but it is the good kind tonight.',
-  'finally took a walk. small win.',
-  'missing someone i shouldn\u2019t miss.',
-  'the cat decided i was a good chair.',
-  'first quiet evening in weeks.',
-  'thank you, whoever made this.',
-  'breathing through it.',
-  'long day. holding on.',
-  'four sighs and the room got smaller.',
-  'i used to be afraid of this much silence.',
-  'the rain in here is better than the rain out there.',
-  'i am okay. for now. that counts.',
-  'mum called. it was a good call.',
-  'turned off notifications. nothing exploded.',
-  'sleep won\u2019t come but rest will. lower the stakes.',
-  'midnight rain forever.',
-  'the boy across the hall is laughing. helped.',
-  'tea. window. nothing.',
-  'this is the third day i feel like myself.',
-  'small grief. small grief. it counts.',
-  'sat with it instead of running. progress.',
-  'thirty-six. starting over. it\u2019s okay.',
-  'the train is taking me somewhere kinder.',
-  'i forgive myself for today.',
-  'we are all just trying to put the day down.',
-  'i remembered to eat. small things.',
-  'my therapist would be proud.',
-  'someone left a thought here. i needed it.',
-  'the deadline was made of fog. it passed through me.',
-  'the dog is asleep. that is the news.',
-  'i\u2019m not okay but i\u2019m not lost either.',
-  'told my dad i love him. easier than i thought.',
-  'broke down at work. nobody saw. came here.',
-  'baby finally sleeping. so am i.',
-  'this is the first night the storm in my chest is quiet.',
-  'i miss my brother.',
-  'i\u2019m proud of you, you who is reading this.',
-  'turned 50 today. waited a long time to feel okay.',
-  'it\u2019s not better. it\u2019s also not worse.',
-  'i don\u2019t want to be anywhere else right now.',
-  'the moon was a half. that was enough.',
-  'kept the boundary. the world did not end.',
-  'i used to think rest was lazy. it isn\u2019t.',
-  'sat with my coffee. didn\u2019t check my phone. radical.',
+  { t: 'i am tired but it is the good kind tonight.',            r: 'tired'   },
+  { t: 'finally took a walk. small win.',                        r: 'calm'    },
+  { t: 'missing someone i shouldn’t miss.',                r: 'grief'   },
+  { t: 'the cat decided i was a good chair.',                    r: 'calm'    },
+  { t: 'first quiet evening in weeks.',                          r: 'calm'    },
+  { t: 'thank you, whoever made this.',                          r: 'wonder'  },
+  { t: 'breathing through it.',                                  r: 'calm'    },
+  { t: 'long day. holding on.',                                  r: 'tired'   },
+  { t: 'four sighs and the room got smaller.',                   r: 'anxiety' },
+  { t: 'i used to be afraid of this much silence.',              r: 'memory'  },
+  { t: 'the rain in here is better than the rain out there.',    r: 'calm'    },
+  { t: 'i am okay. for now. that counts.',                       r: 'calm'    },
+  { t: 'mum called. it was a good call.',                        r: 'love'    },
+  { t: 'turned off notifications. nothing exploded.',            r: 'calm'    },
+  { t: 'sleep won’t come but rest will.',                  r: 'tired'   },
+  { t: 'midnight rain forever.',                                 r: 'wonder'  },
+  { t: 'the boy across the hall is laughing. helped.',           r: 'calm'    },
+  { t: 'tea. window. nothing.',                                  r: 'calm'    },
+  { t: 'this is the third day i feel like myself.',              r: 'calm'    },
+  { t: 'small grief. small grief. it counts.',                   r: 'grief'   },
+  { t: 'sat with it instead of running. progress.',              r: 'anxiety' },
+  { t: 'thirty-six. starting over. it’s okay.',            r: 'calm'    },
+  { t: 'the train is taking me somewhere kinder.',               r: 'memory'  },
+  { t: 'i forgive myself for today.',                            r: 'calm'    },
+  { t: 'we are all just trying to put the day down.',            r: 'tired'   },
+  { t: 'i remembered to eat. small things.',                     r: 'calm'    },
+  { t: 'my therapist would be proud.',                           r: 'calm'    },
+  { t: 'someone left a thought here. i needed it.',              r: 'wonder'  },
+  { t: 'the deadline was made of fog. it passed through me.',    r: 'anxiety' },
+  { t: 'the dog is asleep. that is the news.',                   r: 'calm'    },
+  { t: 'i’m not okay but i’m not lost either.',       r: 'anxiety' },
+  { t: 'told my dad i love him. easier than i thought.',         r: 'love'    },
+  { t: 'broke down at work. nobody saw. came here.',             r: 'grief'   },
+  { t: 'baby finally sleeping. so am i.',                        r: 'love'    },
+  { t: 'the storm in my chest is quiet tonight.',                r: 'calm'    },
+  { t: 'i miss my brother.',                                     r: 'grief'   },
+  { t: 'i’m proud of you, you who is reading this.',       r: 'wonder'  },
+  { t: 'turned 50 today. waited a long time to feel okay.',      r: 'memory'  },
+  { t: 'it’s not better. it’s also not worse.',       r: 'calm'    },
+  { t: 'i don’t want to be anywhere else right now.',      r: 'calm'    },
+  { t: 'the moon was a half. that was enough.',                  r: 'wonder'  },
+  { t: 'kept the boundary. the world did not end.',              r: 'anxiety' },
+  { t: 'i used to think rest was lazy. it isn’t.',         r: 'tired'   },
+  { t: 'sat with my coffee. didn’t check my phone.',       r: 'calm'    },
 ];
 
-function classifyText(text) {
-  const t = text.toLowerCase();
-  for (const th of THEMES) {
-    for (const w of th.words) {
-      if (t.includes(w)) return th;
-    }
-  }
-  // default: scatter widely
-  return null;
-}
-
-/* deterministic hash → [0..1) */
+/* ── Helpers ────────────────────────────────────────────────── */
 function strHash(s) {
   let h = 2166136261;
   for (let i = 0; i < s.length; i++) {
     h ^= s.charCodeAt(i);
     h = Math.imul(h, 16777619);
   }
-  return [
-    ((h >>> 0) % 10000) / 10000,
-    (((h >>> 8) ^ 0x9e3779b9) >>> 0) % 10000 / 10000,
-  ];
+  return [((h >>> 0) % 10000) / 10000, (((h >>> 8) ^ 0x9e3779b9) >>> 0) % 10000 / 10000];
 }
 
-function placeStar(text, born, isMine, seedIdx) {
-  const theme = classifyText(text);
-  const [hx, hy] = strHash(text + ':' + (seedIdx ?? born));
-  if (theme) {
-    /* gather within ~14% of theme centre */
-    const angle = hx * Math.PI * 2;
-    const radius = 0.04 + hy * 0.10;
+function placeNeuron(text, regionId, seed) {
+  const r = REGION_MAP[regionId];
+  const [hx, hy] = strHash(text + ':' + (seed || regionId || 'x'));
+  if (r) {
+    const angle  = hx * Math.PI * 2;
+    const radius = 0.028 + hy * 0.085;
     return {
-      x: Math.max(0.04, Math.min(0.96, theme.cx + Math.cos(angle) * radius)),
-      y: Math.max(0.06, Math.min(0.94, theme.cy + Math.sin(angle) * radius)),
-      themeId: theme.id,
-      color: theme.color,
+      x: Math.max(0.04, Math.min(0.96, r.cx + Math.cos(angle) * radius)),
+      y: Math.max(0.06, Math.min(0.94, r.cy + Math.sin(angle) * radius)),
+      hue: r.hue, sat: r.sat, lit: r.lit,
     };
   }
-  return {
-    x: 0.05 + hx * 0.90,
-    y: 0.08 + hy * 0.80,
-    themeId: null,
-    color: [220, 30, 80],
-  };
+  return { x: 0.06 + hx * 0.88, y: 0.08 + hy * 0.84, hue: 220, sat: 30, lit: 70 };
 }
 
-function loadStars() {
-  try { return JSON.parse(localStorage.getItem(SS_KEY)) || []; } catch { return []; }
-}
-function saveStars(arr) {
-  try { localStorage.setItem(SS_KEY, JSON.stringify(arr.slice(-SS_LIMIT))); } catch {}
+function classifyText(text) {
+  const t = text.toLowerCase();
+  for (const r of REGIONS) {
+    for (const w of r.words) {
+      if (t.includes(w)) return r.id;
+    }
+  }
+  return null;
 }
 
+const LS_KEY    = 'mindspace.neurons.v1';
+const MAX_LOCAL = 120;
+function loadLocal()     { try { return JSON.parse(localStorage.getItem(LS_KEY)) || []; } catch { return []; } }
+function saveLocal(arr)  { try { localStorage.setItem(LS_KEY, JSON.stringify(arr.slice(-MAX_LOCAL))); } catch {} }
+
+/* ══════════════════════════════════════════════════════════════
+   Component
+══════════════════════════════════════════════════════════════ */
 function SharedSky() {
-  const [open, setOpen]         = useState(false);
-  const [revealed, setRevealed] = useState(false);
-  const [stars, setStars]       = useState([]);
-  const [composing, setComposing] = useState(false);
-  const [text, setText]         = useState('');
-  const [hover, setHover]       = useState(null);
-  const [arriving, setArriving] = useState([]); // newly-incoming stars
-  const [present, setPresent]   = useState(0);  // souls present "now"
-  const [blocked, setBlocked]   = useState('');
-  const canvasRef  = useRef(null);
-  const viewRef    = useRef({ tx: 0, ty: 0, zoom: 1 });
-  const dragRef    = useRef(null);
+  const [open,       setOpen]       = useState(false);
+  const [revealed,   setRevealed]   = useState(false);
+  const [neurons,    setNeurons]    = useState([]);
+  const [composing,  setComposing]  = useState(false);
+  const [text,       setText]       = useState('');
+  const [hover,      setHover]      = useState(null);
+  const [blocked,    setBlocked]    = useState('');
+  const [present,    setPresent]    = useState(0);
+  const [birthAnim,  setBirthAnim]  = useState(null);
+  const [totalCount, setTotalCount] = useState(0);
 
-  /* Build initial star list */
+  const canvasRef      = useRef(null);
+  const viewRef        = useRef({ tx: 0, ty: 0, zoom: 1 });
+  const dragRef        = useRef(null);
+  const neuronsRef     = useRef([]);
+  const birthFlashRef  = useRef([]);   // [{ x, y, age, hue }]
+  const pulsesRef      = useRef([]);   // traveling synapse dots
+  const synCacheRef    = useRef([]);   // last-computed synapse list
+  const myNeuronsRef   = useRef(new Set());
+
+  useEffect(() => { neuronsRef.current = neurons; }, [neurons]);
+
+  /* ── Bootstrap ────────────────────────────────────────────── */
   useEffect(() => {
-    const userStars = loadStars();
-    const seeded = SEEDS.map((t, i) => {
-      const p = placeStar(t, Date.now() - (i + 5) * 86400 * 1000, false, i);
+    const seeds = SEEDS.map((s, i) => {
+      const p = placeNeuron(s.t, s.r, 'seed-' + i);
       return {
-        id: 'seed-' + i, text: t, x: p.x, y: p.y, color: p.color,
-        themeId: p.themeId, size: 1.0 + (i % 5) * 0.35, mine: false,
-        born: Date.now() - (i + 5) * 86400 * 1000, twinkle: (i * 0.7) % Math.PI,
-        seed: true,
+        id: 'seed-' + i, text: s.t,
+        x: p.x, y: p.y, hue: p.hue, sat: p.sat, lit: p.lit,
+        regionId: s.r, mine: false, seed: true,
+        born: Date.now() - (SEEDS.length - i) * 86400000,
+        twinkle: (i * 0.73) % (Math.PI * 2),
+        size: 0.85 + (i % 6) * 0.18,
       };
     });
-    const userMapped = userStars.map((s, i) => {
-      const p = s.pos || placeStar(s.text, s.born, true, i);
-      return {
-        id: s.id || 'me-' + i, text: s.text,
-        x: s.pos ? s.pos.x : p.x, y: s.pos ? s.pos.y : p.y,
-        color: s.color || p.color, themeId: s.themeId || p.themeId,
-        size: 1.7 + Math.random() * 0.5, mine: true,
-        born: s.born, twinkle: Math.random() * Math.PI,
-      };
-    });
-    setStars([...seeded, ...userMapped]);
 
-    /* "Souls present" — a soft, plausibly-derived number that drifts.
-       Not real but real-feeling. Anchored to time of day. */
-    const tickSouls = () => {
-      const hour = new Date().getHours();
-      const base = hour < 6 ? 12
-                 : hour < 11 ? 28
-                 : hour < 17 ? 22
-                 : hour < 22 ? 42
-                 : 36;
-      setPresent(base + Math.floor(Math.random() * 11) - 5);
+    const local = loadLocal().map((n, i) => {
+      const p = placeNeuron(n.text, n.regionId, 'local-' + i);
+      myNeuronsRef.current.add(n.id);
+      return {
+        id: n.id, text: n.text,
+        x: n.x ?? p.x, y: n.y ?? p.y,
+        hue: p.hue, sat: p.sat, lit: p.lit,
+        regionId: n.regionId, mine: true,
+        born: n.born || Date.now(),
+        twinkle: strHash(n.id || n.text)[0] * Math.PI * 2,
+        size: 1.4,
+      };
+    });
+
+    setNeurons([...seeds, ...local]);
+    setTotalCount(seeds.length + local.length);
+
+    const tick = () => {
+      const h = new Date().getHours();
+      const base = h < 6 ? 18 : h < 11 ? 44 : h < 17 ? 33 : h < 22 ? 71 : 56;
+      setPresent(base + Math.floor(Math.random() * 16) - 8);
     };
-    tickSouls();
-    const id = setInterval(tickSouls, 18000);
-    return () => clearInterval(id);
+    tick();
+    const pid = setInterval(tick, 20000);
+    return () => clearInterval(pid);
   }, []);
 
-  /* Periodically have a "phantom" seeded star arrive — gives the sky
-     a sense of being inhabited in real time. */
+  /* ── Firebase real-time sync ──────────────────────────────── */
   useEffect(() => {
-    if (!open) return;
-    const id = setInterval(() => {
-      const idx = Math.floor(Math.random() * SEEDS.length);
-      const text = SEEDS[idx];
-      const p = placeStar(text, Date.now(), false, 'fresh-' + Date.now());
-      const star = {
-        id: 'fresh-' + Date.now(),
-        text, x: p.x, y: p.y, color: p.color, themeId: p.themeId,
-        size: 1.2 + Math.random() * 0.5, mine: false, fresh: true,
-        born: Date.now(), twinkle: Math.random() * Math.PI,
-      };
-      setArriving(a => [...a.slice(-3), star]);
-      setTimeout(() => {
-        setStars(s => [...s, star]);
-        setArriving(a => a.filter(x => x.id !== star.id));
-      }, 1600);
-    }, 12000 + Math.random() * 10000);
-    return () => clearInterval(id);
-  }, [open]);
+    if (!_db) return;
+    const ref = _db.ref('/neurons').orderByChild('ts').limitToLast(500);
+    const handler = (snap) => {
+      const val = snap.val();
+      if (!val) return;
+      const remote = Object.entries(val).map(([id, n]) => {
+        const p = placeNeuron(n.text, n.regionId, id);
+        const mine = myNeuronsRef.current.has(id);
+        return {
+          id, text: n.text,
+          x: n.x ?? p.x, y: n.y ?? p.y,
+          hue: p.hue, sat: p.sat, lit: p.lit,
+          regionId: n.regionId || null,
+          mine,
+          born: n.ts || Date.now(),
+          twinkle: strHash(id)[0] * Math.PI * 2,
+          size: mine ? 1.6 : 1.0,
+        };
+      });
+      setNeurons(remote);
+      setTotalCount(remote.length);
+    };
+    ref.on('value', handler);
+    return () => ref.off('value', handler);
+  }, []);
 
-  /* Render loop */
+  /* ── Canvas render loop ───────────────────────────────────── */
   useEffect(() => {
     if (!open) return;
     const canvas = canvasRef.current;
@@ -231,184 +282,248 @@ function SharedSky() {
       canvas.height = Math.round(r.height) * dpr;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     };
-    const ro = new ResizeObserver(resize); ro.observe(canvas); resize();
+    const ro = new ResizeObserver(resize);
+    ro.observe(canvas);
+    resize();
 
     let raf, frame = 0;
+
     const draw = () => {
-      frame++;
-      const v = viewRef.current;
-      const W = canvas.width  / dpr;
-      const H = canvas.height / dpr;
+      frame = (frame + 1) % 100000;
+      const v  = viewRef.current;
+      const ns = neuronsRef.current;
+      const W  = canvas.width  / dpr;
+      const H  = canvas.height / dpr;
+
       ctx.clearRect(0, 0, W, H);
 
-      /* deep sky fill */
-      ctx.fillStyle = 'rgba(4,3,18,0.55)';
+      /* deep space */
+      ctx.fillStyle = 'rgb(2, 2, 14)';
       ctx.fillRect(0, 0, W, H);
 
-      /* theme aura — richer coloured nebula clouds at theme centres */
-      THEMES.forEach(th => {
-        const cx = (th.cx * W + v.tx) * v.zoom + (W * (1 - v.zoom) * 0.5);
-        const cy = (th.cy * H + v.ty) * v.zoom + (H * (1 - v.zoom) * 0.5);
-        const r2 = 160 * v.zoom;
-        const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, r2);
-        g.addColorStop(0,   `hsla(${th.color[0]},${th.color[1]}%,${th.color[2]}%,0.14)`);
-        g.addColorStop(0.5, `hsla(${th.color[0]},${th.color[1]}%,${th.color[2]}%,0.05)`);
-        g.addColorStop(1,   `hsla(${th.color[0]},${th.color[1]}%,${th.color[2]}%,0)`);
+      /* region halos — aurora at each brain region centre */
+      REGIONS.forEach(r => {
+        const cx = (r.cx * W + v.tx) * v.zoom + W * (1 - v.zoom) * 0.5;
+        const cy = (r.cy * H + v.ty) * v.zoom + H * (1 - v.zoom) * 0.5;
+        const rad = W * 0.20 * v.zoom;
+        const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, rad);
+        g.addColorStop(0,   `hsla(${r.hue},${r.sat}%,${r.lit}%,0.10)`);
+        g.addColorStop(0.45,`hsla(${r.hue},${r.sat}%,${r.lit}%,0.04)`);
+        g.addColorStop(1,   `hsla(${r.hue},${r.sat}%,${r.lit}%,0)`);
         ctx.fillStyle = g;
-        ctx.beginPath(); ctx.arc(cx, cy, r2, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(cx, cy, rad, 0, Math.PI * 2); ctx.fill();
       });
 
-      /* atmospheric vignette — frame edges */
-      const vig = ctx.createRadialGradient(W * 0.5, H * 0.5, H * 0.3, W * 0.5, H * 0.5, Math.max(W, H) * 0.75);
-      vig.addColorStop(0,   'rgba(0,0,0,0)');
-      vig.addColorStop(0.7, 'rgba(2,1,12,0.18)');
-      vig.addColorStop(1,   'rgba(0,0,0,0.55)');
-      ctx.fillStyle = vig;
-      ctx.fillRect(0, 0, W, H);
-
-      /* project a normalized (x,y) into pan/zoom screen coords */
+      /* project normalised coords → screen */
       const project = (nx, ny) => ({
-        x: (nx * W + v.tx) * v.zoom + (W * (1 - v.zoom) * 0.5),
-        y: (ny * H + v.ty) * v.zoom + (H * (1 - v.zoom) * 0.5),
+        x: (nx * W + v.tx) * v.zoom + W * (1 - v.zoom) * 0.5,
+        y: (ny * H + v.ty) * v.zoom + H * (1 - v.zoom) * 0.5,
       });
 
-      /* constellation lines: connect each star to its 2 closest theme-neighbours,
-         but only when within 130px on screen and same themeId. */
-      ctx.lineWidth = 0.55;
-      const byTheme = {};
-      stars.forEach(s => {
-        if (!s.themeId) return;
-        (byTheme[s.themeId] = byTheme[s.themeId] || []).push(s);
+      /* compute screen positions */
+      ns.forEach(n => {
+        const p = project(n.x, n.y);
+        n._px = p.x; n._py = p.y;
       });
-      Object.values(byTheme).forEach(group => {
-        const projected = group.map(s => ({ s, p: project(s.x, s.y) }));
-        for (let i = 0; i < projected.length; i++) {
-          const a = projected[i];
-          let dists = [];
-          for (let j = 0; j < projected.length; j++) {
-            if (i === j) continue;
-            const b = projected[j];
-            const dx = a.p.x - b.p.x, dy = a.p.y - b.p.y;
-            const d = Math.sqrt(dx * dx + dy * dy);
-            if (d < 130) dists.push({ d, b });
+
+      /* ── Synapses: spatial grid for O(n) neighbour lookup ── */
+      const CELL = 110;
+      const COLS = Math.ceil(W / CELL) + 1;
+      const ROWS = Math.ceil(H / CELL) + 1;
+      const grid = new Array(COLS * ROWS).fill(null).map(() => []);
+
+      ns.forEach((n, i) => {
+        const col = Math.floor(n._px / CELL);
+        const row = Math.floor(n._py / CELL);
+        if (col >= 0 && col < COLS && row >= 0 && row < ROWS) {
+          grid[row * COLS + col].push(i);
+        }
+      });
+
+      const drawn   = new Set();
+      const newSyns = [];
+
+      ctx.lineWidth = 0.55;
+
+      ns.forEach((a, ai) => {
+        const col = Math.floor(a._px / CELL);
+        const row = Math.floor(a._py / CELL);
+        const aRegSet = ADJACENT[a.regionId] || new Set(['calm']);
+
+        for (let dc = -1; dc <= 1; dc++) {
+          for (let dr = -1; dr <= 1; dr++) {
+            const nc = col + dc, nr = row + dr;
+            if (nc < 0 || nc >= COLS || nr < 0 || nr >= ROWS) continue;
+            grid[nr * COLS + nc].forEach(bi => {
+              if (bi <= ai) return;
+              const b   = ns[bi];
+              const key = ai + '_' + bi;
+              if (drawn.has(key)) return;
+              if (!aRegSet.has(b.regionId || 'calm')) return;
+
+              const dx = a._px - b._px, dy = a._py - b._py;
+              const dist = Math.sqrt(dx * dx + dy * dy);
+              if (dist > 108) return;
+
+              drawn.add(key);
+              const fade  = 1 - dist / 108;
+              const boost = (a.mine || b.mine) ? 1.8 : 1;
+              const alpha = fade * 0.13 * boost;
+              const midH  = ((a.hue || 220) + (b.hue || 220)) / 2;
+
+              ctx.strokeStyle = `hsla(${midH},55%,72%,${alpha.toFixed(3)})`;
+              ctx.beginPath();
+              ctx.moveTo(a._px, a._py);
+              ctx.lineTo(b._px, b._py);
+              ctx.stroke();
+
+              newSyns.push({ ai, bi, hue: midH });
+            });
           }
-          dists.sort((x, y) => x.d - y.d);
-          dists.slice(0, 2).forEach(({ d, b }) => {
-            const al = (1 - d / 130) * 0.28 * (a.s.mine || b.s.mine ? 1.8 : 1);
-            ctx.strokeStyle = `hsla(${a.s.color[0]},${a.s.color[1]}%,${a.s.color[2]}%,${al.toFixed(3)})`;
-            ctx.beginPath();
-            ctx.moveTo(a.p.x, a.p.y);
-            ctx.lineTo(b.p.x, b.p.y);
-            ctx.stroke();
+        }
+      });
+
+      if (frame % 60 === 0) synCacheRef.current = newSyns;
+
+      /* ── Synapse pulse dots ──────────────────────────────── */
+      if (frame % 48 === 0 && synCacheRef.current.length > 0) {
+        const arr = synCacheRef.current;
+        const pick = arr[Math.floor(Math.random() * arr.length)];
+        if (pick) {
+          pulsesRef.current.push({
+            ai: pick.ai, bi: pick.bi, hue: pick.hue,
+            t: 0, speed: 0.007 + Math.random() * 0.007,
           });
         }
-      });
+      }
+      if (pulsesRef.current.length > 50) pulsesRef.current.splice(0, 8);
 
-      /* arriving stars — trail in from outside the frame to their target */
-      arriving.forEach(s => {
-        const lifeFrac = Math.max(0, (Date.now() - s.born) / 1600);
-        const startX = -50, startY = H * (0.1 + Math.random() * 0.8);
-        const target = project(s.x, s.y);
-        const t = Math.min(1, lifeFrac);
-        const easeT = 1 - Math.pow(1 - t, 3);
-        const x = startX + (target.x - startX) * easeT;
-        const y = startY + (target.y - startY) * easeT;
-        /* trail */
-        const tailLen = 80 * (1 - easeT);
-        const tx = startX + (target.x - startX) * Math.max(0, easeT - 0.08);
-        const ty = startY + (target.y - startY) * Math.max(0, easeT - 0.08);
-        const g = ctx.createLinearGradient(tx, ty, x, y);
-        g.addColorStop(0, 'rgba(220, 230, 255, 0)');
-        g.addColorStop(1, `rgba(220, 230, 255, ${(0.9 * (1 - easeT)).toFixed(3)})`);
-        ctx.strokeStyle = g;
-        ctx.lineWidth = 1.3;
-        ctx.lineCap = 'round';
-        ctx.beginPath();
-        ctx.moveTo(tx, ty); ctx.lineTo(x, y);
-        ctx.stroke();
-        /* head */
-        ctx.beginPath();
-        ctx.arc(x, y, 1.8, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(255, 255, 255, ${(1 - easeT * 0.4).toFixed(3)})`;
-        ctx.fill();
-      });
-
-      /* draw stars */
-      stars.forEach((s, i) => {
-        const p = project(s.x, s.y);
-        s._px = p.x; s._py = p.y;
-        const driftX = Math.sin(frame * 0.0024 + i * 0.7) * 2;
-        const driftY = Math.cos(frame * 0.0019 + i * 0.5) * 1.4;
-        const px = p.x + driftX, py = p.y + driftY;
-        const tw = 0.58 + 0.42 * Math.sin(frame * 0.022 + s.twinkle * 7);
-        const baseA = s.mine ? 0.96 : 0.70;
-        const al = baseA * tw;
-        const sizeS = s.size * v.zoom;
-
+      pulsesRef.current = pulsesRef.current.filter(p => p.t < 1.0);
+      pulsesRef.current.forEach(p => {
+        p.t += p.speed;
+        const a = ns[p.ai], b = ns[p.bi];
+        if (!a || !b) return;
+        const px = a._px + (b._px - a._px) * p.t;
+        const py = a._py + (b._py - a._py) * p.t;
+        const al = 0.9 * Math.sin(p.t * Math.PI);
         /* glow */
-        const g = ctx.createRadialGradient(px, py, 0, px, py, sizeS * 13);
-        const [H_, S_, L_] = s.color;
-        g.addColorStop(0, `hsla(${H_},${S_}%,${L_}%,${(al * 0.38).toFixed(3)})`);
-        g.addColorStop(0.5, `hsla(${H_},${S_}%,${L_}%,${(al * 0.12).toFixed(3)})`);
-        g.addColorStop(1, `hsla(${H_},${S_}%,${L_}%,0)`);
+        const g = ctx.createRadialGradient(px, py, 0, px, py, 6);
+        g.addColorStop(0, `hsla(${p.hue},75%,82%,${(al * 0.55).toFixed(3)})`);
+        g.addColorStop(1, `hsla(${p.hue},75%,82%,0)`);
         ctx.fillStyle = g;
-        ctx.beginPath();
-        ctx.arc(px, py, sizeS * 11, 0, Math.PI * 2);
+        ctx.beginPath(); ctx.arc(px, py, 6, 0, Math.PI * 2); ctx.fill();
+        /* dot */
+        ctx.beginPath(); ctx.arc(px, py, 1.8, 0, Math.PI * 2);
+        ctx.fillStyle = `hsla(${p.hue},80%,88%,${al.toFixed(3)})`;
         ctx.fill();
+      });
 
-        /* core */
-        ctx.beginPath();
-        ctx.arc(px, py, sizeS, 0, Math.PI * 2);
-        const coreColor = s.mine
-          ? `rgba(220, 240, 255, ${al.toFixed(3)})`
-          : `hsla(${H_},${Math.min(100, S_ + 20)}%,${Math.min(94, L_ + 14)}%,${al.toFixed(3)})`;
-        ctx.fillStyle = coreColor;
-        ctx.fill();
+      /* ── Birth flashes ──────────────────────────────────── */
+      birthFlashRef.current = birthFlashRef.current.filter(f => f.age < 1);
+      birthFlashRef.current.forEach(f => {
+        f.age += 0.020;
+        const r1 = 90 * Math.pow(f.age, 0.45);
+        const a1 = 0.75 * (1 - f.age);
+        ctx.beginPath(); ctx.arc(f.x, f.y, r1, 0, Math.PI * 2);
+        ctx.strokeStyle = `hsla(${f.hue},60%,80%,${a1.toFixed(3)})`;
+        ctx.lineWidth = 1.8; ctx.stroke();
 
-        /* mine ring */
-        if (s.mine) {
-          ctx.beginPath();
-          ctx.arc(px, py, sizeS * 3.2, 0, Math.PI * 2);
-          ctx.strokeStyle = `rgba(180, 220, 255, ${(al * 0.30).toFixed(3)})`;
-          ctx.lineWidth = 0.7;
-          ctx.stroke();
+        if (f.age > 0.18) {
+          const r2 = 55 * Math.pow(f.age - 0.18, 0.4);
+          const a2 = 0.55 * (1 - (f.age - 0.18) / 0.82);
+          ctx.beginPath(); ctx.arc(f.x, f.y, r2, 0, Math.PI * 2);
+          ctx.strokeStyle = `hsla(${f.hue},75%,90%,${a2.toFixed(3)})`;
+          ctx.lineWidth = 1; ctx.stroke();
+        }
+        if (f.age < 0.18) {
+          const ca = 1 - f.age / 0.18;
+          const cg = ctx.createRadialGradient(f.x, f.y, 0, f.x, f.y, 22);
+          cg.addColorStop(0, `hsla(${f.hue},85%,96%,${ca.toFixed(3)})`);
+          cg.addColorStop(1, `hsla(${f.hue},60%,80%,0)`);
+          ctx.fillStyle = cg;
+          ctx.beginPath(); ctx.arc(f.x, f.y, 22, 0, Math.PI * 2); ctx.fill();
         }
       });
+
+      /* ── Neurons ─────────────────────────────────────────── */
+      ns.forEach((n, i) => {
+        const isMine = n.mine || myNeuronsRef.current.has(n.id);
+        const tw     = 0.58 + 0.42 * Math.sin(frame * 0.020 + n.twinkle);
+        const baseA  = isMine ? 0.95 : 0.55 + 0.25 * tw;
+        const sz     = (n.size || 1.0) * v.zoom;
+        /* tiny drift */
+        const drift  = v.zoom > 0.8 ? 1 : 0;
+        const px = n._px + Math.sin(frame * 0.0021 + i * 0.71) * 1.4 * drift;
+        const py = n._py + Math.cos(frame * 0.0018 + i * 0.53) * 0.9 * drift;
+
+        /* glow corona */
+        const gr = (11 + sz * 7) * (isMine ? 1.5 : 1);
+        const gl = ctx.createRadialGradient(px, py, 0, px, py, gr);
+        gl.addColorStop(0,   `hsla(${n.hue},${n.sat}%,${n.lit}%,${(baseA * 0.48).toFixed(3)})`);
+        gl.addColorStop(0.4, `hsla(${n.hue},${n.sat}%,${n.lit}%,${(baseA * 0.14).toFixed(3)})`);
+        gl.addColorStop(1,   `hsla(${n.hue},${n.sat}%,${n.lit}%,0)`);
+        ctx.fillStyle = gl;
+        ctx.beginPath(); ctx.arc(px, py, gr, 0, Math.PI * 2); ctx.fill();
+
+        /* core dot */
+        const dotR = Math.max(0.9, sz * (isMine ? 2.4 : 1.5));
+        ctx.beginPath(); ctx.arc(px, py, dotR, 0, Math.PI * 2);
+        ctx.fillStyle = isMine
+          ? `rgba(215, 238, 255, ${baseA.toFixed(3)})`
+          : `hsla(${n.hue},${Math.min(100, n.sat + 22)}%,${Math.min(95, n.lit + 14)}%,${baseA.toFixed(3)})`;
+        ctx.fill();
+
+        /* mine — pulsing ring */
+        if (isMine) {
+          const ringA = 0.20 + 0.16 * Math.sin(frame * 0.036 + n.twinkle);
+          ctx.beginPath(); ctx.arc(px, py, dotR * 3.8, 0, Math.PI * 2);
+          ctx.strokeStyle = `rgba(140, 205, 255, ${ringA.toFixed(3)})`;
+          ctx.lineWidth = 0.9; ctx.stroke();
+        }
+
+        n._rpx = px; n._rpy = py;
+      });
+
+      /* vignette */
+      const vig = ctx.createRadialGradient(W * 0.5, H * 0.5, H * 0.28, W * 0.5, H * 0.5, Math.max(W, H) * 0.82);
+      vig.addColorStop(0,    'rgba(0,0,0,0)');
+      vig.addColorStop(0.72, 'rgba(1,1,12,0.14)');
+      vig.addColorStop(1,    'rgba(0,0,0,0.62)');
+      ctx.fillStyle = vig; ctx.fillRect(0, 0, W, H);
 
       raf = requestAnimationFrame(draw);
     };
     raf = requestAnimationFrame(draw);
 
-    /* Interaction: drag to pan, scroll to zoom, hover stars */
-    const onWheel = (e) => {
+    /* interaction */
+    const onWheel = e => {
       e.preventDefault();
-      const v = viewRef.current;
-      const delta = e.deltaMode === 1 ? e.deltaY * 20 : e.deltaY; // normalise line vs pixel
-      const next = Math.max(0.5, Math.min(4.0, v.zoom + (-delta * 0.005)));
-      v.zoom = next;
+      const delta = e.deltaMode === 1 ? e.deltaY * 20 : e.deltaY;
+      viewRef.current.zoom = Math.max(0.45, Math.min(5.5, viewRef.current.zoom - delta * 0.004));
     };
-    const onDown = (e) => {
+    const onDown  = e => {
       dragRef.current = { sx: e.clientX, sy: e.clientY, tx: viewRef.current.tx, ty: viewRef.current.ty };
     };
-    const onMove = (e) => {
+    const onMove  = e => {
       if (dragRef.current) {
-        const v = viewRef.current;
-        v.tx = dragRef.current.tx + (e.clientX - dragRef.current.sx) * 2.2;
-        v.ty = dragRef.current.ty + (e.clientY - dragRef.current.sy) * 2.2;
+        viewRef.current.tx = dragRef.current.tx + (e.clientX - dragRef.current.sx) * 1.9;
+        viewRef.current.ty = dragRef.current.ty + (e.clientY - dragRef.current.sy) * 1.9;
       }
-      /* hover hit-test */
-      const r = canvas.getBoundingClientRect();
-      const mx = e.clientX - r.left, my = e.clientY - r.top;
-      let best = null, bd = 22 * 22;
-      for (let i = 0; i < stars.length; i++) {
-        const s = stars[i];
-        if (s._px == null) continue;
-        const d = (s._px - mx) ** 2 + (s._py - my) ** 2;
-        if (d < bd) { bd = d; best = s; }
-      }
-      setHover(best ? { id: best.id, text: best.text, x: best._px, y: best._py, mine: best.mine } : null);
+      const rect = canvas.getBoundingClientRect();
+      const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+      let best = null, bd = 26 * 26;
+      neuronsRef.current.forEach(n => {
+        if (n._rpx == null) return;
+        const d = (n._rpx - mx) ** 2 + (n._rpy - my) ** 2;
+        if (d < bd) { bd = d; best = n; }
+      });
+      setHover(best
+        ? { id: best.id, text: best.text, x: best._rpx, y: best._rpy,
+            mine: best.mine || myNeuronsRef.current.has(best.id),
+            regionId: best.regionId }
+        : null);
     };
-    const onUp = () => { dragRef.current = null; };
+    const onUp    = () => { dragRef.current = null; };
     const onLeave = () => { setHover(null); dragRef.current = null; };
 
     canvas.addEventListener('wheel', onWheel, { passive: false });
@@ -418,143 +533,215 @@ function SharedSky() {
     canvas.addEventListener('mouseleave', onLeave);
 
     return () => {
-      cancelAnimationFrame(raf); ro.disconnect();
+      cancelAnimationFrame(raf);
+      ro.disconnect();
       canvas.removeEventListener('wheel', onWheel);
       canvas.removeEventListener('mousedown', onDown);
       canvas.removeEventListener('mousemove', onMove);
       window.removeEventListener('mouseup', onUp);
       canvas.removeEventListener('mouseleave', onLeave);
     };
-  }, [open, stars, arriving]);
+  }, [open]);
 
-  /* Opening animation flag */
+  /* open/close fade */
   useEffect(() => {
     if (!open) { setRevealed(false); return; }
     const id = setTimeout(() => setRevealed(true), 60);
     return () => clearTimeout(id);
   }, [open]);
 
+  /* ── Submit ───────────────────────────────────────────────── */
   const submit = useCallback(() => {
     const t = text.trim();
-    if (!t || t.length > 140) return;
+    if (!t || t.length > 160) return;
     if (!isAllowed(t)) {
-      setBlocked('please keep the sky a gentle place.');
-      setTimeout(() => setBlocked(''), 3200);
+      setBlocked('please keep this space gentle.');
+      setTimeout(() => setBlocked(''), 3500);
       return;
     }
-    const p = placeStar(t, Date.now(), true);
-    const newStar = {
-      id: 'me-' + Date.now(), text: t,
-      x: p.x, y: p.y, color: p.color, themeId: p.themeId,
-      size: 2.2, mine: true, born: Date.now(),
-      twinkle: Math.random() * Math.PI,
+
+    const regionId = classifyText(t);
+    const pos      = placeNeuron(t, regionId, Date.now());
+    const id       = 'n-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6);
+
+    const newNeuron = {
+      id, text: t,
+      x: pos.x, y: pos.y,
+      hue: pos.hue, sat: pos.sat, lit: pos.lit,
+      regionId, mine: true,
+      born: Date.now(),
+      twinkle: Math.random() * Math.PI * 2,
+      size: 1.8,
     };
-    const cur = loadStars();
-    saveStars([...cur, {
-      id: newStar.id, text: newStar.text,
-      pos: { x: p.x, y: p.y },
-      color: p.color, themeId: p.themeId,
-      born: newStar.born,
-    }]);
-    setStars(prev => [...prev, newStar]);
-    /* fly the viewport to the new star */
-    const canvas = canvasRef.current;
-    if (canvas) {
-      const W = canvas.getBoundingClientRect().width;
-      const H = canvas.getBoundingClientRect().height;
-      viewRef.current.tx = W * 0.5 - p.x * W;
-      viewRef.current.ty = H * 0.5 - p.y * H;
-      viewRef.current.zoom = 1.4;
-    }
+
+    myNeuronsRef.current.add(id);
+
+    /* birth text animation */
+    setBirthAnim({ text: t, key: id });
+    setTimeout(() => setBirthAnim(null), 2400);
+
+    /* add neuron after text flies up */
+    setTimeout(() => {
+      setNeurons(prev => [...prev, newNeuron]);
+      setTotalCount(c => c + 1);
+
+      /* birth flash */
+      setTimeout(() => {
+        const cv = canvasRef.current;
+        if (!cv) return;
+        const W = cv.getBoundingClientRect().width;
+        const H = cv.getBoundingClientRect().height;
+        const v = viewRef.current;
+        const fx = (pos.x * W + v.tx) * v.zoom + W * (1 - v.zoom) * 0.5;
+        const fy = (pos.y * H + v.ty) * v.zoom + H * (1 - v.zoom) * 0.5;
+        birthFlashRef.current.push({ x: fx, y: fy, age: 0, hue: pos.hue });
+
+        /* fly viewport to new neuron */
+        viewRef.current.tx = W * 0.5 - pos.x * W;
+        viewRef.current.ty = H * 0.5 - pos.y * H;
+        viewRef.current.zoom = 1.7;
+      }, 80);
+
+      /* persist locally */
+      const cur = loadLocal();
+      saveLocal([...cur, { id, text: t, x: pos.x, y: pos.y, regionId, born: Date.now() }]);
+
+      /* push to Firebase */
+      if (_db && _authReady) {
+        _db.ref('/neurons/' + id).set({
+          text: t, regionId, x: pos.x, y: pos.y,
+          ts: firebase.database.ServerValue.TIMESTAMP,
+        }).catch(() => {});
+      }
+    }, 1100);
+
     setText('');
     setComposing(false);
   }, [text]);
 
-  const resetView = () => {
-    viewRef.current = { tx: 0, ty: 0, zoom: 1 };
-  };
+  const resetView = () => { viewRef.current = { tx: 0, ty: 0, zoom: 1 }; };
+
+  /* region counts for legend */
+  const regionCounts = {};
+  neurons.forEach(n => {
+    if (n.regionId) regionCounts[n.regionId] = (regionCounts[n.regionId] || 0) + 1;
+  });
+
+  /* hover region label */
+  const hoverRegion = hover && hover.regionId ? REGION_MAP[hover.regionId] : null;
 
   return (
     <React.Fragment>
-      <button className="ss-fab" onClick={() => setOpen(true)} aria-label="Open shared sky">
-        <span className="ss-fab-glyph">✶</span>
-        <span className="ss-fab-text">shared sky</span>
-        <span className="ss-fab-sub">{stars.length} lights · {present} here now</span>
+      {/* FAB */}
+      <button className="ss-fab" onClick={() => setOpen(true)} aria-label="Open neural memory">
+        <span className="ss-fab-text">neural memory</span>
+        <span className="ss-fab-sub">{totalCount} neurons · {present} minds</span>
       </button>
 
       {open && (
-        <div className={'ss-overlay' + (revealed ? ' in' : '')} role="dialog">
-          <div className="ss-veil" onClick={() => setOpen(false)}/>
-          <div className="ss-stage" onClick={(e) => e.stopPropagation()}>
+        <div className={'ss-overlay' + (revealed ? ' in' : '')} role="dialog" aria-label="Neural Memory Network">
+          <div className="ss-veil" onClick={() => setOpen(false)} />
+          <div className="ss-stage" onClick={e => e.stopPropagation()}>
+
             <header className="ss-head">
               <div className="ss-head-text">
-                <div className="ss-eyebrow">no profiles · no replies · no likes</div>
-                <h2 className="ss-title">A shared sky.</h2>
+                <div className="ss-eyebrow">no identity · no replies · anonymous · permanent</div>
+                <h2 className="ss-title">Neural Memory.</h2>
                 <p className="ss-sub">
-                  Other people came here, and left a small light.
-                  Hover one. Leave your own if it helps.
-                  Drag to pan · scroll to zoom.
+                  Every thought becomes a neuron. Shared feelings form synapses.
+                  Watch activation pulses cross the network.
+                  Scroll to zoom · drag to explore · hover to read.
                 </p>
               </div>
               <div className="ss-head-meta">
                 <div className="ss-presence">
-                  <span className="ss-presence-dot"/>
-                  <span className="ss-presence-text">{present} present</span>
+                  <span className="ss-presence-dot" />
+                  <span className="ss-presence-text">{present} active</span>
                 </div>
                 <button className="ss-close" onClick={() => setOpen(false)} aria-label="Close">
                   <svg width="12" height="12" viewBox="0 0 12 12">
-                    <path d="M2 2L10 10M10 2L2 10" stroke="currentColor" strokeWidth="1" strokeLinecap="round"/>
+                    <path d="M2 2L10 10M10 2L2 10" stroke="currentColor" strokeWidth="1" strokeLinecap="round" />
                   </svg>
                 </button>
               </div>
             </header>
 
             <div className="ss-canvas-wrap">
-              <canvas ref={canvasRef} className="ss-canvas" aria-label="Shared sky"/>
+              <canvas ref={canvasRef} className="ss-canvas" aria-label="Neural memory network" />
 
-              {/* theme legend top-right */}
+              {/* Brain region legend */}
               <div className="ss-legend">
-                {THEMES.map(th => (
-                  <div key={th.id} className="ss-legend-row">
+                {REGIONS.map(r => (
+                  <div key={r.id} className="ss-legend-row">
                     <span
                       className="ss-legend-dot"
-                      style={{ background: `hsl(${th.color[0]},${th.color[1]}%,${th.color[2]}%)` }}
+                      style={{ background: `hsl(${r.hue},${r.sat}%,${r.lit}%)`,
+                               boxShadow: `0 0 6px hsl(${r.hue},${r.sat}%,${r.lit}%,0.7)` }}
                     />
-                    <span>{th.id}</span>
+                    <span className="ss-legend-label">{r.label}</span>
+                    {regionCounts[r.id]
+                      ? <span className="ss-legend-count">{regionCounts[r.id]}</span>
+                      : null}
                   </div>
                 ))}
               </div>
 
-              {/* recenter btn */}
+              {/* Re-centre */}
               <button className="ss-recenter" onClick={resetView} title="Re-centre">
                 <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-                  <circle cx="5" cy="5" r="2.4" stroke="currentColor" strokeWidth="0.8"/>
-                  <path d="M5 1.2v1.8M5 7v1.8M1.2 5h1.8M7 5h1.8" stroke="currentColor" strokeWidth="0.8" strokeLinecap="round"/>
+                  <circle cx="5" cy="5" r="2.4" stroke="currentColor" strokeWidth="0.8" />
+                  <path d="M5 1.2v1.8M5 7v1.8M1.2 5h1.8M7 5h1.8" stroke="currentColor" strokeWidth="0.8" strokeLinecap="round" />
                 </svg>
-                <span>centre</span>
+                <span>recenter</span>
               </button>
 
+              {/* Birth animation — text rises and implodes into a neuron */}
+              {birthAnim && (
+                <div className="nn-birth-wrap" key={birthAnim.key}>
+                  <div className="nn-birth-text">{birthAnim.text}</div>
+                </div>
+              )}
+
+              {/* Hover tooltip */}
               {hover && (
                 <div
-                  className={'ss-tip' + (hover.mine ? ' mine' : '')}
+                  className={'ss-tip nn-tip' + (hover.mine ? ' mine' : '')}
                   style={{ left: hover.x + 'px', top: hover.y + 'px' }}
                 >
-                  {hover.text}
-                  {hover.mine && <span className="ss-tip-mine">· yours</span>}
+                  <div className="nn-tip-text">{hover.text}</div>
+                  {hoverRegion && (
+                    <div className="nn-tip-region" style={{ color: `hsl(${hoverRegion.hue},${hoverRegion.sat}%,${hoverRegion.lit}%)` }}>
+                      {hoverRegion.label}
+                      {hover.mine && <span className="ss-tip-mine"> · yours</span>}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
 
             <footer className="ss-foot">
+              {!_db && (
+                <div className="nn-local-notice">
+                  <span className="nn-local-dot" />
+                  local mode — thoughts stay on this device
+                </div>
+              )}
+              {_db && (
+                <div className="nn-sync-notice">
+                  <span className="nn-sync-dot" />
+                  live network — thoughts are shared with all minds
+                </div>
+              )}
+
               {composing ? (
                 <div className="ss-composer">
                   <textarea
                     className="ss-input"
-                    placeholder="leave a small light. nobody will know it was you."
-                    maxLength={140}
+                    placeholder="encode a memory into the network..."
+                    maxLength={160}
                     value={text}
-                    onChange={(e) => { setText(e.target.value); setBlocked(''); }}
-                    onKeyDown={(e) => {
+                    onChange={e => { setText(e.target.value); setBlocked(''); }}
+                    onKeyDown={e => {
                       if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submit(); }
                       if (e.key === 'Escape') { setComposing(false); setText(''); setBlocked(''); }
                     }}
@@ -563,19 +750,24 @@ function SharedSky() {
                   />
                   <div className="ss-composer-row">
                     {blocked
-                      ? <span className="ss-count" style={{ color: 'rgba(255,120,100,0.85)' }}>{blocked}</span>
-                      : <span className="ss-count">{text.length}/140 · stays on this device</span>
+                      ? <span className="ss-count" style={{ color: 'rgba(255,110,90,0.9)' }}>{blocked}</span>
+                      : <span className="ss-count">{text.length}/160 · anonymous · permanent</span>
                     }
                     <div className="ss-composer-actions">
-                      <button className="ss-btn ss-btn-ghost" onClick={() => { setComposing(false); setText(''); setBlocked(''); }}>cancel</button>
-                      <button className="ss-btn" disabled={!text.trim()} onClick={submit}>release ✶</button>
+                      <button className="ss-btn ss-btn-ghost"
+                        onClick={() => { setComposing(false); setText(''); setBlocked(''); }}>
+                        cancel
+                      </button>
+                      <button className="ss-btn nn-transmit" disabled={!text.trim()} onClick={submit}>
+                        transmit ✦
+                      </button>
                     </div>
                   </div>
                 </div>
               ) : (
-                <button className="ss-leave-btn" onClick={() => setComposing(true)}>
-                  <span className="ss-leave-dot"/>
-                  <span>leave a small light</span>
+                <button className="ss-leave-btn nn-encode-btn" onClick={() => setComposing(true)}>
+                  <span className="nn-encode-dot" />
+                  <span>encode a memory</span>
                 </button>
               )}
             </footer>

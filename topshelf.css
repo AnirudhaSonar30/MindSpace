@@ -918,3 +918,148 @@ html body.breath-focus.hide-native-cursor .premium-cursor-dot {
 
 /* Make the lab-stage a positioning context so the aura sits behind */
 .lab-stage { position: relative; }
+
+/* ═══════════════════════════════════════════════════════════════
+   Neural Memory Network — additions
+═══════════════════════════════════════════════════════════════ */
+
+/* Legend count badge */
+.ss-legend-label {
+  flex: 1;
+  min-width: 0;
+}
+.ss-legend-count {
+  font-size: 8px;
+  opacity: 0.45;
+  letter-spacing: 0.14em;
+  margin-left: 4px;
+}
+
+/* Birth animation — thought text rises then implodes into neuron */
+.nn-birth-wrap {
+  position: absolute;
+  left: 50%;
+  bottom: 28px;
+  transform: translateX(-50%);
+  z-index: 20;
+  pointer-events: none;
+  white-space: nowrap;
+  max-width: 80%;
+}
+.nn-birth-text {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 15px;
+  color: rgba(165, 210, 255, 0.95);
+  text-shadow: 0 0 22px rgba(120, 170, 255, 0.5);
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  animation: nnBirthRise 2.2s cubic-bezier(0.2, 0.7, 0.2, 1) forwards;
+}
+@keyframes nnBirthRise {
+  0%   { opacity: 0;    transform: translateY(14px) scale(0.88); }
+  10%  { opacity: 1;    transform: translateY(0)    scale(1); }
+  68%  { opacity: 0.88; transform: translateY(-52px) scale(0.95); }
+  88%  { opacity: 0;    transform: translateY(-72px) scale(0.50); }
+  100% { opacity: 0;    transform: translateY(-80px) scale(0.20); }
+}
+
+/* Hover tooltip — neural style */
+.nn-tip {
+  max-width: 300px;
+}
+.nn-tip-text {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 14px;
+  color: var(--paper);
+  line-height: 1.42;
+}
+.nn-tip-region {
+  margin-top: 6px;
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  opacity: 0.80;
+}
+
+/* Local / live notices */
+.nn-local-notice,
+.nn-sync-notice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--mono);
+  font-size: 8.5px;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--whisper);
+  margin-bottom: 4px;
+  opacity: 0.65;
+}
+.nn-local-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: oklch(0.72 0.08 45);
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+.nn-sync-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: oklch(0.78 0.14 150);
+  box-shadow: 0 0 8px oklch(0.78 0.14 150 / 0.6);
+  flex-shrink: 0;
+  animation: pulse 2.8s ease-in-out infinite;
+}
+
+/* Transmit button — slightly different accent from default ss-btn */
+.nn-transmit {
+  background: oklch(0.72 0.12 220 / 0.20);
+  border-color: oklch(0.72 0.12 220 / 0.42);
+}
+.nn-transmit:hover:not(:disabled) {
+  background: oklch(0.72 0.12 220 / 0.34);
+  border-color: oklch(0.72 0.12 220 / 0.68);
+  box-shadow: 0 0 16px oklch(0.72 0.12 220 / 0.22);
+}
+
+/* Encode button — replaces old "leave a small light" */
+.nn-encode-btn {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 22px;
+  background: rgba(243, 239, 230, 0.04);
+  border: 1px solid rgba(243, 239, 230, 0.16);
+  border-radius: 999px;
+  color: var(--paper);
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+.nn-encode-btn:hover {
+  border-color: rgba(165, 210, 255, 0.45);
+  background: rgba(165, 210, 255, 0.06);
+  box-shadow: 0 0 18px rgba(120, 170, 255, 0.10);
+}
+.nn-encode-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: oklch(0.72 0.12 220);
+  box-shadow: 0 0 10px oklch(0.72 0.12 220 / 0.7);
+  animation: pulse 2.5s ease-in-out infinite;
+}
+
+/* FAB — neural memory label */
+.ss-fab-text { color: var(--paper); }
+
