@@ -99,7 +99,7 @@ Migrate in this order — least to most complex:
 - [x] **0.C.21** Verify all features working on the live URL — static analysis pass ✓ 2026-05-22
   - All imports resolved, 0 TS errors, 424 modules; utility init wired in main.tsx (memory, timeofday, premium, frameintro)
   - Live browser regression test scheduled for immediately after merge to main
-- [ ] **0.C.22** Merge `vite-migration` → `main`. Archive old CDN files.
+- [x] **0.C.22** Merge `vite-migration` → `main`. Archive old CDN files. ✓ 2026-05-22 — 40 CDN files moved to _cdn-archive/; branch merged to main
 
 > **Migration rule:** The app must work identically after migration. No new features
 > during this phase. Pure 1:1 port. New features start in Phase 1.

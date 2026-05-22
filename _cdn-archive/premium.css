@@ -1,0 +1,458 @@
+/* MindSpace — premium motion layer
+   --------------------------------------------------------------
+   Loader, custom cursor, char-mask reveals, block reveals, ambient
+   sound tray, plus a couple of HUD-style chrome upgrades borrowed
+   from premium tactical-map sites (notched corners, live readouts).
+*/
+
+:root {
+  --ease-premium: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ============================================================
+   1) Loader
+   ============================================================ */
+body.premium-locked { overflow: hidden; }
+
+.premium-loader {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: #06061a;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 36px;
+  opacity: 1;
+  pointer-events: auto;
+  transition:
+    opacity 900ms var(--ease-premium),
+    visibility 0s linear 900ms;
+}
+.premium-loader.done {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+.premium-loader-mark {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 38px;
+  color: var(--paper);
+  letter-spacing: 0.02em;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+}
+.premium-loader-mark .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--paper);
+  box-shadow: 0 0 18px rgba(243,239,230,0.7);
+  animation: loaderDot 1.8s ease-in-out infinite;
+}
+@keyframes loaderDot {
+  0%,100% { opacity: 0.4; transform: scale(0.8); }
+  50%     { opacity: 1;   transform: scale(1.2); }
+}
+.premium-loader-track {
+  position: relative;
+  width: 220px;
+  height: 1px;
+  background: rgba(243,239,230,0.08);
+  overflow: hidden;
+}
+.premium-loader-bar {
+  position: absolute;
+  inset: 0;
+  background: var(--paper);
+  transform-origin: 0 0;
+  transform: scaleX(0);
+  transition: transform 60ms linear;
+}
+.premium-loader-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  width: 220px;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--whisper);
+}
+.premium-loader-meta .premium-loader-count {
+  color: var(--paper);
+  letter-spacing: 0.18em;
+}
+
+/* The body fades back in after the loader leaves */
+body.premium-revealed .stage,
+body.premium-revealed .nav {
+  animation: premiumReveal 1.4s var(--ease-premium) both;
+}
+body.premium-revealed .nav   { animation-delay: 0.10s; }
+body.premium-revealed .stage { animation-delay: 0.20s; }
+@keyframes premiumReveal {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ============================================================
+   2) Custom cursor
+   ============================================================ */
+body.hide-native-cursor,
+body.hide-native-cursor * { cursor: none !important; }
+.premium-cursor-dot,
+.premium-cursor-ring {
+  position: fixed;
+  top: 0; left: 0;
+  pointer-events: none;
+  z-index: 10000;
+  will-change: transform;
+  transition: opacity 320ms var(--ease-premium);
+}
+.premium-cursor-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--paper);
+  box-shadow: 0 0 10px rgba(243,239,230,0.6);
+  mix-blend-mode: difference;
+}
+.premium-cursor-ring {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  border: 1px solid rgba(243,239,230,0.55);
+  transition:
+    transform 60ms linear,
+    width  520ms var(--ease-premium),
+    height 520ms var(--ease-premium),
+    margin 520ms var(--ease-premium),
+    border-color 520ms var(--ease-premium),
+    background-color 520ms var(--ease-premium),
+    opacity 320ms var(--ease-premium);
+}
+.premium-cursor-ring.on {
+  border-color: var(--paper);
+  background: rgba(243,239,230,0.06);
+}
+.premium-cursor-dot.hidden,
+.premium-cursor-ring.hidden { opacity: 0; }
+@media (pointer: coarse) {
+  .premium-cursor-dot, .premium-cursor-ring { display: none; }
+}
+
+/* ============================================================
+   3) Letter-stagger reveals — character masks
+   ============================================================ */
+[data-reveal-text] { color: inherit; }
+.rt-ready {
+  /* Container is plain; only inner characters animate */
+}
+.rt-word {
+  display: inline-block;
+  white-space: nowrap;
+}
+.rt-char {
+  display: inline-block;
+  overflow: hidden;
+  vertical-align: baseline;
+  line-height: 1;
+}
+.rt-inner {
+  display: inline-block;
+  transform: translate3d(0, 110%, 0);
+  opacity: 0;
+  transition:
+    transform 1100ms var(--ease-premium),
+    opacity   900ms  var(--ease-premium);
+  will-change: transform, opacity;
+}
+[data-reveal-text].in .rt-inner {
+  transform: translate3d(0, 0, 0);
+  opacity: 1;
+}
+
+/* Block reveals -------------------------------------------- */
+[data-reveal-el] {
+  opacity: 0;
+  transform: translate3d(0, 22px, 0);
+  transition:
+    opacity   900ms var(--ease-premium),
+    transform 1100ms var(--ease-premium);
+  will-change: transform, opacity;
+}
+[data-reveal-el].in {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+}
+[data-reveal-el][data-d="1"].in { transition-delay: 0.10s; }
+[data-reveal-el][data-d="2"].in { transition-delay: 0.22s; }
+[data-reveal-el][data-d="3"].in { transition-delay: 0.36s; }
+[data-reveal-el][data-d="4"].in { transition-delay: 0.52s; }
+[data-reveal-el][data-d="5"].in { transition-delay: 0.70s; }
+
+@media (prefers-reduced-motion: reduce) {
+  [data-reveal-el] { opacity: 1; transform: none; }
+  .rt-inner { transform: none; opacity: 1; }
+  .premium-loader { display: none; }
+}
+
+/* ============================================================
+   4) Sound widget v3  (.snd-*)
+   ============================================================ */
+.snd-widget {
+  position: fixed;
+  left: 28px;
+  bottom: 80px;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+@media (max-width: 700px) {
+  .snd-widget { left: 16px; bottom: 78px; }
+}
+
+/* Main bar row */
+.snd-widget > .snd-bar {
+  display: inline-flex;
+  align-items: stretch;
+  background: rgba(6,6,26,0.42);
+  border: 1px solid var(--hairline);
+  border-radius: 4px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  overflow: hidden;
+  transition:
+    border-color 480ms var(--ease-premium),
+    background-color 480ms var(--ease-premium);
+}
+.snd-widget.snd-on > .snd-bar {
+  border-color: rgba(243,239,230,0.22);
+}
+
+.snd-master-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 11px 16px;
+  background: transparent;
+  border: 0;
+  color: var(--mist);
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 480ms var(--ease-premium);
+}
+.snd-master-btn:hover,
+.snd-widget.snd-on .snd-master-btn { color: var(--paper); }
+
+.snd-icon { display: inline-flex; flex-shrink: 0; }
+.snd-label { max-width: 120px; overflow: hidden; text-overflow: ellipsis; }
+
+/* Animated audio-level bars */
+.snd-bars {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 10px;
+  margin-left: 2px;
+  flex-shrink: 0;
+}
+.snd-bars .snd-bar {
+  width: 2px;
+  background: var(--paper);
+  border-radius: 1px;
+  opacity: 0.65;
+  animation: sndPulse 1.2s ease-in-out infinite;
+}
+.snd-bars .snd-bar.b0 { height: 5px; animation-delay: 0s; }
+.snd-bars .snd-bar.b1 { height: 9px; animation-delay: 0.18s; }
+.snd-bars .snd-bar.b2 { height: 6px; animation-delay: 0.36s; }
+@keyframes sndPulse {
+  0%,100% { transform: scaleY(0.5); }
+  50%     { transform: scaleY(1); }
+}
+
+/* Expand chevron */
+.snd-expand-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-left: 1px solid var(--hairline);
+  color: var(--whisper);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: color 300ms var(--ease-premium);
+}
+.snd-expand-btn:hover,
+.snd-expand-btn.open { color: var(--paper); }
+
+/* Channel panel */
+.snd-panel {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 0;
+  min-width: 234px;
+  background: rgba(6,6,26,0.78);
+  border: 1px solid var(--hairline);
+  border-radius: 4px;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  padding: 10px 0 8px;
+  animation: sndPanelIn 300ms var(--ease-premium) both;
+}
+@keyframes sndPanelIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.snd-panel-head {
+  padding: 2px 16px 9px;
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.30em;
+  text-transform: uppercase;
+  color: var(--whisper);
+  border-bottom: 1px solid var(--hairline);
+  margin-bottom: 4px;
+}
+
+.snd-ch {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 16px;
+  transition: background 280ms var(--ease-premium);
+}
+.snd-ch:hover { background: rgba(243,239,230,0.04); }
+
+.snd-ch-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  color: var(--whisper);
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  transition: color 280ms var(--ease-premium);
+}
+.snd-ch.active .snd-ch-btn { color: var(--paper); }
+
+.snd-ch-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  border: 1px solid rgba(243,239,230,0.28);
+  flex-shrink: 0;
+  transition: all 280ms var(--ease-premium);
+}
+.snd-ch.active .snd-ch-dot {
+  background: var(--paper);
+  border-color: var(--paper);
+  box-shadow: 0 0 8px rgba(243,239,230,0.5);
+}
+
+.snd-ch-name { font-size: 10px; white-space: nowrap; }
+.snd-ch-sub {
+  font-size: 9px;
+  opacity: 0.45;
+  letter-spacing: 0.18em;
+  margin-left: 2px;
+  white-space: nowrap;
+}
+
+.snd-ch-vol-wrap { display: flex; align-items: center; }
+.snd-vol-slider {
+  width: 68px;
+  height: 1px;
+  background: rgba(243,239,230,0.15);
+  appearance: none;
+  -webkit-appearance: none;
+  outline: none;
+  cursor: pointer;
+}
+.snd-vol-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--paper);
+  box-shadow: 0 0 8px rgba(243,239,230,0.4);
+}
+.snd-vol-slider::-moz-range-thumb {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--paper);
+  border: 0;
+}
+
+/* ============================================================
+   5) HUD chrome accent — notched corners
+   ============================================================ */
+.pill, .rn-fab {
+  clip-path: polygon(
+    8px 0,
+    100% 0,
+    100% calc(100% - 8px),
+    calc(100% - 8px) 100%,
+    0 100%,
+    0 8px
+  );
+}
+.counter {
+  clip-path: polygon(
+    10px 0,
+    100% 0,
+    100% calc(100% - 10px),
+    calc(100% - 10px) 100%,
+    0 100%,
+    0 10px
+  );
+}
+
+/* Extra counter row: live-feeling coordinates */
+.counter-row.coord .val {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ============================================================
+   6) Page-load: prevent FOUC of split text
+   ============================================================ */
+[data-reveal-text]:not(.rt-ready) {
+  /* While JS hasn't split it yet, keep it visible */
+  visibility: visible;
+}
+
+/* Smoother momentum scroll feel everywhere */
+html, body { scroll-behavior: auto; }
+
+/* ============================================================
+   8) Time-of-day body classes
+   ============================================================ */
+body.time-dawn  { --sky-accent: oklch(0.82 0.12 55); }
+body.time-day   { --sky-accent: oklch(0.78 0.11 220); }
+body.time-dusk  { --sky-accent: oklch(0.78 0.12 28); }
+body.time-night { --sky-accent: oklch(0.72 0.11 290); }
+
+/* Subtle sky colour shift on .veil for time of day */
+body.time-dawn  .veil { filter: sepia(0.06) hue-rotate(-12deg); transition: filter 3s ease; }
+body.time-day   .veil { filter: none; transition: filter 3s ease; }
+body.time-dusk  .veil { filter: sepia(0.08) hue-rotate(8deg); transition: filter 3s ease; }
+body.time-night .veil { filter: hue-rotate(14deg) brightness(0.96); transition: filter 3s ease; }
+
+/* Section mask-wipe removed — was causing black rectangles on scroll */
