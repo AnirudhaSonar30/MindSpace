@@ -36,7 +36,7 @@ Current stack limitations:
 
 ### 0.A — Project Setup
 
-- [ ] **0.A.1** Create a `vite-migration` git branch (never break `main` during migration)
+- [x] **0.A.1** Create a `vite-migration` git branch (never break `main` during migration) ✓ 2026-05-22
 - [ ] **0.A.2** Set up Vite + React + TypeScript project scaffold in that branch
 - [ ] **0.A.3** Configure GitHub Actions to build from Vite (`npm run build` → `dist/`) and deploy to GitHub Pages
 - [ ] **0.A.4** Verify empty Vite app deploys to the live URL successfully before migrating any code
