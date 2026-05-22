@@ -10,3 +10,102 @@ html, body, #root {
   background: #06061a;
   overflow: hidden;
 }
+
+/* ─── Ambient breathing orb (1.A.2) ────────────────────────────────── */
+.ambient-orb-wrap {
+  position: fixed;
+  top: 30%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 5;
+  pointer-events: none;
+}
+.ambient-orb {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  border: none;
+  background: radial-gradient(circle at 38% 36%,
+    rgba(190, 155, 255, 0.44) 0%,
+    rgba(130,  90, 220, 0.24) 45%,
+    rgba( 70,  45, 160, 0.10) 75%,
+    transparent 100%
+  );
+  cursor: pointer;
+  pointer-events: auto;
+  animation: ambOrb 12s ease-in-out infinite;
+  transition: opacity 1.6s ease, transform 0.9s ease;
+}
+.ambient-orb.is-home { opacity: 0.72; transform: scale(1); }
+.ambient-orb.is-dim  { opacity: 0.20; transform: scale(0.56); cursor: default; pointer-events: none; }
+.ambient-orb.is-gone { opacity: 0;    transform: scale(0.40); pointer-events: none; }
+
+.ambient-orb-label {
+  position: absolute;
+  top: calc(100% + 12px);
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--mono, monospace);
+  font-size: 8.5px;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: rgba(243, 239, 230, 0.34);
+  white-space: nowrap;
+  pointer-events: none;
+  transition: opacity 0.8s ease;
+}
+.ambient-orb.is-dim  + .ambient-orb-label,
+.ambient-orb.is-gone + .ambient-orb-label { opacity: 0; }
+
+@keyframes ambOrb {
+  0%, 100% {
+    box-shadow: 0 0 24px  6px rgba(130, 90, 220, 0.18),
+                inset 0 0 18px     rgba(190,155,255, 0.14);
+    filter: brightness(0.88);
+  }
+  30% {
+    box-shadow: 0 0 56px 20px rgba(130, 90, 220, 0.36),
+                inset 0 0 28px     rgba(190,155,255, 0.30);
+    filter: brightness(1.12);
+  }
+  50% {
+    box-shadow: 0 0 56px 20px rgba(130, 90, 220, 0.36),
+                inset 0 0 28px     rgba(190,155,255, 0.30);
+    filter: brightness(1.12);
+  }
+  83% {
+    box-shadow: 0 0 24px  6px rgba(130, 90, 220, 0.18),
+                inset 0 0 18px     rgba(190,155,255, 0.14);
+    filter: brightness(0.88);
+  }
+}
+
+/* ─── First-visit discovery hints (1.A.6) ──────────────────────────── */
+.fv-hints { position: fixed; inset: 0; z-index: 8; pointer-events: none; }
+
+.fv-hint {
+  position: absolute;
+  font-family: var(--mono, monospace);
+  font-size: 9px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(243, 239, 230, 0.52);
+  opacity: 0;
+  transition: opacity 1.4s ease;
+  white-space: nowrap;
+}
+.fv-hint.fv-on { opacity: 1; }
+
+.fv-hint-orb       { top: 36%; left: 50%; transform: translateX(-50%); text-align: center; }
+.fv-hint-scene     { bottom: 108px; left: 28px; }
+.fv-hint-companion { top: 74px; right: 88px; }
+
+/* ─── Icon-only nav after 3 visits (1.A.7) ─────────────────────────── */
+.mode-nav.nav-icons .mode-btn-label {
+  max-width: 0;
+  overflow: hidden;
+  opacity: 0;
+  margin: 0;
+  transition: max-width 0.5s ease, opacity 0.5s ease;
+}
+.mode-nav.nav-icons .mode-btn { padding: 9px 16px; }

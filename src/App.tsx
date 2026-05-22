@@ -1,7 +1,7 @@
 // MindSpace — App shell
 // All features wired together. Sky always visible. No scrolling.
 
-import React, { useState, useRef } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { gsap } from 'gsap'
 import { useMindSpaceStore } from './store'
 import { SkyScene }        from './SkyScene'
@@ -132,10 +132,54 @@ function ModePanel({ mode, onExit }: ModePanelProps) {
   )
 }
 
-/* ── Bottom mode navigation ── */
-interface ModeNavProps { mode: string; onMode: (id: string) => void }
+/* ── Ambient breathing orb (1.A.2 / 1.A.3) ── */
+interface AmbientOrbProps { mode: string; onEnterBreathe: () => void }
 
-function ModeNav({ mode, onMode }: ModeNavProps) {
+function AmbientOrb({ mode, onEnterBreathe }: AmbientOrbProps) {
+  const cls = mode === 'breathe' ? 'is-gone'
+            : mode === 'home'    ? 'is-home'
+            : 'is-dim'
+  return (
+    <div className="ambient-orb-wrap">
+      <button
+        className={'ambient-orb ' + cls}
+        onClick={mode === 'home' ? onEnterBreathe : undefined}
+        aria-label="Begin breathing practice"
+      />
+      <div className="ambient-orb-label">breathe</div>
+    </div>
+  )
+}
+
+/* ── First-visit discovery hints (1.A.6) ── */
+function FirstVisitHints() {
+  const [step, setStep] = useState(0)
+
+  useEffect(() => {
+    const key = 'mindspace.hints.v1'
+    if (sessionStorage.getItem(key)) return
+    sessionStorage.setItem(key, '1')
+    const t1 = setTimeout(() => setStep(1), 3200)
+    const t2 = setTimeout(() => setStep(2), 5400)
+    const t3 = setTimeout(() => setStep(3), 7600)
+    const t4 = setTimeout(() => setStep(0), 15000)
+    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearTimeout(t4) }
+  }, [])
+
+  if (!step) return null
+  return (
+    <div className="fv-hints" aria-hidden="true">
+      <div className={'fv-hint fv-hint-orb'        + (step >= 1 ? ' fv-on' : '')}>breathe · tap the light</div>
+      <div className={'fv-hint fv-hint-scene'       + (step >= 2 ? ' fv-on' : '')}>← change the sky</div>
+      <div className={'fv-hint fv-hint-companion'   + (step >= 3 ? ' fv-on' : '')}>reflect with it →</div>
+    </div>
+  )
+}
+
+/* ── Bottom mode navigation ── */
+interface ModeNavProps { mode: string; onMode: (id: string) => void; iconOnly: boolean }
+
+function ModeNav({ mode, onMode, iconOnly }: ModeNavProps) {
   const items = [
     { id: 'home',    label: 'home',    glyph: '⌂' },
     { id: 'breathe', label: 'breathe', glyph: '◯' },
@@ -143,7 +187,7 @@ function ModeNav({ mode, onMode }: ModeNavProps) {
     { id: 'rest',    label: 'rest',    glyph: '∿' },
   ]
   return (
-    <nav className="mode-nav" aria-label="Practice navigation">
+    <nav className={'mode-nav' + (iconOnly ? ' nav-icons' : '')} aria-label="Practice navigation">
       {items.map(it => (
         <button
           key={it.id}
@@ -183,9 +227,17 @@ const ENTER_END: Record<string, gsap.TweenVars> = {
 
 /* ── App shell ── */
 export default function App() {
-  const [mode, setMode] = useState('home')
-  const inFlightRef     = useRef(false)
-  const pendingRef      = useRef<string | null>(null)
+  const [mode, setMode]       = useState('home')
+  const [iconOnly, setIconOnly] = useState(false)
+  const inFlightRef           = useRef(false)
+  const pendingRef            = useRef<string | null>(null)
+
+  useEffect(() => {
+    const key = 'mindspace.visits'
+    const v   = parseInt(localStorage.getItem(key) || '0') + 1
+    localStorage.setItem(key, String(v))
+    if (v > 3) setIconOnly(true)
+  }, [])
 
   const goMode = (next: string) => {
     if (next === mode) return
@@ -235,13 +287,15 @@ export default function App() {
         background: '#06061a', opacity: 0, pointerEvents: 'none',
       }}/>
       <Nav/>
+      <AmbientOrb mode={mode} onEnterBreathe={() => goMode('breathe')}/>
       <main className="stage">
         {mode === 'home'
           ? <HomeScreen key="home"/>
           : <ModePanel key={mode} mode={mode} onExit={() => goMode('home')}/>
         }
       </main>
-      <ModeNav mode={mode} onMode={goMode}/>
+      <ModeNav mode={mode} onMode={goMode} iconOnly={iconOnly}/>
+      <FirstVisitHints/>
 
       <Silent><AtmosphereCanvas/></Silent>
       <Silent><SoundToggle/></Silent>
