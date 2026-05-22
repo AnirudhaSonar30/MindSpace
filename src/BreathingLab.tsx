@@ -79,6 +79,372 @@ const KIND_FROM_PHASE: Record<string, PhaseKind> = {
 
 const ORB_STYLES = ['glass', 'reactor', 'nebula', 'jellyfish', 'wireframe']
 
+/* ── orb color palette ── */
+const BO_COLOR: Record<string, [number, number, number]> = {
+  inhale: [260, 50, 64],
+  hold:   [165, 55, 62],
+  exhale: [38,  68, 65],
+  rest:   [220, 28, 60],
+}
+function boHslA(H: number, S: number, L: number, a: number) {
+  return `hsla(${H|0},${S|0}%,${L|0}%,${a.toFixed(3)})`
+}
+
+/* ── style state initializers ── */
+function makeNebulaState() {
+  return { rings: [] as {r:number;op:number;w:number}[], prevPhase: 'inhale',
+           cH: BO_COLOR.inhale[0], cS: BO_COLOR.inhale[1], cL: BO_COLOR.inhale[2], pulse: 0 }
+}
+function makeJellyState() {
+  return {
+    tendrils: Array.from({ length: 14 }, (_, i) => ({
+      baseA: (i / 14) * Math.PI * 2, len: 0.20 + Math.random() * 0.18,
+      wavePhase: Math.random() * Math.PI * 2, waveSpeed: 0.015 + Math.random() * 0.018,
+      amp: 0.04 + Math.random() * 0.06, thickness: 0.7 + Math.random() * 1.3,
+    })),
+    micro: [] as {x:number;y:number;vx:number;vy:number;life:number;size:number}[],
+    prevPhase: 'inhale',
+    cH: BO_COLOR.inhale[0], cS: BO_COLOR.inhale[1], cL: BO_COLOR.inhale[2],
+  }
+}
+function makeWireState() {
+  const N = 56
+  const phi2 = Math.PI * (3 - Math.sqrt(5))
+  const verts = Array.from({ length: N }, (_, i) => {
+    const y = 1 - (i / (N - 1)) * 2
+    const radius = Math.sqrt(1 - y * y)
+    const theta = phi2 * i
+    return { base: [Math.cos(theta) * radius, y, Math.sin(theta) * radius] as [number,number,number],
+             px: 0, py: 0, pz: 0, noisePh: Math.random() * Math.PI * 2 }
+  })
+  const edges: [number, number][] = []
+  for (let i = 0; i < N; i++) {
+    const dists: {j:number;d:number}[] = []
+    for (let j = 0; j < N; j++) {
+      if (i === j) continue
+      const dx = verts[i].base[0] - verts[j].base[0]
+      const dy = verts[i].base[1] - verts[j].base[1]
+      const dz = verts[i].base[2] - verts[j].base[2]
+      dists.push({ j, d: dx*dx + dy*dy + dz*dz })
+    }
+    dists.sort((a, b) => a.d - b.d)
+    for (let k = 0; k < 3; k++) if (i < dists[k].j) edges.push([i, dists[k].j])
+  }
+  return { verts, edges, prevPhase: 'inhale',
+           cH: BO_COLOR.inhale[0], cS: BO_COLOR.inhale[1], cL: BO_COLOR.inhale[2], explode: 0 }
+}
+function makeGlassState() {
+  return {
+    caustics: Array.from({ length: 12 }, (_, i) => ({
+      angle: (i / 12) * Math.PI * 2 + Math.random() * 0.5,
+      r: 0.14 + Math.random() * 0.48, speed: (0.0014 + Math.random() * 0.003) * (Math.random() > 0.5 ? 1 : -1),
+      rSpeed: 0.0007 + Math.random() * 0.0014, size: 3 + Math.random() * 7,
+      op: 0.22 + Math.random() * 0.44, rPhase: Math.random() * Math.PI * 2,
+    })),
+    prevPhase: 'inhale',
+    cH: BO_COLOR.inhale[0], cS: BO_COLOR.inhale[1], cL: BO_COLOR.inhale[2],
+    shimRot: 0,
+    ripples: [] as {r:number;op:number;w:number;slow?:boolean}[],
+  }
+}
+function makeReactorState() {
+  const N = 220
+  const particles = Array.from({ length: N }, (_, i) => {
+    const theta = Math.acos(1 - 2 * (i / N))
+    const phi3  = Math.sqrt(N * Math.PI) * theta
+    return { bx: Math.sin(theta)*Math.cos(phi3), by: Math.sin(theta)*Math.sin(phi3), bz: Math.cos(theta),
+             speed: 0.4 + Math.random() * 1.6, phase: Math.random() * Math.PI * 2, size: 0.9 + Math.random() * 1.8 }
+  })
+  return {
+    particles,
+    rings: Array.from({ length: 6 }, (_, i) => ({
+      baseR: 0.13 + i * 0.090, rot: (i / 6) * Math.PI * 2,
+      speed: (0.0028 + i * 0.0012) * (i % 2 === 0 ? 1 : -1),
+      width: 2.8 - i * 0.26, opacity: 0.82 - i * 0.09, segments: 3 + i * 2,
+    })),
+    pulses: [] as {r:number;op:number;speed:number}[],
+    prevPhase: 'inhale',
+    cH: BO_COLOR.inhale[0], cS: BO_COLOR.inhale[1], cL: BO_COLOR.inhale[2],
+    rx: 0, ry: 0,
+  }
+}
+
+/* ── orb draw functions ── */
+type Ctx2D = CanvasRenderingContext2D
+function drawNebula(ctx: Ctx2D, st: ReturnType<typeof makeNebulaState>,
+                    CX: number, CY: number, HALF: number, f: number, breath: number, phase: string, kind: string, cp: number) {
+  const tc = BO_COLOR[kind] || BO_COLOR.inhale
+  st.cH += (tc[0] - st.cH) * 0.024; st.cS += (tc[1] - st.cS) * 0.024; st.cL += (tc[2] - st.cL) * 0.024
+  const H_ = st.cH, S_ = st.cS, L_ = st.cL
+  if (phase !== st.prevPhase) { st.rings.push({ r: HALF * 0.34, op: 0.95, w: 2.4 }); st.pulse = 1; st.prevPhase = phase }
+  st.pulse *= 0.94
+  const baseR = HALF * (0.30 + breath * 0.12)
+  const lineW = 3.2 + breath * 3.6 + st.pulse * 3.0
+  st.rings = st.rings.filter(r => r.op > 0.02)
+  st.rings.forEach(r => {
+    ctx.beginPath(); ctx.arc(CX, CY, r.r, 0, Math.PI * 2)
+    ctx.strokeStyle = boHslA(H_, S_, Math.min(86, L_ + 8), r.op)
+    ctx.lineWidth = r.w * (1 - r.r / (HALF * 1.6)); ctx.stroke()
+    r.r += 4.6; r.op *= 0.964
+  })
+  const halo = ctx.createRadialGradient(CX, CY, baseR * 0.65, CX, CY, baseR * 1.55)
+  halo.addColorStop(0, boHslA(H_, S_, L_, 0)); halo.addColorStop(0.45, boHslA(H_, S_, L_, 0.26)); halo.addColorStop(1, boHslA(H_, S_, L_, 0))
+  ctx.fillStyle = halo; ctx.beginPath(); ctx.arc(CX, CY, baseR * 1.55, 0, Math.PI * 2); ctx.fill()
+  ctx.beginPath(); ctx.arc(CX, CY, baseR * 0.72, 0, Math.PI * 2)
+  ctx.strokeStyle = boHslA(H_, S_, L_, 0.18); ctx.lineWidth = 0.8; ctx.stroke()
+  ctx.save()
+  ctx.shadowColor = boHslA(H_, S_, Math.min(90, L_ + 18), 0.85); ctx.shadowBlur = 32 + breath * 22
+  ctx.beginPath(); ctx.arc(CX, CY, baseR, 0, Math.PI * 2)
+  ctx.strokeStyle = boHslA(H_, S_, Math.min(94, L_ + 22), 0.94); ctx.lineWidth = lineW; ctx.lineCap = 'round'; ctx.stroke()
+  ctx.restore()
+  const discR = 8 + breath * 7
+  const discG = ctx.createRadialGradient(CX, CY, 0, CX, CY, discR * 2.2)
+  discG.addColorStop(0, 'rgba(255,255,255,0.96)'); discG.addColorStop(0.4, boHslA(H_, Math.min(100, S_ + 30), Math.min(96, L_ + 26), 0.86)); discG.addColorStop(1, boHslA(H_, S_, L_, 0))
+  ctx.fillStyle = discG; ctx.beginPath(); ctx.arc(CX, CY, discR * 2.2, 0, Math.PI * 2); ctx.fill()
+  ctx.save(); ctx.shadowColor = boHslA(H_, S_, Math.min(96, L_ + 28), 0.95); ctx.shadowBlur = 28
+  ctx.beginPath(); ctx.arc(CX, CY, discR, 0, Math.PI * 2); ctx.fillStyle = 'rgba(255,255,255,0.96)'; ctx.fill(); ctx.restore()
+  if (kind === 'hold') {
+    const p2 = 0.4 + 0.6 * Math.sin(f * 0.16)
+    ctx.beginPath(); ctx.arc(CX, CY, discR + 6 + p2 * 8, 0, Math.PI * 2)
+    ctx.strokeStyle = boHslA(H_, S_, Math.min(94, L_ + 22), 0.40 * p2); ctx.lineWidth = 0.9; ctx.stroke()
+  }
+  if (cp > 0.004) {
+    const ringR = HALF * 0.58; const arcEnd = -Math.PI / 2 + cp * Math.PI * 2
+    ctx.save(); ctx.shadowColor = boHslA(H_, S_, L_, 0.55); ctx.shadowBlur = 14
+    ctx.beginPath(); ctx.arc(CX, CY, ringR, -Math.PI / 2, arcEnd)
+    ctx.strokeStyle = boHslA(H_, S_, Math.min(88, L_ + 12), 0.68); ctx.lineWidth = 1.4; ctx.lineCap = 'round'; ctx.stroke(); ctx.restore()
+    ctx.beginPath(); ctx.arc(CX + Math.cos(arcEnd) * ringR, CY + Math.sin(arcEnd) * ringR, 3.0, 0, Math.PI * 2)
+    ctx.fillStyle = 'rgba(255,255,255,0.94)'; ctx.fill()
+  }
+}
+
+function drawJellyfish(ctx: Ctx2D, st: ReturnType<typeof makeJellyState>,
+                       W: number, H_px: number, CX: number, CY: number, HALF: number, f: number, breath: number, phase: string, kind: string, cp: number) {
+  const orbR = HALF * (0.18 + breath * 0.10)
+  const tc = BO_COLOR[kind] || BO_COLOR.inhale
+  st.cH += (tc[0] - st.cH) * 0.026; st.cS += (tc[1] - st.cS) * 0.026; st.cL += (tc[2] - st.cL) * 0.026
+  const H_ = st.cH, S_ = st.cS, L_ = st.cL
+  if (phase !== st.prevPhase) {
+    if (st.prevPhase === 'hold' || phase === 'exhale') {
+      for (let i = 0; i < 24; i++) {
+        const a = Math.random() * Math.PI * 2
+        st.micro.push({ x: CX + Math.cos(a) * orbR * 0.85, y: CY + Math.sin(a) * orbR * 0.85,
+          vx: Math.cos(a) * (0.6 + Math.random() * 1.2), vy: Math.sin(a) * (0.6 + Math.random() * 1.2) - 0.15,
+          life: 1.0, size: 0.6 + Math.random() * 1.1 })
+      }
+    }
+    st.prevPhase = phase
+  }
+  const bg = ctx.createRadialGradient(CX, CY, orbR * 0.4, CX, CY, HALF * 1.2)
+  bg.addColorStop(0, boHslA(H_, S_, L_, 0.10)); bg.addColorStop(0.55, boHslA(H_, S_, L_, 0.03)); bg.addColorStop(1, 'rgba(0,0,0,0)')
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H_px)
+  if (cp > 0.004) {
+    const ringR = HALF * 0.86; const arcEnd = -Math.PI / 2 + cp * Math.PI * 2
+    ctx.save(); ctx.shadowColor = boHslA(H_, S_, L_, 0.55); ctx.shadowBlur = 16
+    ctx.beginPath(); ctx.arc(CX, CY, ringR, -Math.PI / 2, arcEnd)
+    ctx.strokeStyle = boHslA(H_, S_, Math.min(86, L_ + 10), 0.78); ctx.lineWidth = 1.7; ctx.lineCap = 'round'; ctx.stroke(); ctx.restore()
+    ctx.beginPath(); ctx.arc(CX + Math.cos(arcEnd) * ringR, CY + Math.sin(arcEnd) * ringR, 3.4, 0, Math.PI * 2)
+    ctx.fillStyle = 'rgba(255,255,255,0.92)'; ctx.fill()
+  }
+  ctx.save(); ctx.lineCap = 'round'
+  st.tendrils.forEach(t => {
+    const len = HALF * t.len * (1 - breath * 0.25); const startR = orbR * 0.78; const segments = 12
+    ctx.beginPath()
+    for (let i = 0; i <= segments; i++) {
+      const tt = i / segments
+      const wave = Math.sin(f * t.waveSpeed + t.wavePhase + tt * 4) * t.amp * len * tt
+      const ang = t.baseA + wave / Math.max(0.1, startR + len * tt)
+      const r = startR + len * tt
+      i === 0 ? ctx.moveTo(CX + Math.cos(ang) * r, CY + Math.sin(ang) * r)
+              : ctx.lineTo(CX + Math.cos(ang) * r, CY + Math.sin(ang) * r)
+    }
+    ctx.strokeStyle = boHslA(H_, S_, Math.min(86, L_ + 14), 0.34); ctx.lineWidth = t.thickness * (1 - breath * 0.3); ctx.stroke()
+  }); ctx.restore()
+  const halo = ctx.createRadialGradient(CX, CY, orbR * 0.5, CX, CY, orbR * 2.3)
+  halo.addColorStop(0, boHslA(H_, S_, L_, 0.32)); halo.addColorStop(0.5, boHslA(H_, S_, L_, 0.08)); halo.addColorStop(1, 'rgba(0,0,0,0)')
+  ctx.fillStyle = halo; ctx.beginPath(); ctx.arc(CX, CY, orbR * 2.3, 0, Math.PI * 2); ctx.fill()
+  ctx.save(); ctx.translate(CX, CY)
+  const holdRipple = kind === 'hold' ? Math.sin(f * 0.16) * 0.08 : 0
+  const rX2 = orbR * (1 + 0.04 * Math.sin(f * 0.02)); const rY2 = orbR * (1 - 0.06 + holdRipple)
+  const bell = ctx.createRadialGradient(0, -orbR * 0.18, 0, 0, 0, orbR * 1.05)
+  bell.addColorStop(0, 'rgba(255,255,255,0.46)'); bell.addColorStop(0.16, boHslA(H_, Math.min(90, S_ + 10), Math.min(92, L_ + 18), 0.66))
+  bell.addColorStop(0.55, boHslA(H_, S_, L_, 0.36)); bell.addColorStop(1, boHslA(H_, S_, Math.max(20, L_ - 16), 0.05))
+  ctx.fillStyle = bell; ctx.beginPath(); ctx.ellipse(0, 0, rX2, rY2, 0, 0, Math.PI * 2); ctx.fill()
+  const nucR = orbR * (0.20 + breath * 0.08)
+  const nucG = ctx.createRadialGradient(0, 0, 0, 0, 0, nucR)
+  nucG.addColorStop(0, 'rgba(255,255,255,0.85)'); nucG.addColorStop(0.5, boHslA(H_, Math.min(90, S_ + 20), Math.min(94, L_ + 28), 0.66)); nucG.addColorStop(1, boHslA(H_, S_, L_, 0))
+  ctx.fillStyle = nucG; ctx.beginPath(); ctx.arc(0, 0, nucR, 0, Math.PI * 2); ctx.fill()
+  ctx.beginPath(); ctx.ellipse(0, 0, rX2, rY2, 0, 0, Math.PI * 2)
+  ctx.strokeStyle = boHslA(H_, S_, Math.min(90, L_ + 12), 0.38); ctx.lineWidth = 0.9; ctx.stroke(); ctx.restore()
+  ctx.save(); st.micro = st.micro.filter(m => m.life > 0.02)
+  st.micro.forEach(m => {
+    m.x += m.vx; m.y += m.vy; m.vy += 0.012; m.life *= 0.972
+    ctx.beginPath(); ctx.arc(m.x, m.y, m.size * m.life, 0, Math.PI * 2)
+    ctx.fillStyle = boHslA(H_, Math.min(90, S_ + 18), Math.min(92, L_ + 22), m.life * 0.85); ctx.fill()
+  }); ctx.restore()
+}
+
+function drawWireframe(ctx: Ctx2D, st: ReturnType<typeof makeWireState>,
+                       W: number, H_px: number, CX: number, CY: number, HALF: number, f: number, breath: number, _phase: string, kind: string, cp: number) {
+  const orbR = HALF * (0.20 + breath * 0.12)
+  const tc = BO_COLOR[kind] || BO_COLOR.inhale
+  st.cH += (tc[0] - st.cH) * 0.030; st.cS += (tc[1] - st.cS) * 0.030; st.cL += (tc[2] - st.cL) * 0.030
+  const H_ = st.cH, S_ = st.cS, L_ = st.cL
+  const explodeTarget = kind === 'exhale' ? 0.45 : kind === 'inhale' ? 0 : 0.10
+  st.explode += (explodeTarget - st.explode) * 0.04
+  const bg = ctx.createRadialGradient(CX, CY, orbR * 0.3, CX, CY, HALF * 1.1)
+  bg.addColorStop(0, boHslA(H_, S_, L_, 0.06)); bg.addColorStop(0.6, boHslA(H_, S_, L_, 0.020)); bg.addColorStop(1, 'rgba(0,0,0,0)')
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H_px)
+  if (cp > 0.004) {
+    const ringR = HALF * 0.86; const arcEnd = -Math.PI / 2 + cp * Math.PI * 2
+    ctx.save(); ctx.shadowColor = boHslA(H_, S_, L_, 0.6); ctx.shadowBlur = 16
+    ctx.beginPath(); ctx.arc(CX, CY, ringR, -Math.PI / 2, arcEnd)
+    ctx.strokeStyle = boHslA(H_, S_, Math.min(86, L_ + 12), 0.80); ctx.lineWidth = 1.7; ctx.lineCap = 'round'; ctx.stroke(); ctx.restore()
+    ctx.beginPath(); ctx.arc(CX + Math.cos(arcEnd) * ringR, CY + Math.sin(arcEnd) * ringR, 3.4, 0, Math.PI * 2)
+    ctx.fillStyle = 'rgba(255,255,255,0.94)'; ctx.fill()
+  }
+  const halo = ctx.createRadialGradient(CX, CY, orbR * 0.7, CX, CY, orbR * 2.2)
+  halo.addColorStop(0, boHslA(H_, S_, L_, 0.20)); halo.addColorStop(0.5, boHslA(H_, S_, L_, 0.06)); halo.addColorStop(1, 'rgba(0,0,0,0)')
+  ctx.fillStyle = halo; ctx.beginPath(); ctx.arc(CX, CY, orbR * 2.2, 0, Math.PI * 2); ctx.fill()
+  const rotY = f * 0.005 * (0.5 + breath * 0.6); const rotX2 = f * 0.003
+  const cY2 = Math.cos(rotY), sY2 = Math.sin(rotY); const cX2 = Math.cos(rotX2), sX2 = Math.sin(rotX2)
+  st.verts.forEach(v => {
+    const n2 = 1 + 0.08 * Math.sin(f * 0.022 + v.noisePh * 3) * (0.5 + breath * 0.5)
+    const e2 = 1 + st.explode * 0.8
+    let x2 = v.base[0] * n2 * e2, y2 = v.base[1] * n2 * e2, z2 = v.base[2] * n2 * e2
+    const nx2 = x2 * cY2 + z2 * sY2; let nz2 = -x2 * sY2 + z2 * cY2
+    const ny2 = y2 * cX2 - nz2 * sX2; nz2 = y2 * sX2 + nz2 * cX2
+    const persp = 1 / (1 + nz2 * 0.35)
+    v.px = CX + nx2 * orbR * persp; v.py = CY + ny2 * orbR * persp; v.pz = nz2
+  })
+  ctx.save(); ctx.lineWidth = 0.75
+  for (let i = 0; i < st.edges.length; i++) {
+    const [a2, b2] = st.edges[i]; const va = st.verts[a2], vb = st.verts[b2]
+    const depth = (va.pz + vb.pz) * 0.5; const al = 0.40 + 0.45 * (1 - (depth + 1) / 2)
+    ctx.strokeStyle = boHslA(H_, S_, Math.min(86, L_ + 10), al * (1 - st.explode * 0.6))
+    ctx.beginPath(); ctx.moveTo(va.px, va.py); ctx.lineTo(vb.px, vb.py); ctx.stroke()
+  }; ctx.restore()
+  st.verts.forEach(v => {
+    const depth = v.pz; const al = 0.55 + 0.45 * (1 - (depth + 1) / 2)
+    ctx.beginPath(); ctx.arc(v.px, v.py, 4 + (1 - depth) * 1.4, 0, Math.PI * 2)
+    ctx.fillStyle = boHslA(H_, Math.min(90, S_ + 20), Math.min(92, L_ + 22), al * 0.16); ctx.fill()
+    ctx.beginPath(); ctx.arc(v.px, v.py, 1.4 + (1 - depth) * 0.6, 0, Math.PI * 2)
+    ctx.fillStyle = boHslA(H_, Math.min(90, S_ + 30), Math.min(96, L_ + 30), al); ctx.fill()
+  })
+  ctx.beginPath(); ctx.arc(CX, CY, 3.0, 0, Math.PI * 2)
+  ctx.shadowColor = 'rgba(255,255,255,0.85)'; ctx.shadowBlur = 14
+  ctx.fillStyle = 'rgba(255,255,255,0.92)'; ctx.fill(); ctx.shadowBlur = 0
+}
+
+function drawGlass(ctx: Ctx2D, st: ReturnType<typeof makeGlassState>,
+                   CX: number, CY: number, HALF: number, f: number, breath: number, phase: string, kind: string, cp: number) {
+  const tc = BO_COLOR[kind] || BO_COLOR.inhale
+  st.cH += (tc[0] - st.cH) * 0.030; st.cS += (tc[1] - st.cS) * 0.030; st.cL += (tc[2] - st.cL) * 0.030
+  const H_ = st.cH, S_ = st.cS, L_ = st.cL
+  if (phase !== st.prevPhase) {
+    st.ripples.push({ r: HALF * 0.08, op: 0.90, w: 2.2 }); st.ripples.push({ r: HALF * 0.04, op: 0.44, w: 0.9, slow: true }); st.prevPhase = phase
+  }
+  const orbR = HALF * (0.22 + breath * 0.13); st.shimRot += 0.0044
+  const aura = ctx.createRadialGradient(CX, CY, orbR * 0.6, CX, CY, orbR * 2.9)
+  aura.addColorStop(0, boHslA(H_, S_, L_, 0.30)); aura.addColorStop(0.4, boHslA(H_, S_, L_, 0.08)); aura.addColorStop(1, 'rgba(0,0,0,0)')
+  ctx.fillStyle = aura; ctx.beginPath(); ctx.arc(CX, CY, orbR * 2.9, 0, Math.PI * 2); ctx.fill()
+  st.ripples = st.ripples.filter(r => r.op > 0.015)
+  st.ripples.forEach(r => {
+    ctx.beginPath(); ctx.arc(CX, CY, r.r, 0, Math.PI * 2)
+    ctx.strokeStyle = boHslA(H_, S_, Math.min(90, L_ + 12), r.op * (r.slow ? 0.5 : 1)); ctx.lineWidth = r.w; ctx.stroke()
+    r.r += r.slow ? 1.9 : 4.0; r.op *= r.slow ? 0.974 : 0.943
+  })
+  ctx.save(); ctx.beginPath(); ctx.arc(CX, CY, orbR, 0, Math.PI * 2); ctx.clip()
+  const body = ctx.createRadialGradient(CX - orbR * 0.28, CY - orbR * 0.28, 0, CX, CY, orbR * 1.18)
+  body.addColorStop(0, boHslA(H_, S_, Math.min(96, L_ + 34), 0.72)); body.addColorStop(0.28, boHslA(H_, S_, L_, 0.60))
+  body.addColorStop(0.68, boHslA(H_, S_, Math.max(22, L_ - 18), 0.44)); body.addColorStop(1, boHslA(H_, S_, Math.max(10, L_ - 28), 0.28))
+  ctx.fillStyle = body; ctx.fillRect(CX - orbR * 1.25, CY - orbR * 1.25, orbR * 2.5, orbR * 2.5)
+  const sX2 = CX + Math.cos(st.shimRot) * orbR * 0.30; const sY2 = CY + Math.sin(st.shimRot * 2.0) * orbR * 0.18
+  const shim = ctx.createRadialGradient(sX2, sY2, 0, sX2, sY2, orbR * 0.65)
+  shim.addColorStop(0, 'rgba(255,255,255,0.34)'); shim.addColorStop(0.44, 'rgba(255,255,255,0.08)'); shim.addColorStop(1, 'rgba(255,255,255,0)')
+  ctx.fillStyle = shim; ctx.fillRect(CX - orbR * 1.25, CY - orbR * 1.25, orbR * 2.5, orbR * 2.5)
+  st.caustics.forEach(c => {
+    c.angle += c.speed; c.r += Math.sin(f * c.rSpeed + c.rPhase) * 0.002; c.r = Math.max(0.05, Math.min(0.60, c.r))
+    const px = CX + Math.cos(c.angle) * orbR * c.r; const py = CY + Math.sin(c.angle * 1.27) * orbR * c.r * 0.85
+    const tw = 0.55 + 0.45 * Math.sin(f * 0.055 + c.angle * 2.3)
+    const cg = ctx.createRadialGradient(px, py, 0, px, py, c.size * tw)
+    cg.addColorStop(0, `rgba(255,255,255,${(c.op * tw * 0.55).toFixed(3)})`); cg.addColorStop(1, 'rgba(255,255,255,0)')
+    ctx.fillStyle = cg; ctx.beginPath(); ctx.arc(px, py, c.size * tw, 0, Math.PI * 2); ctx.fill()
+  }); ctx.restore()
+  const specX = CX - orbR * 0.37; const specY = CY - orbR * 0.42
+  const spec = ctx.createRadialGradient(specX, specY, 0, specX, specY, orbR * 0.54)
+  spec.addColorStop(0, 'rgba(255,255,255,0.72)'); spec.addColorStop(0.30, 'rgba(255,255,255,0.28)')
+  spec.addColorStop(0.68, 'rgba(255,255,255,0.05)'); spec.addColorStop(1, 'rgba(255,255,255,0)')
+  ctx.fillStyle = spec; ctx.beginPath(); ctx.arc(CX, CY, orbR, 0, Math.PI * 2); ctx.fill()
+  ctx.save(); ctx.shadowColor = boHslA(H_, S_, L_, 1.0); ctx.shadowBlur = 34 + breath * 30
+  ctx.beginPath(); ctx.arc(CX, CY, orbR, 0, Math.PI * 2)
+  ctx.strokeStyle = boHslA(H_, S_, Math.min(92, L_ + 22), 0.28); ctx.lineWidth = 9 + breath * 7; ctx.stroke(); ctx.restore()
+  ctx.beginPath(); ctx.arc(CX, CY, orbR, 0, Math.PI * 2)
+  ctx.strokeStyle = boHslA(H_, S_, Math.min(90, L_ + 20), 0.56 + breath * 0.24); ctx.lineWidth = 1.3 + breath * 1.7; ctx.stroke()
+  if (cp > 0.004) {
+    const ringR = HALF * 0.62; const arcEnd = -Math.PI / 2 + cp * Math.PI * 2
+    ctx.save(); ctx.shadowColor = boHslA(H_, S_, L_, 0.65); ctx.shadowBlur = 13
+    ctx.beginPath(); ctx.arc(CX, CY, ringR, -Math.PI / 2, arcEnd)
+    ctx.strokeStyle = boHslA(H_, S_, Math.min(88, L_ + 12), 0.74); ctx.lineWidth = 1.6; ctx.lineCap = 'round'; ctx.stroke(); ctx.restore()
+    ctx.beginPath(); ctx.arc(CX + Math.cos(arcEnd) * ringR, CY + Math.sin(arcEnd) * ringR, 3.2, 0, Math.PI * 2)
+    ctx.fillStyle = 'rgba(255,255,255,0.96)'; ctx.fill()
+  }
+}
+
+function drawReactor(ctx: Ctx2D, st: ReturnType<typeof makeReactorState>,
+                     CX: number, CY: number, HALF: number, f: number, breath: number, phase: string, kind: string, cp: number) {
+  const tc = BO_COLOR[kind] || BO_COLOR.inhale
+  st.cH += (tc[0] - st.cH) * 0.030; st.cS += (tc[1] - st.cS) * 0.030; st.cL += (tc[2] - st.cL) * 0.030
+  const H_ = st.cH, S_ = st.cS, L_ = st.cL
+  if (phase !== st.prevPhase) { st.pulses.push({ r: HALF * 0.10, op: 1.0, speed: 5.2 }); st.prevPhase = phase }
+  const orbR = HALF * (0.16 + breath * 0.14); st.rx += 0.004; st.ry += 0.006
+  const bg = ctx.createRadialGradient(CX, CY, orbR * 0.4, CX, CY, orbR * 2.6)
+  bg.addColorStop(0, boHslA(H_, S_, L_, 0.24)); bg.addColorStop(0.5, boHslA(H_, S_, L_, 0.06)); bg.addColorStop(1, 'rgba(0,0,0,0)')
+  ctx.fillStyle = bg; ctx.beginPath(); ctx.arc(CX, CY, orbR * 2.6, 0, Math.PI * 2); ctx.fill()
+  const fov = 500; const coX = Math.cos(st.rx), siX = Math.sin(st.rx); const coY2 = Math.cos(st.ry), siY2 = Math.sin(st.ry)
+  ctx.save(); ctx.shadowBlur = 10; ctx.shadowColor = boHslA(H_, S_, L_, 0.6)
+  st.particles.forEach(p => {
+    const y1 = p.by * coX - p.bz * siX; const z1 = p.by * siX + p.bz * coX
+    const x2 = p.bx * coY2 + z1 * siY2; const z2 = -p.bx * siY2 + z1 * coY2
+    const persp = fov / (fov + z2 * orbR)
+    const px = x2 * orbR * persp + CX; const py = y1 * orbR * persp + CY
+    const depth = (z2 + 1) * 0.5; const al = depth * 0.65 * (0.38 + breath * 0.55)
+    ctx.beginPath(); ctx.arc(px, py, p.size * persp, 0, Math.PI * 2)
+    ctx.fillStyle = boHslA(H_, S_, Math.min(90, L_ + 15), al); ctx.fill()
+  }); ctx.shadowBlur = 0; ctx.restore()
+  st.rings.forEach(ring => {
+    ring.rot += ring.speed
+    const r2 = HALF * (ring.baseR + breath * 0.08)
+    const circ = r2 * Math.PI * 2; const dashLen = (circ / ring.segments) * 0.62; const gapLen = (circ / ring.segments) * 0.38
+    ctx.save(); ctx.shadowColor = boHslA(H_, S_, L_, 0.70); ctx.shadowBlur = 8 + breath * 10
+    ctx.setLineDash([dashLen, gapLen]); ctx.lineDashOffset = ring.rot * 80
+    ctx.beginPath(); ctx.arc(CX, CY, r2, 0, Math.PI * 2)
+    ctx.strokeStyle = boHslA(H_, S_, Math.min(90, L_ + 14), ring.opacity * (0.55 + breath * 0.40))
+    ctx.lineWidth = ring.width * (0.70 + breath * 0.35); ctx.stroke()
+    ctx.setLineDash([]); ctx.restore()
+  })
+  st.pulses = st.pulses.filter(p2 => p2.op > 0.015)
+  st.pulses.forEach(p2 => {
+    ctx.beginPath(); ctx.arc(CX, CY, p2.r, 0, Math.PI * 2)
+    ctx.strokeStyle = boHslA(H_, S_, Math.min(92, L_ + 18), p2.op * 0.75); ctx.lineWidth = 1.8; ctx.stroke()
+    p2.r += p2.speed; p2.op *= 0.947
+  })
+  const nucR = 5 + breath * 7
+  ctx.save(); ctx.shadowColor = boHslA(H_, S_, L_, 1.0); ctx.shadowBlur = 26 + breath * 22
+  const nucG = ctx.createRadialGradient(CX, CY, 0, CX, CY, nucR * 2.5)
+  nucG.addColorStop(0, 'rgba(255,255,255,0.97)'); nucG.addColorStop(0.4, boHslA(H_, Math.min(90, S_ + 20), Math.min(94, L_ + 28), 0.80)); nucG.addColorStop(1, boHslA(H_, S_, L_, 0))
+  ctx.fillStyle = nucG; ctx.beginPath(); ctx.arc(CX, CY, nucR * 2.5, 0, Math.PI * 2); ctx.fill()
+  ctx.beginPath(); ctx.arc(CX, CY, nucR * 0.45, 0, Math.PI * 2); ctx.fillStyle = 'rgba(255,255,255,0.98)'; ctx.fill(); ctx.restore()
+  if (cp > 0.004) {
+    const ringR = HALF * (st.rings[5].baseR + 0.11 + breath * 0.08); const arcEnd = -Math.PI / 2 + cp * Math.PI * 2
+    ctx.save(); ctx.shadowColor = boHslA(H_, S_, L_, 0.65); ctx.shadowBlur = 12
+    ctx.beginPath(); ctx.arc(CX, CY, ringR, -Math.PI / 2, arcEnd)
+    ctx.strokeStyle = boHslA(H_, S_, Math.min(88, L_ + 12), 0.74); ctx.lineWidth = 1.6; ctx.lineCap = 'round'; ctx.stroke(); ctx.restore()
+    ctx.beginPath(); ctx.arc(CX + Math.cos(arcEnd) * ringR, CY + Math.sin(arcEnd) * ringR, 3.2, 0, Math.PI * 2)
+    ctx.fillStyle = 'rgba(255,255,255,0.96)'; ctx.fill()
+  }
+}
+
 function phaseScale(kind: CadencePhase['kind'], t: number, prevScale: number): number {
   if (kind === 'in')   return 0.58 + 0.42 * easeInOutSine(t)
   if (kind === 'out')  return 1.00 - 0.42 * easeInOutSine(t)
@@ -116,9 +482,10 @@ const LAYERS = [
   { count: 18, baseR: 0.34, speed:  0.0075, sizeMin: 0.5, sizeMax: 1.3, dir:  1 },
 ]
 
-function BreathOrb({ runningRef, cadenceRef, cpRef }: OrbProps) {
+function BreathOrb({ runningRef, cadenceRef, cpRef, style }: OrbProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
-  const mouseRef  = useRef({ x: 0, y: 0, on: false })
+  const styleRef  = useRef(style || 'glass')
+  useEffect(() => { styleRef.current = style || 'glass' }, [style])
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -127,385 +494,50 @@ function BreathOrb({ runningRef, cadenceRef, cpRef }: OrbProps) {
     const dpr = Math.min(window.devicePixelRatio || 1, 2)
 
     const resize = () => {
-      const rect  = canvas.getBoundingClientRect()
+      const rect = canvas.getBoundingClientRect()
       canvas.width  = Math.round(rect.width)  * dpr
       canvas.height = Math.round(rect.height) * dpr
     }
     const ro = new ResizeObserver(resize)
     ro.observe(canvas); resize()
 
-    const onMove = (e: MouseEvent) => {
-      const r = canvas.getBoundingClientRect()
-      mouseRef.current.x  = (e.clientX - r.left) / r.width  - 0.5
-      mouseRef.current.y  = (e.clientY - r.top)  / r.height - 0.5
-      mouseRef.current.on = true
-    }
-    const onLeave = () => { mouseRef.current.on = false }
-    window.addEventListener('mousemove',  onMove,  { passive: true })
-    window.addEventListener('mouseleave', onLeave)
-
-    const particles: OrbParticle[] = []
-    LAYERS.forEach((L, li) => {
-      for (let i = 0; i < L.count; i++) {
-        particles.push({
-          layer: li,
-          angle: Math.random() * Math.PI * 2,
-          baseR: L.baseR + (Math.random() - 0.5) * 0.04,
-          rFrac: L.baseR,
-          speed: L.speed * (0.85 + Math.random() * 0.4),
-          size:  L.sizeMin + Math.random() * (L.sizeMax - L.sizeMin),
-          op:    0.40 + Math.random() * 0.45,
-          twink: Math.random() * Math.PI * 2,
-          tx: [0, 0, 0, 0], ty: [0, 0, 0, 0],
-        })
-      }
-    })
-
-    const wisps = [0, 1, 2].map(i => ({
-      baseAngle: (i / 3) * Math.PI * 2,
-      speed: 0.0022 * (i === 1 ? -1 : 1),
-      rFrac: 0.78 + i * 0.06,
-      spread: Math.PI * (0.55 + i * 0.08),
-      width: 7 - i * 1.2,
-    }))
-
-    const GLYPHS = ['·', '✦', '·', '◇', '·', '·', '✧', '·']
-    const sigils = GLYPHS.map((g, i) => ({
-      glyph: g,
-      angle: (i / GLYPHS.length) * Math.PI * 2,
-      speed: 0.00045 * (i % 2 === 0 ? 1 : -0.85),
-      rFrac: 1.00,
-      op:    g === '·' ? 0.30 : 0.55,
-      size:  g === '·' ? 12 : 16,
-    }))
-
-    const st = {
-      frame: 0,
-      ripples: [] as OrbRipple[],
-      prevPhase: 'inhale',
-      curH: PHASE_COL.inhale[0],
-      curS: PHASE_COL.inhale[1],
-      curL: PHASE_COL.inhale[2],
-      mx: 0, my: 0,
+    const states = {
+      nebula:    makeNebulaState(),
+      jellyfish: makeJellyState(),
+      wireframe: makeWireState(),
+      glass:     makeGlassState(),
+      reactor:   makeReactorState(),
     }
 
-    let rafId: number
+    let rafId: number, frame = 0
 
     const draw = () => {
-      const f = ++st.frame
-      const { breath, phase } = useMindSpaceStore.getState()
-      const cp      = cpRef      ? cpRef.current      : 0
-      const running = runningRef ? runningRef.current : false
-
-      const mTarget = mouseRef.current
-      st.mx += ((mTarget.on ? mTarget.x : 0) - st.mx) * 0.06
-      st.my += ((mTarget.on ? mTarget.y : 0) - st.my) * 0.06
-
+      frame++
+      const f = frame
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
       const W    = canvas.width / dpr
-      const H_PX = canvas.height / dpr
-      ctx.clearRect(0, 0, W, H_PX)
-      const CX   = W    * 0.5 + st.mx * 14
-      const CY   = H_PX * 0.5 + st.my * 14
-      const HALF = Math.min(W, H_PX) * 0.5
+      const H_px = canvas.height / dpr
+      ctx.clearRect(0, 0, W, H_px)
+      const CX   = W * 0.5
+      const CY   = H_px * 0.5
+      const HALF = Math.min(W, H_px) * 0.5
 
-      const kind = KIND_FROM_PHASE[phase] ?? 'inhale'
-      const tc   = PHASE_COL[kind] ?? PHASE_COL.inhale
+      const { breath, phase } = useMindSpaceStore.getState()
+      const cp    = cpRef ? cpRef.current : 0
+      const kind  = phase === 'inhale' ? 'inhale' : phase === 'exhale' ? 'exhale' : phase === 'hold' ? 'hold' : 'rest'
+      const style2 = styleRef.current
 
-      if (phase !== st.prevPhase) {
-        st.ripples.push({ r: HALF * 0.08, maxR: HALF * 1.10, op: 0.95, H: tc[0], S: tc[1], L: tc[2] })
-        st.ripples.push({ r: HALF * 0.04, maxR: HALF * 1.30, op: 0.55, H: tc[0], S: tc[1], L: tc[2], slow: true })
-        st.prevPhase = phase
-      }
-
-      st.curH += (tc[0] - st.curH) * 0.038
-      st.curS += (tc[1] - st.curS) * 0.038
-      st.curL += (tc[2] - st.curL) * 0.038
-      const CH = st.curH, CS = st.curS, CL = st.curL
-      const hsl  = `hsl(${CH|0},${CS|0}%,${CL|0}%)`
-      const hslA = (a: number) => `hsla(${CH|0},${CS|0}%,${CL|0}%,${a.toFixed(3)})`
-      const hslP = (H: number, S: number, L: number, a: number) =>
-        `hsla(${H|0},${S|0}%,${L|0}%,${a.toFixed(3)})`
-
-      const orbR         = HALF * (0.14 + breath * 0.14)
-      const ringR        = HALF * 0.86
-      const innerSanctumR = orbR * 0.42
-
-      /* 0. Backdrop */
-      const bgG = ctx.createRadialGradient(CX, CY, orbR * 0.5, CX, CY, HALF * 1.05)
-      bgG.addColorStop(0,    hslA(0.07))
-      bgG.addColorStop(0.55, hslA(0.020))
-      bgG.addColorStop(1,    'rgba(0,0,0,0)')
-      ctx.fillStyle = bgG; ctx.fillRect(0, 0, W, H_PX)
-
-      /* 1. Cadence ring + dotted track */
-      ctx.save()
-      ctx.setLineDash([1, 4])
-      ctx.beginPath(); ctx.arc(CX, CY, ringR, 0, Math.PI * 2)
-      ctx.strokeStyle = 'rgba(243,239,230,0.10)'; ctx.lineWidth = 0.7; ctx.stroke()
-      ctx.restore()
-
-      LAYERS.forEach(L => {
-        ctx.save()
-        ctx.setLineDash([0.6, 5])
-        ctx.beginPath(); ctx.arc(CX, CY, HALF * L.baseR, 0, Math.PI * 2)
-        ctx.strokeStyle = 'rgba(243,239,230,0.045)'; ctx.lineWidth = 0.6; ctx.stroke()
-        ctx.restore()
-      })
-
-      const cadence = cadenceRef?.current
-      if (cadence) {
-        const total = cadence.phases.reduce((a, p) => a + p.dur, 0)
-        let acc = 0
-        cadence.phases.forEach(ph => {
-          const phKind: PhaseKind = ph.kind === 'in' ? 'inhale' : ph.kind === 'out' ? 'exhale' :
-                                    ph.kind === 'hold' ? 'hold' : 'rest'
-          const c2 = PHASE_COL[phKind]
-          const a0 = -Math.PI / 2 + (acc / total) * Math.PI * 2
-          const a1 = -Math.PI / 2 + ((acc + ph.dur) / total) * Math.PI * 2
-          ctx.beginPath(); ctx.arc(CX, CY, ringR, a0 + 0.020, a1 - 0.020)
-          ctx.strokeStyle = hslP(c2[0], c2[1], c2[2], 0.18); ctx.lineWidth = 2.6; ctx.stroke()
-          ctx.save()
-          ctx.beginPath()
-          ctx.moveTo(CX + Math.cos(a0) * (ringR - 6), CY + Math.sin(a0) * (ringR - 6))
-          ctx.lineTo(CX + Math.cos(a0) * (ringR + 6), CY + Math.sin(a0) * (ringR + 6))
-          ctx.strokeStyle = hslP(c2[0], c2[1], c2[2], 0.38); ctx.lineWidth = 0.9; ctx.stroke()
-          ctx.restore()
-          acc += ph.dur
-        })
-      }
-
-      for (let i = 0; i < 8; i++) {
-        const a = (i / 8) * Math.PI * 2
-        const inner = ringR + 9
-        const outer = inner + 5 + breath * 6
-        ctx.beginPath()
-        ctx.moveTo(CX + Math.cos(a) * inner, CY + Math.sin(a) * inner)
-        ctx.lineTo(CX + Math.cos(a) * outer, CY + Math.sin(a) * outer)
-        ctx.strokeStyle = hslA(0.18 + breath * 0.25)
-        ctx.lineWidth   = i % 2 === 0 ? 0.9 : 0.5; ctx.stroke()
-      }
-
-      /* 2. Progress arc */
-      if (cp > 0.004) {
-        const arcEnd = -Math.PI / 2 + cp * Math.PI * 2
-        ctx.save()
-        ctx.shadowColor = hsl; ctx.shadowBlur = 16
-        ctx.beginPath(); ctx.arc(CX, CY, ringR, -Math.PI / 2, arcEnd)
-        ctx.strokeStyle = hslA(0.86); ctx.lineWidth = 1.8; ctx.lineCap = 'round'; ctx.stroke()
-        ctx.restore()
-        ctx.save()
-        ctx.shadowColor = hsl; ctx.shadowBlur = 22
-        ctx.beginPath()
-        ctx.arc(CX + Math.cos(arcEnd) * ringR, CY + Math.sin(arcEnd) * ringR, 3.4, 0, Math.PI * 2)
-        ctx.fillStyle = 'rgba(255,255,255,0.96)'; ctx.fill()
-        ctx.restore()
-      }
-
-      /* 3. Phase rings */
-      st.ripples = st.ripples.filter(r => r.op > 0.02)
-      st.ripples.forEach(r => {
-        ctx.save()
-        ctx.beginPath(); ctx.arc(CX, CY, r.r, 0, Math.PI * 2)
-        ctx.strokeStyle = hslP(r.H, r.S, r.L, r.op * (r.slow ? 0.55 : 1))
-        ctx.lineWidth   = r.slow ? 0.7 : 1.6; ctx.stroke()
-        ctx.restore()
-        r.r  += r.slow ? 1.6 : 3.4
-        r.op *= r.slow ? 0.972 : 0.940
-      })
-
-      /* 4. Nebula wisps */
-      wisps.forEach((w, wi) => {
-        const rot = f * w.speed + w.baseAngle
-        const wr  = HALF * w.rFrac * (0.96 + breath * 0.06)
-        ctx.save()
-        ctx.shadowColor = hslA(0.55); ctx.shadowBlur = 18
-        ctx.beginPath()
-        ctx.moveTo(CX + Math.cos(rot) * wr, CY + Math.sin(rot) * wr)
-        ctx.bezierCurveTo(
-          CX + Math.cos(rot + w.spread * 0.35) * wr * 1.18, CY + Math.sin(rot + w.spread * 0.35) * wr * 1.18,
-          CX + Math.cos(rot + w.spread * 0.72) * wr * 0.88, CY + Math.sin(rot + w.spread * 0.72) * wr * 0.88,
-          CX + Math.cos(rot + w.spread) * wr * 1.08,        CY + Math.sin(rot + w.spread) * wr * 1.08,
-        )
-        ctx.strokeStyle = hslA(0.07 + wi * 0.025)
-        ctx.lineWidth   = w.width; ctx.lineCap = 'round'; ctx.stroke()
-        ctx.restore()
-      })
-
-      /* 5. Particles */
-      const partPositions: { x: number; y: number; al: number }[] = []
-
-      particles.forEach(p => {
-        const tgt = kind === 'inhale' ? p.baseR + 0.05
-                  : kind === 'exhale' ? Math.max(orbR / HALF + 0.045, p.baseR - 0.035)
-                  : p.baseR
-        p.rFrac += (tgt - p.rFrac) * 0.030
-        p.angle += p.speed
-        const pr = HALF * p.rFrac
-        if (pr < orbR + 4) return
-        const px = CX + Math.cos(p.angle) * pr
-        const py = CY + Math.sin(p.angle) * pr
-        for (let i = p.tx.length - 1; i > 0; i--) { p.tx[i] = p.tx[i - 1]; p.ty[i] = p.ty[i - 1] }
-        p.tx[0] = px; p.ty[0] = py
-        const tw = 0.5 + 0.5 * Math.sin(f * 0.038 + p.twink)
-        const al = p.op * tw * (running ? 0.90 : 0.42)
-        ctx.save(); ctx.lineCap = 'round'; ctx.lineWidth = p.size * 0.55
-        for (let i = 1; i < p.tx.length; i++) {
-          if (p.tx[i] === 0 && p.ty[i] === 0) continue
-          ctx.beginPath()
-          ctx.moveTo(p.tx[i - 1], p.ty[i - 1]); ctx.lineTo(p.tx[i], p.ty[i])
-          ctx.strokeStyle = hslA(al * (1 - i / p.tx.length) * 0.55); ctx.stroke()
-        }
-        ctx.restore()
-        ctx.beginPath(); ctx.arc(px, py, p.size * 2.6, 0, Math.PI * 2)
-        ctx.fillStyle = hslA(al * 0.18); ctx.fill()
-        ctx.beginPath(); ctx.arc(px, py, p.size, 0, Math.PI * 2)
-        ctx.fillStyle = `hsla(${(CH + 18)|0},88%,93%,${al.toFixed(3)})`; ctx.fill()
-        partPositions.push({ x: px, y: py, al })
-      })
-
-      const LINK_MAX = 32, LINK_MAX_SQ = LINK_MAX * LINK_MAX
-      ctx.save(); ctx.lineWidth = 0.45
-      for (let i = 0; i < partPositions.length; i++) {
-        const a = partPositions[i]
-        const end = Math.min(partPositions.length, i + 7)
-        for (let j = i + 1; j < end; j++) {
-          const b = partPositions[j]
-          const dx = a.x - b.x, dy = a.y - b.y
-          const dsq = dx * dx + dy * dy
-          if (dsq < LINK_MAX_SQ) {
-            const t = 1 - Math.sqrt(dsq) / LINK_MAX
-            ctx.strokeStyle = hslA(Math.min(a.al, b.al) * t * 0.45)
-            ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke()
-          }
-        }
-      }
-      ctx.restore()
-
-      /* 6. Orb halo */
-      const haloR = orbR * 2.10
-      const haloG = ctx.createRadialGradient(CX, CY, orbR * 0.65, CX, CY, haloR)
-      haloG.addColorStop(0, hslA(0.30)); haloG.addColorStop(0.5, hslA(0.10)); haloG.addColorStop(1, hslA(0))
-      ctx.beginPath(); ctx.arc(CX, CY, haloR, 0, Math.PI * 2); ctx.fillStyle = haloG; ctx.fill()
-
-      /* 7. Godrays */
-      const N_RAYS = 24, innerR = orbR * 0.95
-      ctx.save(); ctx.lineCap = 'round'
-      for (let i = 0; i < N_RAYS; i++) {
-        const rayA   = (i / N_RAYS) * Math.PI * 2 + f * 0.0028
-        const rayLen = HALF * (0.05 + breath * 0.34 + 0.030 * Math.sin(f * 0.04 + i * 1.7))
-        ctx.beginPath()
-        ctx.moveTo(CX + Math.cos(rayA) * innerR,            CY + Math.sin(rayA) * innerR)
-        ctx.lineTo(CX + Math.cos(rayA) * (innerR + rayLen), CY + Math.sin(rayA) * (innerR + rayLen))
-        ctx.strokeStyle = hslA(0.04 + breath * 0.13)
-        ctx.lineWidth   = i % 4 === 0 ? 0.95 : 0.50; ctx.stroke()
-      }
-      ctx.restore()
-
-      /* 8. Core orb */
-      const MORPH_N = 36
-      const drawOrbPath = (rScale: number) => {
-        const r = orbR * rScale
-        ctx.beginPath()
-        for (let i = 0; i <= MORPH_N; i++) {
-          const a = (i / MORPH_N) * Math.PI * 2
-          const wobble = 1
-            + 0.046 * Math.sin(f * 0.018 + a * 3.1) * (0.4 + breath * 0.6)
-            + 0.028 * Math.cos(f * 0.024 + a * 5.3) * (0.4 + breath * 0.6)
-          const pr2 = r * wobble
-          const x = CX + Math.cos(a) * pr2, y = CY + Math.sin(a) * pr2
-          i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y)
-        }
-        ctx.closePath()
-      }
-
-      const deepG = ctx.createRadialGradient(CX, CY, 0, CX, CY, orbR * 1.40)
-      deepG.addColorStop(0,    hslA(0.40)); deepG.addColorStop(0.55, hslA(0.16)); deepG.addColorStop(1, hslA(0))
-      drawOrbPath(1.40); ctx.fillStyle = deepG; ctx.fill()
-
-      const bodyG = ctx.createRadialGradient(CX - orbR * 0.32, CY - orbR * 0.30, 0, CX, CY, orbR * 1.04)
-      bodyG.addColorStop(0,    'rgba(255,255,255,0.38)')
-      bodyG.addColorStop(0.18, hslA(0.88)); bodyG.addColorStop(0.62, hslA(0.55)); bodyG.addColorStop(1, hslA(0.10))
-      drawOrbPath(1.0); ctx.fillStyle = bodyG; ctx.fill()
-
-      const shimAng = f * 0.0068
-      const sX = CX + Math.cos(shimAng) * orbR * 0.36, sY = CY + Math.sin(shimAng) * orbR * 0.27
-      const shimG = ctx.createRadialGradient(sX, sY, 0, sX, sY, orbR * 0.68)
-      shimG.addColorStop(0, 'rgba(255,255,255,0.24)'); shimG.addColorStop(1, 'rgba(255,255,255,0)')
-      drawOrbPath(1.0); ctx.fillStyle = shimG; ctx.fill()
-
-      ctx.save(); drawOrbPath(0.96); ctx.clip()
-      for (let i = 0; i < 5; i++) {
-        const pa  = f * 0.0046 * (i % 2 === 0 ? 1 : -0.8) + (i / 5) * Math.PI * 2
-        const ir  = orbR * 0.22, or2 = orbR * 0.78
-        ctx.beginPath()
-        ctx.moveTo(CX + Math.cos(pa) * ir, CY + Math.sin(pa) * ir)
-        ctx.bezierCurveTo(
-          CX + Math.cos(pa + 1.1) * or2,           CY + Math.sin(pa + 1.1) * or2,
-          CX + Math.cos(pa + 2.2) * or2 * 0.75,    CY + Math.sin(pa + 2.2) * or2 * 0.75,
-          CX + Math.cos(pa + Math.PI) * ir * 0.85, CY + Math.sin(pa + Math.PI) * ir * 0.85,
-        )
-        ctx.strokeStyle = hslA(0.20); ctx.lineWidth = 1.2; ctx.lineCap = 'round'; ctx.stroke()
-      }
-      ctx.restore()
-
-      const specG = ctx.createRadialGradient(CX - orbR * 0.34, CY - orbR * 0.40, 0, CX - orbR * 0.34, CY - orbR * 0.40, orbR * 0.54)
-      specG.addColorStop(0,    'rgba(255,255,255,0.50)')
-      specG.addColorStop(0.50, 'rgba(255,255,255,0.10)')
-      specG.addColorStop(1,    'rgba(255,255,255,0)')
-      drawOrbPath(1.0); ctx.fillStyle = specG; ctx.fill()
-      drawOrbPath(1.0); ctx.strokeStyle = hslA(0.40); ctx.lineWidth = 0.9; ctx.stroke()
-
-      /* 9. Inner sanctum */
-      ctx.save()
-      const sancAng = -f * 0.012
-      ctx.beginPath()
-      for (let i = 0; i <= 24; i++) {
-        const a = sancAng + (i / 24) * Math.PI * 2
-        const wobble = 1 + 0.06 * Math.sin(f * 0.04 + a * 4)
-        const pr2 = innerSanctumR * wobble
-        const x = CX + Math.cos(a) * pr2, y = CY + Math.sin(a) * pr2
-        i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y)
-      }
-      ctx.closePath()
-      ctx.strokeStyle = 'rgba(255,255,255,0.50)'; ctx.lineWidth = 0.7; ctx.stroke()
-      ctx.beginPath(); ctx.arc(CX, CY, 2.2, 0, Math.PI * 2)
-      ctx.fillStyle = 'rgba(255,255,255,0.92)'
-      ctx.shadowColor = 'rgba(255,255,255,0.8)'; ctx.shadowBlur = 10; ctx.fill()
-      ctx.restore()
-
-      /* 10. Sigil orbit */
-      ctx.save()
-      ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
-      sigils.forEach(s => {
-        s.angle += s.speed
-        const r = HALF * (s.rFrac + 0.02 * Math.sin(f * 0.008 + s.angle * 3))
-        const x = CX + Math.cos(s.angle) * r, y = CY + Math.sin(s.angle) * r
-        ctx.font = `${s.size}px "JetBrains Mono", monospace`
-        ctx.fillStyle = hslA(s.op); ctx.fillText(s.glyph, x, y)
-      })
-      ctx.restore()
-
-      /* 11. Phase flash */
-      if (st.ripples.length > 0) {
-        const newest  = st.ripples[0]
-        const flashAl = (newest.op - 0.62) * 0.20
-        if (flashAl > 0) {
-          const flashG = ctx.createRadialGradient(CX, CY, 0, CX, CY, orbR * 1.4)
-          flashG.addColorStop(0, `rgba(255,255,255,${flashAl.toFixed(3)})`); flashG.addColorStop(1, 'rgba(255,255,255,0)')
-          ctx.beginPath(); ctx.arc(CX, CY, orbR * 1.4, 0, Math.PI * 2); ctx.fillStyle = flashG; ctx.fill()
-        }
-      }
+      if      (style2 === 'jellyfish') drawJellyfish(ctx, states.jellyfish, W, H_px, CX, CY, HALF, f, breath, phase, kind, cp)
+      else if (style2 === 'wireframe') drawWireframe(ctx, states.wireframe, W, H_px, CX, CY, HALF, f, breath, phase, kind, cp)
+      else if (style2 === 'glass')     drawGlass(ctx, states.glass, CX, CY, HALF, f, breath, phase, kind, cp)
+      else if (style2 === 'reactor')   drawReactor(ctx, states.reactor, CX, CY, HALF, f, breath, phase, kind, cp)
+      else                             drawNebula(ctx, states.nebula, CX, CY, HALF, f, breath, phase, kind, cp)
 
       rafId = requestAnimationFrame(draw)
     }
 
     rafId = requestAnimationFrame(draw)
-    return () => {
-      cancelAnimationFrame(rafId); ro.disconnect()
-      window.removeEventListener('mousemove',  onMove)
-      window.removeEventListener('mouseleave', onLeave)
-    }
+    return () => { cancelAnimationFrame(rafId); ro.disconnect() }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   return <canvas ref={canvasRef} className="lab-canvas" aria-label="Breathing visualisation"/>
