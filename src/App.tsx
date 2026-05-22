@@ -132,25 +132,6 @@ function ModePanel({ mode, onExit }: ModePanelProps) {
   )
 }
 
-/* ── Ambient breathing orb (1.A.2 / 1.A.3) ── */
-interface AmbientOrbProps { mode: string; onEnterBreathe: () => void }
-
-function AmbientOrb({ mode, onEnterBreathe }: AmbientOrbProps) {
-  const cls = mode === 'breathe' ? 'is-gone'
-            : mode === 'home'    ? 'is-home'
-            : 'is-dim'
-  return (
-    <div className="ambient-orb-wrap">
-      <button
-        className={'ambient-orb ' + cls}
-        onClick={mode === 'home' ? onEnterBreathe : undefined}
-        aria-label="Begin breathing practice"
-      />
-      <div className="ambient-orb-label">breathe</div>
-    </div>
-  )
-}
-
 /* ── First-visit discovery hints (1.A.6) ── */
 function FirstVisitHints() {
   const [step, setStep] = useState(0)
@@ -287,7 +268,6 @@ export default function App() {
         background: '#06061a', opacity: 0, pointerEvents: 'none',
       }}/>
       <Nav/>
-      <AmbientOrb mode={mode} onEnterBreathe={() => goMode('breathe')}/>
       <main className="stage">
         {mode === 'home'
           ? <HomeScreen key="home"/>
