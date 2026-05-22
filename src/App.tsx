@@ -2,6 +2,7 @@
 // All features wired together. Sky always visible. No scrolling.
 
 import React, { useState, useRef } from 'react'
+import { gsap } from 'gsap'
 import { useMindSpaceStore } from './store'
 import { SkyScene }        from './SkyScene'
 import { AtmosphereCanvas, SceneSwitcher } from './Atmosphere'
@@ -159,22 +160,29 @@ function ModeNav({ mode, onMode }: ModeNavProps) {
 
 /* ── App shell ── */
 export default function App() {
-  const [mode,    setMode]    = useState('home')
-  const [leaving, setLeaving] = useState(false)
-  const pendingRef = useRef<string | null>(null)
+  const [mode, setMode] = useState('home')
+  const inFlightRef     = useRef(false)
+  const pendingRef      = useRef<string | null>(null)
 
   const goMode = (next: string) => {
     if (next === mode) return
-    if (leaving) { pendingRef.current = next; return }
     pendingRef.current = next
-    setLeaving(true)
-    const veil = document.querySelector('.veil') as HTMLElement | null
-    if (veil) { veil.classList.remove('mode-flash'); void veil.offsetWidth; veil.classList.add('mode-flash') }
-    setTimeout(() => {
-      const m = pendingRef.current ?? 'home'
-      setMode(m); setLeaving(false)
-      useMindSpaceStore.getState().setMode(m)
-    }, 420)
+    if (inFlightRef.current) return          // last click wins; will apply when this flight lands
+    inFlightRef.current = true
+
+    gsap.to('.stage', {
+      opacity: 0, y: -7, duration: 0.40, ease: 'power2.in',
+      onComplete: () => {
+        const m = pendingRef.current ?? 'home'
+        gsap.set('.stage', { y: 10 })        // pre-position before React commits new content
+        setMode(m)
+        useMindSpaceStore.getState().setMode(m)
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+          gsap.to('.stage', { opacity: 1, y: 0, duration: 0.80, ease: 'power3.out' })
+          inFlightRef.current = false
+        }))
+      },
+    })
   }
 
   return (
@@ -184,7 +192,7 @@ export default function App() {
       <div className="grain"/>
       <div className="scene-veil-flash"/>
       <Nav/>
-      <main className={'stage' + (leaving ? ' stage-leaving' : '')}>
+      <main className="stage">
         {mode === 'home'
           ? <HomeScreen key="home"/>
           : <ModePanel key={mode} mode={mode} onExit={() => goMode('home')}/>
