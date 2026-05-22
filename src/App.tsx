@@ -215,6 +215,9 @@ export default function App() {
   return (
     <>
       <SkyScene/>
+      <div className="veil"/>
+      <div className="grain"/>
+      <div className="scene-veil-flash"/>
       <Nav/>
       <main className={'stage' + (leaving ? ' stage-leaving' : '')}>
         {mode === 'home'
