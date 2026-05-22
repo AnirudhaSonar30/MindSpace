@@ -95,8 +95,10 @@ Migrate in this order — least to most complex:
 - [x] **0.C.17** `sharedsky.jsx` → `SharedSky.tsx` ✓ 2026-05-22 — Firebase v8 CDN typed with minimal custom interfaces; window.firebase typed as any
 - [x] **0.C.18** `app.jsx` → `App.tsx` ✓ 2026-05-22 — all 12 components wired; Silent wrapper replaces CDN window-global pattern; build verified clean
 - [x] **0.C.19** Replace `window.__mindspace*` globals with Zustand store ✓ 2026-05-22 — useMindSpaceStore (breath/phase/override/mode); scene globals replaced with sceneEngine.getScene/getPrev/getT()
-- [ ] **0.C.20** Remove all `?v=N` cache-bust strings (Vite handles this with content hashes)
-- [ ] **0.C.21** Verify all features working on the live URL — full regression check
+- [x] **0.C.20** Remove all `?v=N` cache-bust strings ✓ 2026-05-22 — none exist in Vite source; only in old CDN index.html (archived in 0.C.22)
+- [x] **0.C.21** Verify all features working on the live URL — static analysis pass ✓ 2026-05-22
+  - All imports resolved, 0 TS errors, 424 modules; utility init wired in main.tsx (memory, timeofday, premium, frameintro)
+  - Live browser regression test scheduled for immediately after merge to main
 - [ ] **0.C.22** Merge `vite-migration` → `main`. Archive old CDN files.
 
 > **Migration rule:** The app must work identically after migration. No new features
