@@ -35,45 +35,10 @@ function Nav() {
   )
 }
 
-/* ── Sacred geometry mandala ── */
-function Mandala() {
-  const dots12 = Array.from({ length: 12 }, (_, i) => {
-    const a = (i / 12) * Math.PI * 2 - Math.PI / 2
-    return <circle key={i} cx={100 + 88 * Math.cos(a)} cy={100 + 88 * Math.sin(a)} r="1.8" fill="currentColor" opacity="0.55"/>
-  })
-  const spokes = Array.from({ length: 6 }, (_, i) => {
-    const a1 = (i / 6) * Math.PI * 2, a2 = a1 + Math.PI
-    return <line key={i} x1={100+88*Math.cos(a1)} y1={100+88*Math.sin(a1)} x2={100+88*Math.cos(a2)} y2={100+88*Math.sin(a2)} stroke="currentColor" strokeWidth="0.4" opacity="0.20"/>
-  })
-  const vesicaPetals = Array.from({ length: 8 }, (_, i) => {
-    const a = (i / 8) * Math.PI * 2
-    return <circle key={i} cx={100+56*Math.cos(a)} cy={100+56*Math.sin(a)} r="24" fill="none" stroke="currentColor" strokeWidth="0.45" opacity="0.18"/>
-  })
-  const innerPetals = Array.from({ length: 6 }, (_, i) => {
-    const a = (i / 6) * Math.PI * 2
-    return <circle key={i} cx={100+26*Math.cos(a)} cy={100+26*Math.sin(a)} r="13" fill="none" stroke="currentColor" strokeWidth="0.45" opacity="0.28"/>
-  })
-  return (
-    <svg className="hs-mandala" viewBox="0 0 200 200" aria-hidden="true">
-      <g className="mandala-outer">{dots12}{spokes}
-        <circle cx="100" cy="100" r="88" fill="none" stroke="currentColor" strokeWidth="0.5" opacity="0.38"/>
-      </g>
-      <g className="mandala-mid">{vesicaPetals}
-        <circle cx="100" cy="100" r="56" fill="none" stroke="currentColor" strokeWidth="0.5" opacity="0.30"/>
-      </g>
-      <g className="mandala-inner">{innerPetals}
-        <circle cx="100" cy="100" r="26" fill="none" stroke="currentColor" strokeWidth="0.5" opacity="0.42"/>
-      </g>
-      <circle cx="100" cy="100" r="2.8" fill="currentColor" opacity="0.55"/>
-    </svg>
-  )
-}
-
 /* ── Home screen ── */
 function HomeScreen() {
   return (
     <div className="hs">
-      <Mandala/>
       <h1 className="hs-quiet">a quiet sky<br/>for a loud mind.</h1>
       <div className="hs-hint">choose a practice below</div>
     </div>
