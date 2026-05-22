@@ -6,13 +6,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { sceneEngine, Scene, SCENES } from './scenes'
 
-declare global {
-  interface Window {
-    __mindspaceScene?:     Scene
-    __mindspaceScenePrev?: Scene
-    __mindspaceSceneT?:    number
-  }
-}
 
 const REDUCED_ATM = window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
@@ -595,7 +588,7 @@ export function AtmosphereCanvas() {
       }
 
       const t = ts / 1000
-      const fallbackScene: Scene = window.__mindspaceScene ?? {
+      const fallbackScene: Scene = {
         id: 'midnight-rain', label: 'Midnight Rain', glyph: '⋮',
         story: '', whispers: [], companion: [],
         sky: { floor: [0.026,0.030,0.082], horizon: [0.295,0.215,0.255], mid: [0.092,0.098,0.190], deep: [0.030,0.038,0.095], band: [0.200,0.140,0.220], stars: 0.20 },
@@ -604,9 +597,9 @@ export function AtmosphereCanvas() {
         particles: 'rain', lightning: true, rays: false,
         caustics: false, flicker: false, cityLights: false, motionSpeed: 0.80,
       }
-      const scene     = window.__mindspaceScene ?? fallbackScene
-      const prevScene = window.__mindspaceScenePrev
-      const sceneT    = window.__mindspaceSceneT ?? 1
+      const scene     = sceneEngine.getScene() ?? fallbackScene
+      const prevScene = sceneEngine.getPrev()
+      const sceneT    = sceneEngine.getT()
       const eT        = easeInOut(sceneT)
 
       ctx.clearRect(0, 0, W, H)

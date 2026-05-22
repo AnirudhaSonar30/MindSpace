@@ -2,6 +2,7 @@
 // Full Canvas visualization: sacred geometry, orbital particles, countdown arc, phase-colored orb.
 
 import { useState, useEffect, useRef } from 'react'
+import { useMindSpaceStore } from './store'
 
 const ease = (t: number) => -(Math.cos(Math.PI * Math.max(0, Math.min(1, t))) - 1) / 2
 
@@ -200,11 +201,12 @@ export function RightNow() {
 
   // Breath loop
   useEffect(() => {
+    const { setOverride, setBreath } = useMindSpaceStore.getState()
     if (state !== 'open') {
-      if (state === 'idle') window.__mindspaceOverride = false
+      if (state === 'idle') setOverride(false)
       return
     }
-    window.__mindspaceOverride = true
+    setOverride(true)
     let raf: number
     const start = performance.now()
     const loop = (now: number) => {
@@ -221,8 +223,10 @@ export function RightNow() {
           const sc = p.s0 + (p.s1 - p.s0) * ease(lt)
           scaleRef.current = sc; phaseLabelRef.current = p.label; setPhaseLabel(p.label)
           const norm = (sc - 0.42) / 0.58
-          window.__mindspaceBreath = Math.max(0, Math.min(1, norm))
-          window.__mindspacePhase  = p.kind === 'in' ? 'inhale' : p.kind === 'out' ? 'exhale' : 'hold'
+          setBreath(
+            Math.max(0, Math.min(1, norm)),
+            p.kind === 'in' ? 'inhale' : p.kind === 'out' ? 'exhale' : 'hold',
+          )
           break
         }
         acc += p.dur
@@ -230,7 +234,7 @@ export function RightNow() {
       raf = requestAnimationFrame(loop)
     }
     raf = requestAnimationFrame(loop)
-    return () => { cancelAnimationFrame(raf); window.__mindspaceOverride = false }
+    return () => { cancelAnimationFrame(raf); setOverride(false) }
   }, [state])
 
   const open = () => {

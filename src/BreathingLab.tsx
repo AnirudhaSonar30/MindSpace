@@ -5,6 +5,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { createPortal } from 'react-dom'
+import { useMindSpaceStore } from './store'
 
 const easeInOutSine = (t: number) => -(Math.cos(Math.PI * Math.max(0, Math.min(1, t))) - 1) / 2
 
@@ -192,8 +193,7 @@ function BreathOrb({ runningRef, cadenceRef, cpRef }: OrbProps) {
 
     const draw = () => {
       const f = ++st.frame
-      const breath  = window.__mindspaceBreath || 0
-      const phase   = window.__mindspacePhase  || 'inhale'
+      const { breath, phase } = useMindSpaceStore.getState()
       const cp      = cpRef      ? cpRef.current      : 0
       const running = runningRef ? runningRef.current : false
 
@@ -561,8 +561,9 @@ export function BreathingLab({ autoFocus, onExit }: BreathingLabProps) {
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    if (!running) { window.__mindspaceOverride = false; return }
-    window.__mindspaceOverride = true
+    const { setOverride, setBreath } = useMindSpaceStore.getState()
+    if (!running) { setOverride(false); return }
+    setOverride(true)
     let raf: number, prev = performance.now(), lastUI = 0
     const loop = (now: number) => {
       const dt = Math.min(0.1, (now - prev) / 1000)
@@ -580,10 +581,11 @@ export function BreathingLab({ autoFocus, onExit }: BreathingLabProps) {
       const curPh = cadence.phases[s.idx]
       const sc    = phaseScale(curPh.kind, s.t, s.prevScale)
       const norm  = (sc - 0.58) / 0.42
-      window.__mindspaceBreath = Math.max(0, Math.min(1, norm))
-      window.__mindspacePhase  =
+      setBreath(
+        Math.max(0, Math.min(1, norm)),
         curPh.kind === 'in'  ? 'inhale' :
-        curPh.kind === 'out' ? 'exhale' : 'hold'
+        curPh.kind === 'out' ? 'exhale' : 'hold',
+      )
       const totalDur = cadence.phases.reduce((a, p) => a + p.dur, 0)
       const elapsedInCycle = cadence.phases.slice(0, s.idx).reduce((a, p) => a + p.dur, 0) + curPh.dur * s.t
       cpRef.current = elapsedInCycle / totalDur
@@ -591,7 +593,7 @@ export function BreathingLab({ autoFocus, onExit }: BreathingLabProps) {
       raf = requestAnimationFrame(loop)
     }
     raf = requestAnimationFrame(loop)
-    return () => { cancelAnimationFrame(raf); window.__mindspaceOverride = false }
+    return () => { cancelAnimationFrame(raf); setOverride(false) }
   }, [running, cadenceId, cadence, rerender])
 
   const beginSession = () => {

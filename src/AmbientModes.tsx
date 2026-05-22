@@ -3,6 +3,7 @@
 // Each applies a body class read by other components and the Three.js scene.
 
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { useMindSpaceStore } from './store'
 
 interface ModeConfig {
   id:    string
@@ -43,8 +44,7 @@ export function AmbientModes() {
     MODES.forEach(m => document.body.classList.remove('amb-' + m.id))
     document.body.classList.add('amb-' + mode)
     saveMode(mode)
-    // Drive scene.js mode progress via window property
-    ;(window as Window & { __mindspaceMode?: string }).__mindspaceMode = mode
+    useMindSpaceStore.getState().setMode(mode)
   }, [mode])
 
   // Close picker when entering an immersive mode

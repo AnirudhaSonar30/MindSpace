@@ -2,6 +2,7 @@
 // All features wired together. Sky always visible. No scrolling.
 
 import React, { useState, useRef } from 'react'
+import { useMindSpaceStore } from './store'
 import { SkyScene }        from './SkyScene'
 import { AtmosphereCanvas, SceneSwitcher } from './Atmosphere'
 import { SoundToggle }     from './Sound'
@@ -207,7 +208,7 @@ export default function App() {
     setTimeout(() => {
       const m = pendingRef.current ?? 'home'
       setMode(m); setLeaving(false)
-      if (window.__mindspaceMode !== undefined) window.__mindspaceMode = m
+      useMindSpaceStore.getState().setMode(m)
     }, 420)
   }
 

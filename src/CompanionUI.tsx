@@ -4,6 +4,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { CompanionBrain, EMOTION_CHIPS } from './companion'
+import { useMindSpaceStore } from './store'
 
 interface HistoryItem {
   role:       'user' | 'companion'
@@ -51,11 +52,12 @@ export function CompanionToggle() {
 
   // Drive the global breath signal while overlay is open (slow 4-in / 6-out cycle)
   useEffect(() => {
+    const { setOverride, setBreath } = useMindSpaceStore.getState()
     if (animState !== 'open') {
-      if (animState === 'idle') window.__mindspaceOverride = false
+      if (animState === 'idle') setOverride(false)
       return
     }
-    window.__mindspaceOverride = true
+    setOverride(true)
     let raf: number
     const start = performance.now()
     const loop = (now: number) => {
@@ -70,12 +72,11 @@ export function CompanionToggle() {
         const x = (u - 0.4) / 0.6
         v = 0.5 + 0.5 * Math.cos(Math.PI * x); phase = 'exhale'
       }
-      window.__mindspaceBreath = v
-      window.__mindspacePhase  = phase
+      setBreath(v, phase)
       raf = requestAnimationFrame(loop)
     }
     raf = requestAnimationFrame(loop)
-    return () => { cancelAnimationFrame(raf); window.__mindspaceOverride = false }
+    return () => { cancelAnimationFrame(raf); setOverride(false) }
   }, [animState])
 
   const open_ = () => {

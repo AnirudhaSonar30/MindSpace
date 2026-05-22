@@ -4,6 +4,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { sceneEngine } from './scenes'
+import { useMindSpaceStore } from './store'
 
 // ─── Global augmentation ──────────────────────────────────────────────────────
 declare global {
@@ -459,7 +460,7 @@ export function SoundToggle() {
       const wch = chRef.current.wind
       if (wch?.filter) {
         wch.filter.frequency.setTargetAtTime(
-          480 + (window.__mindspaceBreath || 0) * 720,
+          480 + useMindSpaceStore.getState().breath * 720,
           ctx.currentTime, 0.3,
         )
       }

@@ -94,7 +94,7 @@ Migrate in this order — least to most complex:
 - [x] **0.C.16** `tools.jsx` (BreathingLab + Grounding) → `BreathingLab.tsx` + `Grounding.tsx` ✓ 2026-05-22
 - [x] **0.C.17** `sharedsky.jsx` → `SharedSky.tsx` ✓ 2026-05-22 — Firebase v8 CDN typed with minimal custom interfaces; window.firebase typed as any
 - [x] **0.C.18** `app.jsx` → `App.tsx` ✓ 2026-05-22 — all 12 components wired; Silent wrapper replaces CDN window-global pattern; build verified clean
-- [ ] **0.C.19** Replace `window.__mindspace*` globals with Zustand store
+- [x] **0.C.19** Replace `window.__mindspace*` globals with Zustand store ✓ 2026-05-22 — useMindSpaceStore (breath/phase/override/mode); scene globals replaced with sceneEngine.getScene/getPrev/getT()
 - [ ] **0.C.20** Remove all `?v=N` cache-bust strings (Vite handles this with content hashes)
 - [ ] **0.C.21** Verify all features working on the live URL — full regression check
 - [ ] **0.C.22** Merge `vite-migration` → `main`. Archive old CDN files.

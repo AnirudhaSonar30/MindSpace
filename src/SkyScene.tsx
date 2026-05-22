@@ -8,24 +8,17 @@ import { EffectComposer, Bloom } from '@react-three/postprocessing'
 import * as THREE from 'three'
 import { useEffect, useRef } from 'react'
 import { sceneEngine } from './scenes'
+import { useMindSpaceStore } from './store'
 
-// ─── Window global augmentation ───────────────────────────────────────────────
 declare global {
   interface Window {
-    __mindspaceBreath:      number
-    __mindspacePhase:       string
-    __mindspaceOverride:    boolean
-    __mindspaceSkyMat:      THREE.ShaderMaterial | null
-    __mindspaceMode:        string | number  // set: string; get: number progress
     MindSpaceTriggerLightning: (() => void) | undefined
     MindSpacePlayThunder:      (() => void) | undefined
   }
 }
 
-window.__mindspaceBreath   = 0
-window.__mindspacePhase    = 'inhale'
-window.__mindspaceOverride = false
-window.__mindspaceSkyMat   = null
+// Internal reference shared between SkyBackground and CameraRig (same module)
+let _skyMat: THREE.ShaderMaterial | null = null
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const M   = 420
@@ -369,11 +362,11 @@ function SkyBackground() {
     mesh.frustumCulled   = false
     mesh.matrixAutoUpdate = false
     scene.add(mesh)
-    matRef.current       = mat
-    window.__mindspaceSkyMat = mat
+    matRef.current = mat
+    _skyMat        = mat
     return () => {
       scene.remove(mesh); mesh.geometry.dispose(); mat.dispose()
-      window.__mindspaceSkyMat = null
+      _skyMat = null
     }
   }, [scene])
 
@@ -381,7 +374,7 @@ function SkyBackground() {
     const mat = matRef.current
     if (!mat) return
     mat.uniforms['uTime'].value   = clock.getElapsedTime()
-    mat.uniforms['uBreath'].value = window.__mindspaceBreath
+    mat.uniforms['uBreath'].value = useMindSpaceStore.getState().breath
     mat.uniforms['uAspect'].value = window.innerWidth / window.innerHeight
   })
 
@@ -432,7 +425,7 @@ function DriftingMotes() {
     const geo = geoRef.current; const mat = matRef.current; const data = dataRef.current
     if (!geo || !mat || !data) return
     const dt = Math.min(0.05, delta), t = clock.getElapsedTime()
-    const breath = window.__mindspaceBreath
+    const breath = useMindSpaceStore.getState().breath
     const body   = document.body
     const lite   = document.hidden ||
                    body.classList.contains('breath-focus') ||
@@ -464,7 +457,7 @@ function PaperPlaneSystem() {
 
   useFrame((_, delta) => {
     const dt     = Math.min(0.05, delta)
-    const breath = window.__mindspaceBreath
+    const breath = useMindSpaceStore.getState().breath
     const body   = document.body
     const lite   = document.hidden ||
                    body.classList.contains('breath-focus') ||
@@ -528,15 +521,6 @@ function CameraRig() {
   useEffect(() => {
     camera.position.set(0, 0, 22)
 
-    // Expose mode setter as a window property so app.jsx can drive it
-    try {
-      Object.defineProperty(window, '__mindspaceMode', {
-        set(v: string) { modeTarget.current = MODE_PROGRESS[v] ?? 0 },
-        get()          { return modeTarget.current },
-        configurable:  true,
-      })
-    } catch { /* already defined — leave as-is */ }
-
     const onMove = (e: MouseEvent) => {
       mouse.current.tx = (e.clientX / window.innerWidth  - 0.5) *  2
       mouse.current.ty = (e.clientY / window.innerHeight - 0.5) * -2
@@ -576,20 +560,20 @@ function CameraRig() {
   useFrame(({ clock }) => {
     const t = clock.getElapsedTime()
 
-    // Breath cycle — write to window globals for app.jsx / other old modules
-    const br = computeBreath(t)
-    if (!window.__mindspaceOverride) window.__mindspaceBreath = br.value
-    window.__mindspacePhase = br.phase
+    // Natural breath cycle — suppressed when a practice component takes override
+    const br    = computeBreath(t)
+    const store = useMindSpaceStore.getState()
+    if (!store.override) store.setBreath(br.value, br.phase)
 
     // Lerp mouse, scroll, mode
-    mouse.current.x    += (mouse.current.tx         - mouse.current.x)    * 0.10
-    mouse.current.y    += (mouse.current.ty         - mouse.current.y)    * 0.10
-    scroll.current.val += (scroll.current.target    - scroll.current.val) * 0.06
-    modeT.current      += (modeTarget.current       - modeT.current)      * 0.025
+    mouse.current.x    += (mouse.current.tx                                - mouse.current.x)    * 0.10
+    mouse.current.y    += (mouse.current.ty                                - mouse.current.y)    * 0.10
+    scroll.current.val += (scroll.current.target                           - scroll.current.val) * 0.06
+    modeTarget.current  = MODE_PROGRESS[store.mode] ?? 0
+    modeT.current      += (modeTarget.current                              - modeT.current)      * 0.025
 
     // Star brightness rises as user goes deeper into a practice mode
-    const skyMat = window.__mindspaceSkyMat
-    if (skyMat) skyMat.uniforms['uStarBrightness'].value = 0.55 + modeT.current * 0.38
+    if (_skyMat) _skyMat.uniforms['uStarBrightness'].value = 0.55 + modeT.current * 0.38
 
     // Camera parallax + scroll dolly + mode intimacy
     const cam = camera as THREE.PerspectiveCamera
