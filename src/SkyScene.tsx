@@ -29,6 +29,20 @@ const MODE_PROGRESS: Record<string, number> = {
   home: 0.0, breathe: 0.30, ground: 0.58, rest: 1.0,
 }
 
+// Per-mood sky adjustments (1.B.1) — blended over ~3 s on mood select
+const MOOD_SKY: Record<string, { tint: [number,number,number]; star: number; fog: number }> = {
+  drained:   { tint: [-0.020, -0.018,  0.045], star: 0.70, fog: 0.38 },
+  tense:     { tint: [ 0.070,  0.012, -0.035], star: 0.88, fog: 0.08 },
+  scattered: { tint: [ 0.018,  0.018,  0.050], star: 1.08, fog: 0.00 },
+  tender:    { tint: [ 0.055,  0.018, -0.012], star: 0.95, fog: 0.12 },
+  hopeful:   { tint: [ 0.038,  0.038,  0.018], star: 1.22, fog: 0.00 },
+  calm:      { tint: [ 0.000,  0.000,  0.000], star: 1.00, fog: 0.00 },
+}
+const MOOD_NEUTRAL = { tint: [0, 0, 0] as [number,number,number], star: 1.0, fog: 0.0 }
+
+// Updated by SkyBackground useFrame; read by CameraRig useFrame (same module)
+let _moodStarMult = 1.0
+
 // ─── GLSL shaders (identical to scene.js) ────────────────────────────────────
 const SKY_VERT = /* glsl */`
   varying vec2 vUv;
@@ -47,6 +61,8 @@ const SKY_FRAG = /* glsl */`
   uniform vec3  uDeep;
   uniform vec3  uBand;
   uniform float uStarBrightness;
+  uniform vec3  uMoodTint;
+  uniform float uMoodFog;
 
   float hash(vec2 p){ return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }
   float noise(vec2 p){
@@ -78,6 +94,11 @@ const SKY_FRAG = /* glsl */`
     vec2 vc=(uv-.5)*vec2(uAspect,1.);
     float v=smoothstep(1.10+0.10*uBreath,.35,length(vc));
     col*=mix(.74,1.02+.04*uBreath,v);
+    // Mood overlay: fog in lower sky + additive color tint
+    float mFog=uMoodFog*(1.0-smoothstep(0.0,0.55,y));
+    col=mix(col,col*0.50,mFog*0.70);
+    col+=uMoodTint;
+    col=max(col,vec3(0.0));
     gl_FragColor=vec4(col,1.);
   }
 `
@@ -338,7 +359,10 @@ class ShootingStar {
 // so this works in a perspective-camera scene — renderOrder=-1 draws it first.
 function SkyBackground() {
   const { scene } = useThree()
-  const matRef = useRef<THREE.ShaderMaterial | null>(null)
+  const matRef       = useRef<THREE.ShaderMaterial | null>(null)
+  const moodTintCur  = useRef(new THREE.Vector3(0, 0, 0))
+  const moodFogCur   = useRef(0)
+  const moodStarCur  = useRef(1.0)
 
   useEffect(() => {
     const mat = new THREE.ShaderMaterial({
@@ -353,6 +377,8 @@ function SkyBackground() {
         uDeep:           { value: new THREE.Vector3(0.030, 0.038, 0.095) },
         uBand:           { value: new THREE.Vector3(0.200, 0.140, 0.220) },
         uStarBrightness: { value: 0.55 },
+        uMoodTint:       { value: new THREE.Vector3(0, 0, 0) },
+        uMoodFog:        { value: 0 },
       },
       vertexShader:   SKY_VERT,
       fragmentShader: SKY_FRAG,
@@ -370,7 +396,7 @@ function SkyBackground() {
     }
   }, [scene])
 
-  useFrame(({ clock }) => {
+  useFrame(({ clock }, delta) => {
     const mat = matRef.current
     if (!mat) return
     mat.uniforms['uTime'].value   = clock.getElapsedTime()
@@ -399,6 +425,20 @@ function SkyBackground() {
       set3('uDeep',    cur.sky.deep)
       set3('uBand',    cur.sky.band)
     }
+
+    // Mood sky overlay — lerp over ~3 s (1.B.2)
+    const moodId = useMindSpaceStore.getState().mood
+    const mT     = MOOD_SKY[moodId] ?? MOOD_NEUTRAL
+    const k      = 1 - Math.exp(-Math.min(delta, 0.1))
+    const tc     = moodTintCur.current
+    tc.x += (mT.tint[0] - tc.x) * k
+    tc.y += (mT.tint[1] - tc.y) * k
+    tc.z += (mT.tint[2] - tc.z) * k
+    moodFogCur.current  += (mT.fog  - moodFogCur.current)  * k
+    moodStarCur.current += (mT.star - moodStarCur.current) * k
+    _moodStarMult = moodStarCur.current
+    mat.uniforms['uMoodTint'].value.copy(tc)
+    mat.uniforms['uMoodFog'].value = moodFogCur.current
   })
 
   return null
@@ -600,7 +640,7 @@ function CameraRig() {
     modeT.current      += (modeTarget.current                              - modeT.current)      * 0.025
 
     // Star brightness rises as user goes deeper into a practice mode
-    if (_skyMat) _skyMat.uniforms['uStarBrightness'].value = 0.55 + modeT.current * 0.38
+    if (_skyMat) _skyMat.uniforms['uStarBrightness'].value = (0.55 + modeT.current * 0.38) * _moodStarMult
 
     // Camera parallax + scroll dolly + mode intimacy
     const cam = camera as THREE.PerspectiveCamera

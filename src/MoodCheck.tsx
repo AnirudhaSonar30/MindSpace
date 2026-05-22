@@ -2,6 +2,7 @@
 // First-visit ritual: asks how you're arriving, tints the sky, biases Companion.
 
 import { useState, useEffect } from 'react'
+import { useMindSpaceStore } from './store'
 
 interface Mood {
   id:      string
@@ -106,7 +107,11 @@ export function MoodCheckIn() {
 
   useEffect(() => {
     const stored = loadStored()
-    if (stored) { setMood(stored); applySkyClass(stored.id); return }
+    if (stored) {
+      setMood(stored); applySkyClass(stored.id)
+      useMindSpaceStore.getState().setMood(stored.id)
+      return
+    }
     if (sessionStorage.getItem(SHOWN_KEY)) return
     sessionStorage.setItem(SHOWN_KEY, '1')
     const id = setTimeout(() => {
@@ -132,6 +137,7 @@ export function MoodCheckIn() {
       try { localStorage.setItem(STORAGE_KEY, JSON.stringify(stored)) } catch {}
       setMood(stored)
       applySkyClass(m.id)
+      useMindSpaceStore.getState().setMood(m.id)
       window.dispatchEvent(new CustomEvent('mindspace:mood', { detail: m }))
       setTimeout(() => {
         setState('closing')
