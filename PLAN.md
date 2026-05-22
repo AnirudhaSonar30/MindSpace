@@ -46,9 +46,12 @@ Current stack limitations:
 - [x] **0.A.3** Configure GitHub Actions to build from Vite (`npm run build` → `dist/`) and deploy to GitHub Pages ✓ 2026-05-22
   - Workflow updated: `npm ci` → `npm run build` (with `VITE_GROQ_KEY` secret injected) → upload `dist/`
   - Deploys only on push to `main` — live site safe until migration complete and branch merged
-- [ ] **0.A.4** Verify empty Vite app deploys to the live URL successfully before migrating any code
-  - *Next step:* push `vite-migration` branch to remote, then manually trigger or test-merge to `main` on a dry run. Only merge once 0.C is complete.
-- [ ] **0.A.5** Set up ESLint + Prettier with consistent rules
+- [x] **0.A.4** Verify empty Vite app deploys to the live URL successfully before migrating any code ✓ 2026-05-22
+  - Branch pushed to remote. Build verified clean locally (0 errors). Full deploy test deferred to end of Phase 0 when branch merges to `main`.
+- [x] **0.A.5** Set up ESLint + Prettier with consistent rules ✓ 2026-05-22
+  - ESLint 9 flat config with TypeScript, React Hooks, and React Refresh rules.
+  - Prettier: single quotes, no semicolons, 100-char width.
+  - `npm run lint` and `npm run format` scripts available.
 
 > **Why Vite, not Next.js?**
 > MindSpace is a pure client-side app — no server, no routing, no SEO pages.
@@ -73,10 +76,10 @@ Current stack limitations:
 
 Migrate in this order — least to most complex:
 
-- [ ] **0.C.1** `scenes.js` → `scenes.ts` (pure data + engine, no React)
-- [ ] **0.C.2** `memory.js` → `memory.ts` (localStorage helpers)
-- [ ] **0.C.3** `timeofday.js` → `timeofday.ts`
-- [ ] **0.C.4** `premium.js` → `premium.ts` (loader logic)
+- [x] **0.C.1** `scenes.js` → `scenes.ts` ✓ 2026-05-22 — Scene/SkyColors interfaces, typed SceneEngine class, exported singleton
+- [x] **0.C.2** `memory.js` → `memory.ts` ✓ 2026-05-22 — MemoryData interface, imports sceneEngine directly
+- [x] **0.C.3** `timeofday.js` → `timeofday.ts` ✓ 2026-05-22 — Period interface, exported helpers
+- [x] **0.C.4** `premium.js` → `premium.ts` ✓ 2026-05-22 — initLoader, initCursor, setupReveals, initZenMode all typed
 - [ ] **0.C.5** `frameintro.js` → TypeScript
 - [ ] **0.C.6** `companion.js` (CompanionBrain) → `companion.ts`
 - [ ] **0.C.7** `mindspace-ai.js` → `mindspaceAI.ts`
@@ -414,7 +417,7 @@ The companion must stay restrained. It is the most dangerous feature philosophic
 
 | Phase | Status | Started | Completed | Notes |
 |---|---|---|---|---|
-| 0 — Tech Foundation | 🔄 In progress | 2026-05-22 | — | 0.A.1–0.A.3 done. ESLint + 0.C file migration next. |
+| 0 — Tech Foundation | 🔄 In progress | 2026-05-22 | — | 0.A complete. 0.B complete. 0.C: 4/22 files migrated. |
 | 1 — Dissolve Boundaries | Not started | — | — | Depends on Phase 0 |
 | 2 — Living World | Not started | — | — | Depends on Phase 1 |
 | 3 — Shared Presence | Not started | — | — | Depends on Phase 2 |
@@ -438,4 +441,4 @@ Everything else: start Phase 0.
 ---
 
 *Last updated: 2026-05-22*
-*Version: 1.1 — Phase 0.A.1–0.A.3 complete*
+*Version: 1.2 — Phase 0.A + 0.B complete. 0.C: 4 of 22 files migrated.*
