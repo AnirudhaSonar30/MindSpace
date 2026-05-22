@@ -376,6 +376,29 @@ function SkyBackground() {
     mat.uniforms['uTime'].value   = clock.getElapsedTime()
     mat.uniforms['uBreath'].value = useMindSpaceStore.getState().breath
     mat.uniforms['uAspect'].value = window.innerWidth / window.innerHeight
+
+    const cur  = sceneEngine.getScene()
+    const prev = sceneEngine.getPrev()
+    const scT  = sceneEngine.getT()
+    const eT   = scT < 0.5 ? 2*scT*scT : -1+(4-2*scT)*scT
+    const set3 = (key: string, v: [number,number,number]) =>
+      mat.uniforms[key].value.set(v[0], v[1], v[2])
+    const mix3 = (a: [number,number,number], b: [number,number,number], t: number): [number,number,number] =>
+      [a[0]+(b[0]-a[0])*t, a[1]+(b[1]-a[1])*t, a[2]+(b[2]-a[2])*t]
+
+    if (prev && scT < 1) {
+      set3('uFloor',   mix3(prev.sky.floor,   cur.sky.floor,   eT))
+      set3('uHorizon', mix3(prev.sky.horizon, cur.sky.horizon, eT))
+      set3('uMid',     mix3(prev.sky.mid,     cur.sky.mid,     eT))
+      set3('uDeep',    mix3(prev.sky.deep,    cur.sky.deep,    eT))
+      set3('uBand',    mix3(prev.sky.band,    cur.sky.band,    eT))
+    } else {
+      set3('uFloor',   cur.sky.floor)
+      set3('uHorizon', cur.sky.horizon)
+      set3('uMid',     cur.sky.mid)
+      set3('uDeep',    cur.sky.deep)
+      set3('uBand',    cur.sky.band)
+    }
   })
 
   return null
