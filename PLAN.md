@@ -84,13 +84,13 @@ Migrate in this order — least to most complex:
 - [x] **0.C.6** `companion.js` → `companion.ts` ✓ 2026-05-22 — CompanionBrain class typed; ChatMessage/EmotionChip/EmotionKey interfaces; wires to createGroqBridge() instead of window.claude
 - [x] **0.C.7** `mindspace-ai.js` → `mindspaceAI.ts` ✓ 2026-05-22 — Groq bridge; VITE_GROQ_KEY env var; GroqComplete interface
 - [x] **0.C.8** `scene.js` → `SkyScene.tsx` ✓ 2026-05-22 — R3F Canvas with SkyBackground (clip-space shader quad), DriftingMotes, PaperPlaneSystem, ShootingStarSystem, CameraRig; manual bloom → @react-three/postprocessing Bloom
-- [ ] **0.C.9** `sound.jsx` → `Sound.tsx` (keep Web Audio API, wrap cleanly)
-- [ ] **0.C.10** `atmosphere.jsx` → `Atmosphere.tsx` (Canvas 2D layer, keep as-is initially)
-- [ ] **0.C.11** `moodcheck.jsx` → `MoodCheck.tsx`
-- [ ] **0.C.12** `welcome.jsx` → `Welcome.tsx`
-- [ ] **0.C.13** `modes.jsx` → `AmbientModes.tsx`
-- [ ] **0.C.14** `right-now.jsx` → `RightNow.tsx`
-- [ ] **0.C.15** `companion.jsx` → `CompanionUI.tsx`
+- [x] **0.C.9** `sound.jsx` → `Sound.tsx` ✓ 2026-05-22 — 11 Web Audio channel builders typed; ChannelId/ChannelConfig/SoundChannel types; playThunderOnce; SCENE_SOUNDS record
+- [x] **0.C.10** `atmosphere.jsx` → `Atmosphere.tsx` ✓ 2026-05-22 — AtmosphereCanvas (Canvas 2D particles/fog/lightning) + SceneSwitcher; all 9 particle types typed; imports sceneEngine+SCENES from ./scenes
+- [x] **0.C.11** `moodcheck.jsx` → `MoodCheck.tsx` ✓ 2026-05-22 — Mood/StoredMood/PanelState types; MoodGlyph SVG component; CSS var cast pattern
+- [x] **0.C.12** `welcome.jsx` → `Welcome.tsx` ✓ 2026-05-22 — WelcomeBack + SceneWhisper; uses sceneEngine.onChange() directly
+- [x] **0.C.13** `modes.jsx` → `AmbientModes.tsx` ✓ 2026-05-22 — ModeConfig interface; sleep ramp with activityRef; drives window.__mindspaceMode
+- [x] **0.C.14** `right-now.jsx` → `RightNow.tsx` ✓ 2026-05-22 — SighPhase/Particle/RNCanvasProps interfaces; full Canvas 2D renderer
+- [x] **0.C.15** `companion.jsx` → `CompanionUI.tsx` ✓ 2026-05-22 — HistoryItem/AnimState types; StreamingText sub-component; imports CompanionBrain/EMOTION_CHIPS from ./companion
 - [ ] **0.C.16** `tools.jsx` (BreathingLab + Grounding) → `BreathingLab.tsx` + `Grounding.tsx`
 - [ ] **0.C.17** `sharedsky.jsx` → `SharedSky.tsx`
 - [ ] **0.C.18** `app.jsx` → `App.tsx` (wire everything together)
@@ -417,7 +417,7 @@ The companion must stay restrained. It is the most dangerous feature philosophic
 
 | Phase | Status | Started | Completed | Notes |
 |---|---|---|---|---|
-| 0 — Tech Foundation | 🔄 In progress | 2026-05-22 | — | 0.A complete. 0.B complete. 0.C: 4/22 files migrated. |
+| 0 — Tech Foundation | 🔄 In progress | 2026-05-22 | — | 0.A complete. 0.B complete. 0.C: 15/22 tasks done; tools.jsx + sharedsky.jsx + App.tsx pending. |
 | 1 — Dissolve Boundaries | Not started | — | — | Depends on Phase 0 |
 | 2 — Living World | Not started | — | — | Depends on Phase 1 |
 | 3 — Shared Presence | Not started | — | — | Depends on Phase 2 |
@@ -441,4 +441,4 @@ Everything else: start Phase 0.
 ---
 
 *Last updated: 2026-05-22*
-*Version: 1.2 — Phase 0.A + 0.B complete. 0.C: 4 of 22 files migrated.*
+*Version: 1.4 — Phase 0.A + 0.B complete. 0.C: 15 of 22 tasks done (tools.jsx next).*
