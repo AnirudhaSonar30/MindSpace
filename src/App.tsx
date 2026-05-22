@@ -158,6 +158,29 @@ function ModeNav({ mode, onMode }: ModeNavProps) {
   )
 }
 
+// ── Per-mode transition personalities ──────────────────────────────────────
+// exit: how the CURRENT mode's content leaves the screen
+const EXIT_BY_MODE: Record<string, gsap.TweenVars> = {
+  home:    { opacity: 0, scale: 0.97, filter: 'blur(4px)',  y: -10, duration: 0.38, ease: 'power2.in' },
+  breathe: { opacity: 0, scale: 0.93, filter: 'blur(7px)',  y:   0, duration: 0.42, ease: 'power2.in' },
+  ground:  { opacity: 0, scale: 1.00, filter: 'blur(0px)',  y:  38, duration: 0.38, ease: 'power2.in' },
+  rest:    { opacity: 0, scale: 1.01, filter: 'blur(5px)',  y: -12, duration: 0.54, ease: 'power1.in' },
+}
+// enter-start: initial state of the NEXT mode's content (pre-positioned before React commits)
+const ENTER_START: Record<string, gsap.TweenVars> = {
+  home:    { opacity: 0, scale: 0.96, filter: 'blur(5px)',  y:  10 },
+  breathe: { opacity: 0, scale: 0.93, filter: 'blur(9px)',  y:   0 },
+  ground:  { opacity: 0, scale: 1.00, filter: 'blur(0px)',  y:  58 },
+  rest:    { opacity: 0, scale: 1.02, filter: 'blur(3px)',  y: -20 },
+}
+// enter-end: final state + duration/ease for the NEXT mode's content arriving
+const ENTER_END: Record<string, gsap.TweenVars> = {
+  home:    { opacity: 1, scale: 1, filter: 'blur(0px)', y: 0, duration: 0.88, ease: 'power3.out' },
+  breathe: { opacity: 1, scale: 1, filter: 'blur(0px)', y: 0, duration: 0.95, ease: 'expo.out'   },
+  ground:  { opacity: 1, scale: 1, filter: 'blur(0px)', y: 0, duration: 0.90, ease: 'power3.out' },
+  rest:    { opacity: 1, scale: 1, filter: 'blur(0px)', y: 0, duration: 1.45, ease: 'power1.out' },
+}
+
 /* ── App shell ── */
 export default function App() {
   const [mode, setMode] = useState('home')
@@ -167,22 +190,37 @@ export default function App() {
   const goMode = (next: string) => {
     if (next === mode) return
     pendingRef.current = next
-    if (inFlightRef.current) return          // last click wins; will apply when this flight lands
-    inFlightRef.current = true
+    if (inFlightRef.current) return
 
-    gsap.to('.stage', {
-      opacity: 0, y: -7, duration: 0.40, ease: 'power2.in',
-      onComplete: () => {
-        const m = pendingRef.current ?? 'home'
-        gsap.set('.stage', { y: 10 })        // pre-position before React commits new content
-        setMode(m)
-        useMindSpaceStore.getState().setMode(m)
-        requestAnimationFrame(() => requestAnimationFrame(() => {
-          gsap.to('.stage', { opacity: 1, y: 0, duration: 0.80, ease: 'power3.out' })
-          inFlightRef.current = false
-        }))
-      },
-    })
+    inFlightRef.current = true
+    const exitCfg  = EXIT_BY_MODE[mode]  ?? EXIT_BY_MODE.home
+    const startCfg = ENTER_START[next]   ?? ENTER_START.home
+    const endCfg   = ENTER_END[next]     ?? ENTER_END.home
+    const exitDur  = exitCfg.duration as number
+    const enterDur = endCfg.duration as number
+
+    // GSAP timeline: exit current → soft darkness blink → enter next
+    const tl = gsap.timeline()
+    tl.to('.stage',            exitCfg,                                                         0)
+    tl.to('.transition-blink', { opacity: 0.45, duration: exitDur * 0.75, ease: 'power1.in' }, 0)
+    tl.to('.transition-blink', { opacity: 0,    duration: enterDur * 0.6, ease: 'power2.out'}, exitDur + 0.04)
+
+    // At peak darkness: swap content and pre-position new panel
+    tl.call(() => {
+      const m = pendingRef.current ?? 'home'
+      gsap.set('.stage', startCfg)
+      setMode(m)
+      useMindSpaceStore.getState().setMode(m)
+      // Give React ~20 ms to commit new children, then animate them in
+      // (setTimeout beats requestAnimationFrame in headless/backgrounded tabs)
+      setTimeout(() => {
+        gsap.to('.stage', {
+          ...endCfg,
+          clearProps: 'filter',
+          onComplete: () => { inFlightRef.current = false },
+        })
+      }, 20)
+    }, [], exitDur)
   }
 
   return (
@@ -191,6 +229,11 @@ export default function App() {
       <div className="veil"/>
       <div className="grain"/>
       <div className="scene-veil-flash"/>
+      {/* soft darkness blink between mode transitions — z-index 4, above stage(3), below nav(60) */}
+      <div className="transition-blink" style={{
+        position: 'fixed', inset: 0, zIndex: 4,
+        background: '#06061a', opacity: 0, pointerEvents: 'none',
+      }}/>
       <Nav/>
       <main className="stage">
         {mode === 'home'
