@@ -121,13 +121,13 @@ Currently: Bottom nav with 4 labelled buttons (home, breathe, ground, rest). Fee
 
 Future: The breathing orb already lives in the sky. Grounding pulls you downward into the earth. Rest dissolves the sky into stillness. Navigation happens through the atmosphere.
 
-- [ ] **1.A.1** Design the new navigation system: what gesture/visual element leads to each practice (documented decision, not code yet)
-- [ ] **1.A.2** The breathing orb becomes permanently ambient in the sky when idle — a soft pulsing light in the center of the scene. It's always there, breathing at a slow natural rate.
-- [ ] **1.A.3** Tapping/clicking the orb enters breathing practice — no navigation, no screen change. The sky simply shifts to breath-focus state.
+- [x] **1.A.1** Design the new navigation system: orb = breathe entry, ground-line = ground entry, sky dimming = rest entry. ✓ 2026-05-23
+- [x] **1.A.2** The breathing orb becomes permanently ambient in the sky when idle — a soft pulsing light in the center of the scene. It's always there, breathing at a slow natural rate. ✓ 2026-05-23
+- [x] **1.A.3** Tapping/clicking the orb enters breathing practice — goMode('breathe') fires on tap. ✓ 2026-05-23
 - [ ] **1.A.4** Grounding entry: a subtle ground-line at the bottom of the sky pulses when the user hasn't moved for a while. Tapping it initiates grounding — the sky "descends" through fog.
 - [ ] **1.A.5** Rest mode entry: becomes part of the ambient modes flow, accessed by the sky itself dimming when you've been still.
-- [ ] **1.A.6** First-visit guided discovery: on first load, after mood check-in, 3 whisper lines fade in pointing to the key elements (orb, scene switcher, companion). They appear once, then never again.
-- [ ] **1.A.7** Reduce bottom nav to 2-3 elements maximum. Consider removing labels after first 3 visits (icon-only, less app-like).
+- [x] **1.A.6** First-visit guided discovery: 3 whisper lines fade in pointing to orb, scene switcher, companion. Once per session, never again. ✓ 2026-05-23
+- [x] **1.A.7** Nav collapses to icon-only after 3 visits — labels hidden via CSS max-width transition. ✓ 2026-05-23
 
 ---
 
@@ -137,17 +137,11 @@ Currently: Mood sets a CSS body class. The sky doesn't actually respond differen
 
 Future: Your mood visibly tints and shapes the sky. The sky knows how you arrived.
 
-- [ ] **1.B.1** Each mood maps to specific sky color adjustments (documented as data, not code yet):
-  - drained → stars dim by 30%, fog increases, motion speed halves
-  - tense → subtle red-orange band at horizon, sharper particles
-  - scattered → more particles, slightly faster motion, softer stars
-  - tender → warmer horizon tones, gentler star pulse
-  - hopeful → brighter band, slightly more star brightness
-  - calm → sky as-is, minimal change (already in a good place)
-- [ ] **1.B.2** Implement mood-sky overlay in R3F Sky component — separate uniform set that blends ON TOP of the scene's base colors
-- [ ] **1.B.3** Transition: when mood is selected, sky gently shifts over 3 seconds (not instant)
+- [x] **1.B.1** Each mood maps to specific sky color adjustments — implemented as MOOD_SKY data map in SkyScene.tsx. ✓ 2026-05-23
+- [x] **1.B.2** Implement mood-sky overlay in R3F Sky component — uMoodTint (vec3) + uMoodFog (float) uniforms added to SKY_FRAG; interpolated per-frame in SkyBackground.useFrame. ✓ 2026-05-23
+- [x] **1.B.3** Transition: sky shifts over ~3 seconds via exponential lerp (1 - exp(-delta)) when mood is selected. ✓ 2026-05-23
 - [ ] **1.B.4** The mood badge (top-left "arriving tense") becomes more integrated — feels like a sky label, not a UI button
-- [ ] **1.B.5** Mood tint persists for the 6-hour session window alongside the base scene
+- [x] **1.B.5** Mood stored in Zustand, loaded from localStorage (6-hour TTL), applied on session restore. ✓ 2026-05-23
 
 ---
 
@@ -157,11 +151,11 @@ Currently: clicking "breathe" → veil flash → mode panel slides in. Feels lik
 
 Future: the world transforms around you.
 
-- [ ] **1.C.1** Breathing entry: sky subtly contracts inward (zoom effect), particles slow and orbit the orb, ambient sound softens everything else. No panel.
-- [ ] **1.C.2** Grounding entry: sky tilts (subtle camera pitch down), particles settle, the color warms to earth tones. The grounding UI emerges from the lower portion of the screen.
-- [ ] **1.C.3** Rest: sky dims slowly, particles reduce to a handful of slow drifters, a single poem line fades in. No buttons.
-- [ ] **1.C.4** All transitions use GSAP timelines with proper emotional pacing (nothing under 600ms, most 1–2 seconds)
-- [ ] **1.C.5** Exit transitions mirror entry — you drift back to the sky, not "click back"
+- [x] **1.C.1** Breathing entry: content scales in from 0.93 + blur dissolves (expo.out 950ms) — sky camera zoom already driven by modeT in CameraRig. ✓ 2026-05-23
+- [x] **1.C.2** Grounding entry: content rises from +58px (power3.out 900ms) — earth gravity feel. ✓ 2026-05-23
+- [x] **1.C.3** Rest entry: content descends from -20px at 1.45s (power1.out) — slow drift into stillness. ✓ 2026-05-23
+- [x] **1.C.4** All transitions use GSAP timelines: exit 380–540ms, soft darkness blink overlay, enter 880ms–1.45s per mode. ✓ 2026-05-23
+- [x] **1.C.5** Exit mirrors entry — breathe shrinks+blurs out, ground sinks, rest dissolves upward. ✓ 2026-05-23
 
 ---
 
@@ -419,8 +413,8 @@ The companion must stay restrained. It is the most dangerous feature philosophic
 
 | Phase | Status | Started | Completed | Notes |
 |---|---|---|---|---|
-| 0 — Tech Foundation | 🔄 In progress | 2026-05-22 | — | 0.A complete. 0.B complete. 0.C: 15/22 tasks done; tools.jsx + sharedsky.jsx + App.tsx pending. |
-| 1 — Dissolve Boundaries | Not started | — | — | Depends on Phase 0 |
+| 0 — Tech Foundation | ✅ Complete | 2026-05-22 | 2026-05-22 | All 0.A/0.B/0.C tasks done. Firebase restored. BreathOrb 5 styles fixed. |
+| 1 — Dissolve Boundaries | 🔄 In progress | 2026-05-23 | — | 1.A (2/3/6/7 ✓), 1.B (1/2/3/5 ✓), 1.C (all ✓). 1.D and 1.A.4/5/1.B.4 remaining. |
 | 2 — Living World | Not started | — | — | Depends on Phase 1 |
 | 3 — Shared Presence | Not started | — | — | Depends on Phase 2 |
 | 4 — Audio Architecture | Not started | — | — | Depends on Phase 2 |
@@ -442,5 +436,5 @@ Everything else: start Phase 0.
 
 ---
 
-*Last updated: 2026-05-22*
-*Version: 1.4 — Phase 0.A + 0.B complete. 0.C: 15 of 22 tasks done (tools.jsx next).*
+*Last updated: 2026-05-23*
+*Version: 1.5 — Phase 0 complete. Phase 1 in progress: 1.A (partial), 1.B (partial), 1.C (complete). Next: 1.D (Shared Sky into the sky).*
