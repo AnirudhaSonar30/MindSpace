@@ -557,13 +557,17 @@ function CameraRig() {
     }
   }, [camera])
 
-  useFrame(({ clock }) => {
+  useFrame(({ clock }, delta) => {
     const t = clock.getElapsedTime()
 
     // Natural breath cycle — suppressed when a practice component takes override
     const br    = computeBreath(t)
     const store = useMindSpaceStore.getState()
     if (!store.override) store.setBreath(br.value, br.phase)
+
+    // Animate scene transition T (0 → 1 over ~1.5 s)
+    const scT = sceneEngine.getT()
+    if (scT < 1) sceneEngine.setT(Math.min(1, scT + delta * 0.65))
 
     // Lerp mouse, scroll, mode
     mouse.current.x    += (mouse.current.tx                                - mouse.current.x)    * 0.10
