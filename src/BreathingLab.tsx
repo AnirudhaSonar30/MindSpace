@@ -66,17 +66,6 @@ const CADENCES: Cadence[] = [
   },
 ]
 
-type PhaseKind = 'inhale' | 'hold' | 'exhale' | 'rest'
-const PHASE_COL: Record<PhaseKind, [number, number, number]> = {
-  inhale: [192, 72, 66],
-  hold:   [44,  80, 70],
-  exhale: [266, 54, 62],
-  rest:   [220, 36, 54],
-}
-const KIND_FROM_PHASE: Record<string, PhaseKind> = {
-  inhale: 'inhale', hold: 'hold', exhale: 'exhale', rest: 'rest',
-}
-
 const ORB_STYLES = ['glass', 'reactor', 'nebula', 'jellyfish', 'wireframe']
 
 /* ── orb color palette ── */
@@ -392,7 +381,7 @@ function drawGlass(ctx: Ctx2D, st: ReturnType<typeof makeGlassState>,
 }
 
 function drawReactor(ctx: Ctx2D, st: ReturnType<typeof makeReactorState>,
-                     CX: number, CY: number, HALF: number, f: number, breath: number, phase: string, kind: string, cp: number) {
+                     CX: number, CY: number, HALF: number, _f: number, breath: number, phase: string, kind: string, cp: number) {
   const tc = BO_COLOR[kind] || BO_COLOR.inhale
   st.cH += (tc[0] - st.cH) * 0.030; st.cS += (tc[1] - st.cS) * 0.030; st.cL += (tc[2] - st.cL) * 0.030
   const H_ = st.cH, S_ = st.cS, L_ = st.cL
@@ -466,23 +455,7 @@ interface OrbProps {
   style?:     string
 }
 
-interface OrbParticle {
-  layer: number; angle: number; baseR: number; rFrac: number
-  speed: number; size: number; op: number; twink: number
-  tx: number[]; ty: number[]
-}
-interface OrbRipple {
-  r: number; maxR: number; op: number
-  H: number; S: number; L: number; slow?: boolean
-}
-
-const LAYERS = [
-  { count: 28, baseR: 0.62, speed:  0.0034, sizeMin: 0.6, sizeMax: 1.5, dir:  1 },
-  { count: 22, baseR: 0.48, speed: -0.0050, sizeMin: 0.7, sizeMax: 1.7, dir: -1 },
-  { count: 18, baseR: 0.34, speed:  0.0075, sizeMin: 0.5, sizeMax: 1.3, dir:  1 },
-]
-
-function BreathOrb({ runningRef, cadenceRef, cpRef, style }: OrbProps) {
+function BreathOrb({ runningRef: _runningRef, cadenceRef: _cadenceRef, cpRef, style }: OrbProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const styleRef  = useRef(style || 'glass')
   useEffect(() => { styleRef.current = style || 'glass' }, [style])
