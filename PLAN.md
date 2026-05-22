@@ -37,9 +37,17 @@ Current stack limitations:
 ### 0.A — Project Setup
 
 - [x] **0.A.1** Create a `vite-migration` git branch (never break `main` during migration) ✓ 2026-05-22
-- [ ] **0.A.2** Set up Vite + React + TypeScript project scaffold in that branch
-- [ ] **0.A.3** Configure GitHub Actions to build from Vite (`npm run build` → `dist/`) and deploy to GitHub Pages
+- [x] **0.A.2** Set up Vite + React + TypeScript project scaffold in that branch ✓ 2026-05-22
+  - React 18 + TypeScript 5.6 + Vite 6. Strict mode on. Path aliases configured.
+  - All major libraries installed: Three.js, React Three Fiber, @react-three/postprocessing, GSAP, Zustand, Tone.js
+  - `src/App.tsx` is a placeholder stub — features wired in during 0.C
+  - Groq key migrated from `groq-config.js` injection → `VITE_GROQ_KEY` env variable (`src/mindspaceAI.ts`)
+  - Build verified clean: 6 chunks, 0 TypeScript errors, 0 warnings
+- [x] **0.A.3** Configure GitHub Actions to build from Vite (`npm run build` → `dist/`) and deploy to GitHub Pages ✓ 2026-05-22
+  - Workflow updated: `npm ci` → `npm run build` (with `VITE_GROQ_KEY` secret injected) → upload `dist/`
+  - Deploys only on push to `main` — live site safe until migration complete and branch merged
 - [ ] **0.A.4** Verify empty Vite app deploys to the live URL successfully before migrating any code
+  - *Next step:* push `vite-migration` branch to remote, then manually trigger or test-merge to `main` on a dry run. Only merge once 0.C is complete.
 - [ ] **0.A.5** Set up ESLint + Prettier with consistent rules
 
 > **Why Vite, not Next.js?**
@@ -406,7 +414,7 @@ The companion must stay restrained. It is the most dangerous feature philosophic
 
 | Phase | Status | Started | Completed | Notes |
 |---|---|---|---|---|
-| 0 — Tech Foundation | Not started | — | — | |
+| 0 — Tech Foundation | 🔄 In progress | 2026-05-22 | — | 0.A.1–0.A.3 done. ESLint + 0.C file migration next. |
 | 1 — Dissolve Boundaries | Not started | — | — | Depends on Phase 0 |
 | 2 — Living World | Not started | — | — | Depends on Phase 1 |
 | 3 — Shared Presence | Not started | — | — | Depends on Phase 2 |
@@ -430,4 +438,4 @@ Everything else: start Phase 0.
 ---
 
 *Last updated: 2026-05-22*
-*Version: 1.0*
+*Version: 1.1 — Phase 0.A.1–0.A.3 complete*
