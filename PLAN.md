@@ -80,10 +80,10 @@ Migrate in this order — least to most complex:
 - [x] **0.C.2** `memory.js` → `memory.ts` ✓ 2026-05-22 — MemoryData interface, imports sceneEngine directly
 - [x] **0.C.3** `timeofday.js` → `timeofday.ts` ✓ 2026-05-22 — Period interface, exported helpers
 - [x] **0.C.4** `premium.js` → `premium.ts` ✓ 2026-05-22 — initLoader, initCursor, setupReveals, initZenMode all typed
-- [ ] **0.C.5** `frameintro.js` → TypeScript
-- [ ] **0.C.6** `companion.js` (CompanionBrain) → `companion.ts`
-- [ ] **0.C.7** `mindspace-ai.js` → `mindspaceAI.ts`
-- [ ] **0.C.8** `scene.js` (Three.js setup) → R3F `<Sky />` component
+- [x] **0.C.5** `frameintro.js` → `frameintro.ts` ✓ 2026-05-22 — canvas overlay frame player; typed resize/draw loop; gracefully skips if frames/ absent
+- [x] **0.C.6** `companion.js` → `companion.ts` ✓ 2026-05-22 — CompanionBrain class typed; ChatMessage/EmotionChip/EmotionKey interfaces; wires to createGroqBridge() instead of window.claude
+- [x] **0.C.7** `mindspace-ai.js` → `mindspaceAI.ts` ✓ 2026-05-22 — Groq bridge; VITE_GROQ_KEY env var; GroqComplete interface
+- [x] **0.C.8** `scene.js` → `SkyScene.tsx` ✓ 2026-05-22 — R3F Canvas with SkyBackground (clip-space shader quad), DriftingMotes, PaperPlaneSystem, ShootingStarSystem, CameraRig; manual bloom → @react-three/postprocessing Bloom
 - [ ] **0.C.9** `sound.jsx` → `Sound.tsx` (keep Web Audio API, wrap cleanly)
 - [ ] **0.C.10** `atmosphere.jsx` → `Atmosphere.tsx` (Canvas 2D layer, keep as-is initially)
 - [ ] **0.C.11** `moodcheck.jsx` → `MoodCheck.tsx`
