@@ -6,7 +6,7 @@
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { EffectComposer, Bloom } from '@react-three/postprocessing'
 import * as THREE from 'three'
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import { sceneEngine } from './scenes'
 import { useMindSpaceStore } from './store'
 
@@ -147,103 +147,6 @@ const TRAIL_FRAG = /* glsl */`
   varying float vA;
   uniform vec3 uColor;
   void main(){ gl_FragColor=vec4(uColor,vA*vA*.28); }
-`
-
-// ─── Breath orb GLSL ─────────────────────────────────────────────────────────
-// 3D Simplex Noise (Stefan Gustavson, BSD) — compact inline version
-const _SNOISE = /* glsl */`
-  vec3 _m3(vec3 x){return x-floor(x*(1./289.))*289.;}
-  vec4 _m4(vec4 x){return x-floor(x*(1./289.))*289.;}
-  vec4 _p4(vec4 x){return _m4(((x*34.)+10.)*x);}
-  vec4 _t4(vec4 r){return 1.79284291400159-0.85373472095314*r;}
-  float snoise(vec3 v){
-    const vec2 C=vec2(1./6.,1./3.);
-    const vec4 D=vec4(0.,.5,1.,2.);
-    vec3 i=floor(v+dot(v,C.yyy));
-    vec3 x0=v-i+dot(i,C.xxx);
-    vec3 g=step(x0.yzx,x0.xyz);
-    vec3 l=1.-g; vec3 i1=min(g.xyz,l.zxy); vec3 i2=max(g.xyz,l.zxy);
-    vec3 x1=x0-i1+C.x; vec3 x2=x0-i2+C.y; vec3 x3=x0-.5;
-    i=_m3(i);
-    vec4 p=_p4(_p4(_p4(
-      i.z+vec4(0.,i1.z,i2.z,1.))+i.y+vec4(0.,i1.y,i2.y,1.))+i.x+vec4(0.,i1.x,i2.x,1.));
-    float n_=.142857142857;
-    vec3 ns=n_*D.wyz-D.xzx;
-    vec4 j=p-49.*floor(p*ns.z*ns.z);
-    vec4 x_=floor(j*ns.z); vec4 y_=floor(j-7.*x_);
-    vec4 xa=x_*ns.x+ns.yyyy; vec4 ya=y_*ns.x+ns.yyyy;
-    vec4 h=1.-abs(xa)-abs(ya);
-    vec4 b0=vec4(xa.xy,ya.xy); vec4 b1=vec4(xa.zw,ya.zw);
-    vec4 s0=floor(b0)*2.+1.; vec4 s1=floor(b1)*2.+1.;
-    vec4 sh=-step(h,vec4(0.));
-    vec4 a0=b0.xzyw+s0.xzyw*sh.xxyy;
-    vec4 a1=b1.xzyw+s1.xzyw*sh.zzww;
-    vec3 p0=vec3(a0.xy,h.x); vec3 p1=vec3(a0.zw,h.y);
-    vec3 p2=vec3(a1.xy,h.z); vec3 p3=vec3(a1.zw,h.w);
-    vec4 norm=_t4(vec4(dot(p0,p0),dot(p1,p1),dot(p2,p2),dot(p3,p3)));
-    p0*=norm.x; p1*=norm.y; p2*=norm.z; p3*=norm.w;
-    vec4 m=max(.6-vec4(dot(x0,x0),dot(x1,x1),dot(x2,x2),dot(x3,x3)),0.);
-    m=m*m;
-    return 42.*dot(m*m,vec4(dot(p0,x0),dot(p1,x1),dot(p2,x2),dot(p3,x3)));
-  }
-`
-
-const ORB_VERT = /* glsl */`
-  ${_SNOISE}
-  varying vec3 vNormal;
-  varying vec3 vViewPos;
-  uniform float uTime;
-  uniform float uPulse;
-  void main(){
-    vNormal=normalize(normalMatrix*normal);
-    vec3 p=position;
-    float n1=snoise(p*1.7+vec3(uTime*.22,uTime*.16,uTime*.10));
-    float n2=snoise(p*3.4-vec3(uTime*.14,uTime*.20,uTime*.08));
-    float disp=(n1*.65+n2*.35)*.10*(0.4+uPulse*.6);
-    p+=normal*disp;
-    vec4 mv=modelViewMatrix*vec4(p,1.);
-    vViewPos=mv.xyz;
-    gl_Position=projectionMatrix*mv;
-  }
-`
-const ORB_FRAG = /* glsl */`
-  varying vec3 vNormal;
-  varying vec3 vViewPos;
-  uniform vec3  uColorInner;
-  uniform vec3  uColorOuter;
-  uniform float uPulse;
-  void main(){
-    vec3 vd=normalize(-vViewPos);
-    float fr=max(dot(vNormal,vd),0.);
-    float glow=pow(fr,1.1);
-    vec3 col=mix(uColorOuter,uColorInner,glow);
-    float bright=0.80+uPulse*.72;
-    col*=bright;
-    float alpha=glow*(0.62+uPulse*.32);
-    gl_FragColor=vec4(col*alpha,alpha);
-  }
-`
-const HALO_VERT = /* glsl */`
-  varying vec3 vNormal;
-  varying vec3 vViewPos;
-  void main(){
-    vNormal=normalize(normalMatrix*normal);
-    vec4 mv=modelViewMatrix*vec4(position,1.);
-    vViewPos=mv.xyz;
-    gl_Position=projectionMatrix*mv;
-  }
-`
-const HALO_FRAG = /* glsl */`
-  varying vec3 vNormal;
-  varying vec3 vViewPos;
-  uniform vec3  uColor;
-  uniform float uAlpha;
-  void main(){
-    vec3 vd=normalize(-vViewPos);
-    float rim=pow(1.-abs(dot(vNormal,vd)),2.2);
-    float a=rim*uAlpha;
-    gl_FragColor=vec4(uColor*a,a);
-  }
 `
 
 // ─── Breath cycle ─────────────────────────────────────────────────────────────
@@ -669,79 +572,6 @@ function ShootingStarSystem() {
   return null
 }
 
-// ─── Breath orb ───────────────────────────────────────────────────────────────
-// Shader sphere living inside the R3F sky. Fades by mode:
-//   home=visible (ambient pulse), breathe/ground=hidden, rest=faint.
-// Bloom picks it up automatically (core luminance > threshold at inhale peak).
-const ORB_MODE_SCALE: Record<string, number> = {
-  home: 0.0, breathe: 1.0, ground: 0.0, rest: 0.0,
-}
-
-function BreathOrb() {
-  const groupRef = useRef<THREE.Group>(null!)
-  const scaleCur = useRef(0.0)
-
-  const coreUniforms = useMemo(() => ({
-    uTime:       { value: 0 },
-    uPulse:      { value: 0 },
-    uColorInner: { value: new THREE.Color(1.00, 0.96, 0.88) },
-    uColorOuter: { value: new THREE.Color(0.42, 0.58, 1.00) },
-  }), [])
-
-  const haloUniforms = useMemo(() => ({
-    uColor: { value: new THREE.Color(0.38, 0.52, 0.98) },
-    uAlpha: { value: 0 },
-  }), [])
-
-  useFrame(({ clock }, delta) => {
-    const t     = clock.getElapsedTime()
-    const store = useMindSpaceStore.getState()
-    const breath = store.breath
-
-    const target = ORB_MODE_SCALE[store.mode] ?? 0.0
-    const k = 1 - Math.exp(-Math.min(delta, 0.1) * 1.8)
-    scaleCur.current += (target - scaleCur.current) * k
-    groupRef.current.scale.setScalar(scaleCur.current)
-
-    coreUniforms.uTime.value  = t
-    coreUniforms.uPulse.value = breath
-
-    haloUniforms.uAlpha.value = 0.28 + breath * 0.18
-  })
-
-  return (
-    <group ref={groupRef} position={[0, 1.2, 0]}>
-      {/* Core glow — Fresnel center bright, additive, blooms */}
-      <mesh renderOrder={2}>
-        <sphereGeometry args={[2.0, 64, 64]}/>
-        <shaderMaterial
-          vertexShader={ORB_VERT}
-          fragmentShader={ORB_FRAG}
-          uniforms={coreUniforms}
-          transparent
-          depthTest={false}
-          depthWrite={false}
-          blending={THREE.AdditiveBlending}
-        />
-      </mesh>
-      {/* Halo — BackSide rim glow, additive */}
-      <mesh renderOrder={1}>
-        <sphereGeometry args={[4.0, 32, 32]}/>
-        <shaderMaterial
-          vertexShader={HALO_VERT}
-          fragmentShader={HALO_FRAG}
-          uniforms={haloUniforms}
-          transparent
-          depthTest={false}
-          depthWrite={false}
-          blending={THREE.AdditiveBlending}
-          side={THREE.BackSide}
-        />
-      </mesh>
-    </group>
-  )
-}
-
 // ─── Camera rig ───────────────────────────────────────────────────────────────
 // Also owns: breath cycle → window globals, mode progress, star brightness update.
 function CameraRig() {
@@ -850,7 +680,6 @@ export function SkyScene() {
       <DriftingMotes />
       <PaperPlaneSystem />
       <ShootingStarSystem />
-      <BreathOrb />
       <CameraRig />
       <EffectComposer>
         <Bloom luminanceThreshold={0.42} intensity={0.85} mipmapBlur />
