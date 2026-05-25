@@ -671,8 +671,7 @@ export function SkyScene() {
   return (
     <Canvas
       style={{ position: 'fixed', inset: 0, zIndex: 0 }}
-      gl={{ antialias: true, alpha: false, powerPreference: 'high-performance',
-            toneMapping: THREE.NoToneMapping }}
+      gl={{ antialias: true, alpha: false, powerPreference: 'high-performance' }}
       camera={{ fov: 40, near: 0.1, far: 200 }}
       dpr={[1, 2]}
     >
@@ -683,7 +682,7 @@ export function SkyScene() {
       <ShootingStarSystem />
       <CameraRig />
       <EffectComposer>
-        <Bloom luminanceThreshold={0.42} intensity={0.35} mipmapBlur />
+        <Bloom luminanceThreshold={0.42} intensity={0.85} mipmapBlur />
       </EffectComposer>
     </Canvas>
   )
