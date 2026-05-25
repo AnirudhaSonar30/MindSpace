@@ -659,9 +659,9 @@ function CameraRig() {
 function SceneLighting() {
   return (
     <>
-      <ambientLight color={0xfff8f0} intensity={0.55} />
-      <directionalLight color={0xfff4e8} intensity={0.30} position={[4, 8, 8]} />
-      <directionalLight color={0xaabfff} intensity={0.18} position={[-6, -2, 4]} />
+      <ambientLight color={0xfff8f0} intensity={1.10} />
+      <directionalLight color={0xfff4e8} intensity={0.60} position={[4, 8, 8]} />
+      <directionalLight color={0xaabfff} intensity={0.35} position={[-6, -2, 4]} />
     </>
   )
 }
@@ -682,7 +682,7 @@ export function SkyScene() {
       <ShootingStarSystem />
       <CameraRig />
       <EffectComposer>
-        <Bloom luminanceThreshold={0.62} intensity={0.28} mipmapBlur />
+        <Bloom luminanceThreshold={0.42} intensity={0.35} mipmapBlur />
       </EffectComposer>
     </Canvas>
   )
