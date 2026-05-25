@@ -371,11 +371,11 @@ function SkyBackground() {
         uTime:           { value: 0 },
         uAspect:         { value: window.innerWidth / window.innerHeight },
         uBreath:         { value: 0 },
-        uFloor:          { value: new THREE.Vector3(0.010, 0.012, 0.042) },
-        uHorizon:        { value: new THREE.Vector3(0.450, 0.240, 0.340) },
-        uMid:            { value: new THREE.Vector3(0.085, 0.062, 0.210) },
-        uDeep:           { value: new THREE.Vector3(0.028, 0.022, 0.115) },
-        uBand:           { value: new THREE.Vector3(0.300, 0.155, 0.360) },
+        uFloor:          { value: new THREE.Vector3(0.026, 0.030, 0.082) },
+        uHorizon:        { value: new THREE.Vector3(0.295, 0.215, 0.255) },
+        uMid:            { value: new THREE.Vector3(0.092, 0.098, 0.190) },
+        uDeep:           { value: new THREE.Vector3(0.030, 0.038, 0.095) },
+        uBand:           { value: new THREE.Vector3(0.200, 0.140, 0.220) },
         uStarBrightness: { value: 0.55 },
         uMoodTint:       { value: new THREE.Vector3(0, 0, 0) },
         uMoodFog:        { value: 0 },
@@ -659,9 +659,9 @@ function CameraRig() {
 function SceneLighting() {
   return (
     <>
-      <ambientLight color={0xfff8f0} intensity={1.10} />
-      <directionalLight color={0xfff4e8} intensity={0.60} position={[4, 8, 8]} />
-      <directionalLight color={0xaabfff} intensity={0.35} position={[-6, -2, 4]} />
+      <ambientLight color={0xfff8f0} intensity={0.55} />
+      <directionalLight color={0xfff4e8} intensity={0.30} position={[4, 8, 8]} />
+      <directionalLight color={0xaabfff} intensity={0.18} position={[-6, -2, 4]} />
     </>
   )
 }
@@ -682,7 +682,7 @@ export function SkyScene() {
       <ShootingStarSystem />
       <CameraRig />
       <EffectComposer>
-        <Bloom luminanceThreshold={0.42} intensity={0.85} mipmapBlur />
+        <Bloom luminanceThreshold={0.62} intensity={0.28} mipmapBlur />
       </EffectComposer>
     </Canvas>
   )

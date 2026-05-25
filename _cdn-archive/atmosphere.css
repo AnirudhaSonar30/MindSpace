@@ -215,16 +215,16 @@ body.zen-mode .mode-nav:hover {
   transition: background-color 700ms ease;
 }
 body.scene-transitioning .scene-veil-flash {
-  background: rgba(243, 239, 230, 0.10);
+  background: rgba(6, 6, 26, 0.12);
   transition: background-color 90ms ease;
 }
 
 /* ── Lightning strike ── */
 @keyframes lightningBolt {
   0%   { background: transparent; }
-  4%   { background: rgba(200, 220, 255, 0.55); }
+  4%   { background: rgba(200, 220, 255, 0.22); }
   9%   { background: transparent; }
-  13%  { background: rgba(200, 220, 255, 0.30); }
+  13%  { background: rgba(200, 220, 255, 0.12); }
   20%  { background: transparent; }
 }
 .scene-veil-flash.lightning-active {
