@@ -122,7 +122,7 @@ Currently: Bottom nav with 4 labelled buttons (home, breathe, ground, rest). Fee
 Future: The breathing orb already lives in the sky. Grounding pulls you downward into the earth. Rest dissolves the sky into stillness. Navigation happens through the atmosphere.
 
 - [x] **1.A.1** Design the new navigation system: orb = breathe entry, ground-line = ground entry, sky dimming = rest entry. ✓ 2026-05-23
-- [ ] **1.A.2** The breathing orb becomes permanently ambient in the sky when idle — a soft pulsing light in the center of the scene. It's always there, breathing at a slow natural rate. (reverted — plain CSS orb looked bad, needs R3F integration or subtler approach)
+- [x] **1.A.2** The breathing orb becomes permanently ambient in the sky when idle — BreathOrb component in R3F canvas: Fresnel glow + Simplex noise vertex displacement + BackSide halo, additive blending → auto-blooms. Mode-aware scale (home=visible, breathe/ground=0, rest=faint). ✓ 2026-05-25
 - [ ] **1.A.3** Tapping/clicking the orb enters breathing practice — no navigation, no screen change.
 - [ ] **1.A.4** Grounding entry: a subtle ground-line at the bottom of the sky pulses when the user hasn't moved for a while. Tapping it initiates grounding — the sky "descends" through fog.
 - [ ] **1.A.5** Rest mode entry: becomes part of the ambient modes flow, accessed by the sky itself dimming when you've been still.
