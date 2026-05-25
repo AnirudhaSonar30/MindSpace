@@ -671,7 +671,8 @@ export function SkyScene() {
   return (
     <Canvas
       style={{ position: 'fixed', inset: 0, zIndex: 0 }}
-      gl={{ antialias: true, alpha: false, powerPreference: 'high-performance' }}
+      gl={{ antialias: true, alpha: false, powerPreference: 'high-performance',
+            toneMapping: THREE.NoToneMapping }}
       camera={{ fov: 40, near: 0.1, far: 200 }}
       dpr={[1, 2]}
     >
