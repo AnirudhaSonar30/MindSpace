@@ -674,7 +674,7 @@ function ShootingStarSystem() {
 //   home=visible (ambient pulse), breathe/ground=hidden, rest=faint.
 // Bloom picks it up automatically (core luminance > threshold at inhale peak).
 const ORB_MODE_SCALE: Record<string, number> = {
-  home: 1.0, breathe: 0.0, ground: 0.0, rest: 0.28,
+  home: 0.0, breathe: 1.0, ground: 0.0, rest: 0.0,
 }
 
 function BreathOrb() {

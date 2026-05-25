@@ -66,7 +66,7 @@ const CADENCES: Cadence[] = [
   },
 ]
 
-const ORB_STYLES = ['glass', 'reactor', 'nebula', 'jellyfish', 'wireframe']
+const ORB_STYLES = ['glass', 'reactor', 'nebula', 'wireframe']
 
 /* ── orb color palette ── */
 const BO_COLOR: Record<string, [number, number, number]> = {
@@ -83,18 +83,6 @@ function boHslA(H: number, S: number, L: number, a: number) {
 function makeNebulaState() {
   return { rings: [] as {r:number;op:number;w:number}[], prevPhase: 'inhale',
            cH: BO_COLOR.inhale[0], cS: BO_COLOR.inhale[1], cL: BO_COLOR.inhale[2], pulse: 0 }
-}
-function makeJellyState() {
-  return {
-    tendrils: Array.from({ length: 14 }, (_, i) => ({
-      baseA: (i / 14) * Math.PI * 2, len: 0.20 + Math.random() * 0.18,
-      wavePhase: Math.random() * Math.PI * 2, waveSpeed: 0.015 + Math.random() * 0.018,
-      amp: 0.04 + Math.random() * 0.06, thickness: 0.7 + Math.random() * 1.3,
-    })),
-    micro: [] as {x:number;y:number;vx:number;vy:number;life:number;size:number}[],
-    prevPhase: 'inhale',
-    cH: BO_COLOR.inhale[0], cS: BO_COLOR.inhale[1], cL: BO_COLOR.inhale[2],
-  }
 }
 function makeWireState() {
   const N = 56
@@ -205,72 +193,6 @@ function drawNebula(ctx: Ctx2D, st: ReturnType<typeof makeNebulaState>,
     ctx.beginPath(); ctx.arc(CX + Math.cos(arcEnd) * ringR, CY + Math.sin(arcEnd) * ringR, 3.0, 0, Math.PI * 2)
     ctx.fillStyle = 'rgba(255,255,255,0.94)'; ctx.fill()
   }
-}
-
-function drawJellyfish(ctx: Ctx2D, st: ReturnType<typeof makeJellyState>,
-                       W: number, H_px: number, CX: number, CY: number, HALF: number, f: number, breath: number, phase: string, kind: string, cp: number) {
-  const orbR = HALF * (0.18 + breath * 0.10)
-  const tc = BO_COLOR[kind] || BO_COLOR.inhale
-  st.cH += (tc[0] - st.cH) * 0.026; st.cS += (tc[1] - st.cS) * 0.026; st.cL += (tc[2] - st.cL) * 0.026
-  const H_ = st.cH, S_ = st.cS, L_ = st.cL
-  if (phase !== st.prevPhase) {
-    if (st.prevPhase === 'hold' || phase === 'exhale') {
-      for (let i = 0; i < 24; i++) {
-        const a = Math.random() * Math.PI * 2
-        st.micro.push({ x: CX + Math.cos(a) * orbR * 0.85, y: CY + Math.sin(a) * orbR * 0.85,
-          vx: Math.cos(a) * (0.6 + Math.random() * 1.2), vy: Math.sin(a) * (0.6 + Math.random() * 1.2) - 0.15,
-          life: 1.0, size: 0.6 + Math.random() * 1.1 })
-      }
-    }
-    st.prevPhase = phase
-  }
-  const bg = ctx.createRadialGradient(CX, CY, orbR * 0.4, CX, CY, HALF * 1.2)
-  bg.addColorStop(0, boHslA(H_, S_, L_, 0.10)); bg.addColorStop(0.55, boHslA(H_, S_, L_, 0.03)); bg.addColorStop(1, 'rgba(0,0,0,0)')
-  ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H_px)
-  if (cp > 0.004) {
-    const ringR = HALF * 0.86; const arcEnd = -Math.PI / 2 + cp * Math.PI * 2
-    ctx.save(); ctx.shadowColor = boHslA(H_, S_, L_, 0.55); ctx.shadowBlur = 16
-    ctx.beginPath(); ctx.arc(CX, CY, ringR, -Math.PI / 2, arcEnd)
-    ctx.strokeStyle = boHslA(H_, S_, Math.min(86, L_ + 10), 0.78); ctx.lineWidth = 1.7; ctx.lineCap = 'round'; ctx.stroke(); ctx.restore()
-    ctx.beginPath(); ctx.arc(CX + Math.cos(arcEnd) * ringR, CY + Math.sin(arcEnd) * ringR, 3.4, 0, Math.PI * 2)
-    ctx.fillStyle = 'rgba(255,255,255,0.92)'; ctx.fill()
-  }
-  ctx.save(); ctx.lineCap = 'round'
-  st.tendrils.forEach(t => {
-    const len = HALF * t.len * (1 - breath * 0.25); const startR = orbR * 0.78; const segments = 12
-    ctx.beginPath()
-    for (let i = 0; i <= segments; i++) {
-      const tt = i / segments
-      const wave = Math.sin(f * t.waveSpeed + t.wavePhase + tt * 4) * t.amp * len * tt
-      const ang = t.baseA + wave / Math.max(0.1, startR + len * tt)
-      const r = startR + len * tt
-      i === 0 ? ctx.moveTo(CX + Math.cos(ang) * r, CY + Math.sin(ang) * r)
-              : ctx.lineTo(CX + Math.cos(ang) * r, CY + Math.sin(ang) * r)
-    }
-    ctx.strokeStyle = boHslA(H_, S_, Math.min(86, L_ + 14), 0.34); ctx.lineWidth = t.thickness * (1 - breath * 0.3); ctx.stroke()
-  }); ctx.restore()
-  const halo = ctx.createRadialGradient(CX, CY, orbR * 0.5, CX, CY, orbR * 2.3)
-  halo.addColorStop(0, boHslA(H_, S_, L_, 0.32)); halo.addColorStop(0.5, boHslA(H_, S_, L_, 0.08)); halo.addColorStop(1, 'rgba(0,0,0,0)')
-  ctx.fillStyle = halo; ctx.beginPath(); ctx.arc(CX, CY, orbR * 2.3, 0, Math.PI * 2); ctx.fill()
-  ctx.save(); ctx.translate(CX, CY)
-  const holdRipple = kind === 'hold' ? Math.sin(f * 0.16) * 0.08 : 0
-  const rX2 = orbR * (1 + 0.04 * Math.sin(f * 0.02)); const rY2 = orbR * (1 - 0.06 + holdRipple)
-  const bell = ctx.createRadialGradient(0, -orbR * 0.18, 0, 0, 0, orbR * 1.05)
-  bell.addColorStop(0, 'rgba(255,255,255,0.46)'); bell.addColorStop(0.16, boHslA(H_, Math.min(90, S_ + 10), Math.min(92, L_ + 18), 0.66))
-  bell.addColorStop(0.55, boHslA(H_, S_, L_, 0.36)); bell.addColorStop(1, boHslA(H_, S_, Math.max(20, L_ - 16), 0.05))
-  ctx.fillStyle = bell; ctx.beginPath(); ctx.ellipse(0, 0, rX2, rY2, 0, 0, Math.PI * 2); ctx.fill()
-  const nucR = orbR * (0.20 + breath * 0.08)
-  const nucG = ctx.createRadialGradient(0, 0, 0, 0, 0, nucR)
-  nucG.addColorStop(0, 'rgba(255,255,255,0.85)'); nucG.addColorStop(0.5, boHslA(H_, Math.min(90, S_ + 20), Math.min(94, L_ + 28), 0.66)); nucG.addColorStop(1, boHslA(H_, S_, L_, 0))
-  ctx.fillStyle = nucG; ctx.beginPath(); ctx.arc(0, 0, nucR, 0, Math.PI * 2); ctx.fill()
-  ctx.beginPath(); ctx.ellipse(0, 0, rX2, rY2, 0, 0, Math.PI * 2)
-  ctx.strokeStyle = boHslA(H_, S_, Math.min(90, L_ + 12), 0.38); ctx.lineWidth = 0.9; ctx.stroke(); ctx.restore()
-  ctx.save(); st.micro = st.micro.filter(m => m.life > 0.02)
-  st.micro.forEach(m => {
-    m.x += m.vx; m.y += m.vy; m.vy += 0.012; m.life *= 0.972
-    ctx.beginPath(); ctx.arc(m.x, m.y, m.size * m.life, 0, Math.PI * 2)
-    ctx.fillStyle = boHslA(H_, Math.min(90, S_ + 18), Math.min(92, L_ + 22), m.life * 0.85); ctx.fill()
-  }); ctx.restore()
 }
 
 function drawWireframe(ctx: Ctx2D, st: ReturnType<typeof makeWireState>,
@@ -476,7 +398,6 @@ function BreathOrb({ runningRef: _runningRef, cadenceRef: _cadenceRef, cpRef, st
 
     const states = {
       nebula:    makeNebulaState(),
-      jellyfish: makeJellyState(),
       wireframe: makeWireState(),
       glass:     makeGlassState(),
       reactor:   makeReactorState(),
@@ -500,8 +421,7 @@ function BreathOrb({ runningRef: _runningRef, cadenceRef: _cadenceRef, cpRef, st
       const kind  = phase === 'inhale' ? 'inhale' : phase === 'exhale' ? 'exhale' : phase === 'hold' ? 'hold' : 'rest'
       const style2 = styleRef.current
 
-      if      (style2 === 'jellyfish') drawJellyfish(ctx, states.jellyfish, W, H_px, CX, CY, HALF, f, breath, phase, kind, cp)
-      else if (style2 === 'wireframe') drawWireframe(ctx, states.wireframe, W, H_px, CX, CY, HALF, f, breath, phase, kind, cp)
+      if      (style2 === 'wireframe') drawWireframe(ctx, states.wireframe, W, H_px, CX, CY, HALF, f, breath, phase, kind, cp)
       else if (style2 === 'glass')     drawGlass(ctx, states.glass, CX, CY, HALF, f, breath, phase, kind, cp)
       else if (style2 === 'reactor')   drawReactor(ctx, states.reactor, CX, CY, HALF, f, breath, phase, kind, cp)
       else                             drawNebula(ctx, states.nebula, CX, CY, HALF, f, breath, phase, kind, cp)
@@ -533,7 +453,10 @@ export function BreathingLab({ autoFocus, onExit }: BreathingLabProps) {
 
   const [cadenceId, setCadenceId] = useState('478')
   const [orbStyle,  setOrbStyle]  = useState(() => {
-    try { return localStorage.getItem('mindspace.orbStyle.v3') || 'glass' } catch { return 'glass' }
+    try {
+      const saved = localStorage.getItem('mindspace.orbStyle.v3') || 'glass'
+      return ['glass', 'reactor', 'nebula', 'wireframe'].includes(saved) ? saved : 'glass'
+    } catch { return 'glass' }
   })
   const [running, setRunning] = useState(initFocus)
   const [focused, setFocused] = useState(initFocus)

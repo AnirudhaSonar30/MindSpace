@@ -186,24 +186,24 @@ function ModeNav({ mode, onMode, iconOnly }: ModeNavProps) {
 // ── Per-mode transition personalities ──────────────────────────────────────
 // exit: how the CURRENT mode's content leaves the screen
 const EXIT_BY_MODE: Record<string, gsap.TweenVars> = {
-  home:    { opacity: 0, scale: 0.97, filter: 'blur(4px)',  y: -10, duration: 0.38, ease: 'power2.in' },
-  breathe: { opacity: 0, scale: 0.93, filter: 'blur(7px)',  y:   0, duration: 0.42, ease: 'power2.in' },
-  ground:  { opacity: 0, scale: 1.00, filter: 'blur(0px)',  y:  38, duration: 0.38, ease: 'power2.in' },
-  rest:    { opacity: 0, scale: 1.01, filter: 'blur(5px)',  y: -12, duration: 0.54, ease: 'power1.in' },
+  home:    { opacity: 0.05, scale: 0.98, filter: 'blur(2px)',  y:  -6, duration: 0.34, ease: 'power2.in' },
+  breathe: { opacity: 0.05, scale: 0.96, filter: 'blur(2px)',  y:   0, duration: 0.36, ease: 'power2.in' },
+  ground:  { opacity: 0.05, scale: 1.00, filter: 'blur(0px)',  y:  28, duration: 0.34, ease: 'power2.in' },
+  rest:    { opacity: 0.05, scale: 1.00, filter: 'blur(2px)',  y:  -8, duration: 0.40, ease: 'power1.in' },
 }
 // enter-start: initial state of the NEXT mode's content (pre-positioned before React commits)
 const ENTER_START: Record<string, gsap.TweenVars> = {
-  home:    { opacity: 0, scale: 0.96, filter: 'blur(5px)',  y:  10 },
-  breathe: { opacity: 0, scale: 0.93, filter: 'blur(9px)',  y:   0 },
-  ground:  { opacity: 0, scale: 1.00, filter: 'blur(0px)',  y:  58 },
-  rest:    { opacity: 0, scale: 1.02, filter: 'blur(3px)',  y: -20 },
+  home:    { opacity: 0, scale: 0.97, filter: 'blur(2px)',  y:   8 },
+  breathe: { opacity: 0, scale: 0.96, filter: 'blur(2px)',  y:   0 },
+  ground:  { opacity: 0, scale: 1.00, filter: 'blur(0px)',  y:  42 },
+  rest:    { opacity: 0, scale: 1.01, filter: 'blur(2px)',  y: -14 },
 }
 // enter-end: final state + duration/ease for the NEXT mode's content arriving
 const ENTER_END: Record<string, gsap.TweenVars> = {
-  home:    { opacity: 1, scale: 1, filter: 'blur(0px)', y: 0, duration: 0.88, ease: 'power3.out' },
-  breathe: { opacity: 1, scale: 1, filter: 'blur(0px)', y: 0, duration: 0.95, ease: 'expo.out'   },
-  ground:  { opacity: 1, scale: 1, filter: 'blur(0px)', y: 0, duration: 0.90, ease: 'power3.out' },
-  rest:    { opacity: 1, scale: 1, filter: 'blur(0px)', y: 0, duration: 1.45, ease: 'power1.out' },
+  home:    { opacity: 1, scale: 1, filter: 'blur(0px)', y: 0, duration: 0.72, ease: 'power3.out' },
+  breathe: { opacity: 1, scale: 1, filter: 'blur(0px)', y: 0, duration: 0.80, ease: 'expo.out'   },
+  ground:  { opacity: 1, scale: 1, filter: 'blur(0px)', y: 0, duration: 0.75, ease: 'power3.out' },
+  rest:    { opacity: 1, scale: 1, filter: 'blur(0px)', y: 0, duration: 1.10, ease: 'power1.out' },
 }
 
 /* ── App shell ── */
@@ -235,7 +235,7 @@ export default function App() {
     // GSAP timeline: exit current → soft darkness blink → enter next
     const tl = gsap.timeline()
     tl.to('.stage',            exitCfg,                                                         0)
-    tl.to('.transition-blink', { opacity: 0.45, duration: exitDur * 0.75, ease: 'power1.in' }, 0)
+    tl.to('.transition-blink', { opacity: 0.12, duration: exitDur * 0.75, ease: 'power1.in' }, 0)
     tl.to('.transition-blink', { opacity: 0,    duration: enterDur * 0.6, ease: 'power2.out'}, exitDur + 0.04)
 
     // At peak darkness: swap content and pre-position new panel
