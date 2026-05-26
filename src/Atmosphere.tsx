@@ -245,9 +245,11 @@ export function AtmosphereCanvas() {
         const ox  = Math.sin(t * 0.07 + i * 1.3) * W * 0.22
         const oy  = Math.cos(t * 0.05 + i * 0.9) * H * 0.18
         const cx2 = W * (0.15 + i * 0.22) + ox
-        const cy2 = H * (0.3  + (i % 2) * 0.4) + oy
-        const rx  = W * (0.30 + i * 0.08)
-        const ry  = H * (0.22 + i * 0.04)
+        // Upper blobs pulled toward centre so top sky stays clear
+        const cy2 = H * (0.38 + (i % 2) * 0.26) + oy
+        // Smaller radii — clouds are more compact (≈60 % of original)
+        const rx  = W * (0.18 + i * 0.05)
+        const ry  = H * (0.13 + i * 0.025)
         const op  = d * (0.10 + i * 0.025) * alpha
         const g2  = ctx.createRadialGradient(cx2, cy2, 0, cx2, cy2, rx)
         g2.addColorStop(0, `rgba(${r},${g},${b},${op})`)

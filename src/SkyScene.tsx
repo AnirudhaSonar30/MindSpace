@@ -5,6 +5,7 @@
 
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { EffectComposer, Bloom } from '@react-three/postprocessing'
+import { KernelSize } from 'postprocessing'
 import * as THREE from 'three'
 import { useEffect, useRef } from 'react'
 import { sceneEngine } from './scenes'
@@ -82,9 +83,13 @@ const SKY_FRAG = /* glsl */`
     vec3 col=mix(uFloor,uHorizon,smoothstep(0.,0.32,y));
     col=mix(col,uMid,smoothstep(0.28,0.58,y));
     col=mix(col,uDeep,smoothstep(0.56,1.,y));
-    vec2 p1=vec2(uv.x*uAspect,uv.y)*vec2(2.8,1.4)+vec2(uTime*.020,uTime*.006);
+    // Clouds — finer scale for smaller shapes; animated density; confined to mid-band
+    vec2 p1=vec2(uv.x*uAspect,uv.y)*vec2(3.6,2.1)+vec2(uTime*.020,uTime*.006);
     float n=fbm(p1);
-    float band=smoothstep(.42,.80,n)*smoothstep(.04,.30,y)*smoothstep(1.,.42,y);
+    // Threshold drifts slowly so coverage breathes (sparse ↔ moderate, ~2-min cycle)
+    float cT=0.58+0.18*sin(uTime*.054)+0.08*sin(uTime*.119+1.8);
+    // Band confined to y=0.22–0.68: lower sky and upper sky stay cloud-free
+    float band=smoothstep(cT,cT+0.28,n)*smoothstep(.20,.42,y)*smoothstep(.70,.44,y);
     col+=uBand*band*(0.42+0.55*uBreath);
     vec2 sp=floor(uv*vec2(420.*uAspect,420.));
     float r=hash(sp);
@@ -201,7 +206,7 @@ function makePlaneMesh(): THREE.Mesh {
   geo.computeVertexNormals()
   return new THREE.Mesh(geo, new THREE.MeshStandardMaterial({
     color: 0xf4eee0, roughness: 0.62, metalness: 0.04,
-    side: THREE.DoubleSide, flatShading: false, transparent: true, opacity: 0.52,
+    side: THREE.DoubleSide, flatShading: false, transparent: true, opacity: 0.22,
   }))
 }
 
@@ -671,7 +676,7 @@ export function SkyScene() {
   return (
     <Canvas
       style={{ position: 'fixed', inset: 0, zIndex: 0 }}
-      gl={{ antialias: true, alpha: false, powerPreference: 'high-performance' }}
+      gl={{ antialias: true, alpha: false, powerPreference: 'high-performance', toneMapping: THREE.NoToneMapping }}
       camera={{ fov: 40, near: 0.1, far: 200 }}
       dpr={[1, 2]}
     >
@@ -682,7 +687,7 @@ export function SkyScene() {
       <ShootingStarSystem />
       <CameraRig />
       <EffectComposer>
-        <Bloom luminanceThreshold={0.42} intensity={0.85} mipmapBlur />
+        <Bloom luminanceThreshold={0.42} intensity={0.85} kernelSize={KernelSize.SMALL} />
       </EffectComposer>
     </Canvas>
   )
