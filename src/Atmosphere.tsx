@@ -190,16 +190,17 @@ export function AtmosphereCanvas() {
       }
     }
 
+    const mob = W < 700
     function initPools() {
-      rain       = Array.from({ length: 55  }, () => makeRainDrop(W, H, true))
-      mist       = Array.from({ length: 18  }, () => makeMistPuff(W, H))
-      pollen     = Array.from({ length: 55  }, () => makePollenDot(W, H))
-      drift      = Array.from({ length: 45  }, () => makeDriftDot(W, H))
-      embers     = Array.from({ length: 35  }, () => makeEmber(W, H, true))
-      stars      = Array.from({ length: 190 }, () => makeStar(W, H))
-      streaks    = Array.from({ length: 28  }, () => makeStreak(W, H, true))
-      cityLights = Array.from({ length: 12  }, () => makeCityLight(W, H))
-      birds      = Array.from({ length: 9   }, () => makeBird(W, H, true))
+      rain       = Array.from({ length: mob ? 32  : 55  }, () => makeRainDrop(W, H, true))
+      mist       = Array.from({ length: mob ? 10  : 18  }, () => makeMistPuff(W, H))
+      pollen     = Array.from({ length: mob ? 32  : 55  }, () => makePollenDot(W, H))
+      drift      = Array.from({ length: mob ? 26  : 45  }, () => makeDriftDot(W, H))
+      embers     = Array.from({ length: mob ? 20  : 35  }, () => makeEmber(W, H, true))
+      stars      = Array.from({ length: mob ? 110 : 190 }, () => makeStar(W, H))
+      streaks    = Array.from({ length: mob ? 16  : 28  }, () => makeStreak(W, H, true))
+      cityLights = Array.from({ length: mob ? 7   : 12  }, () => makeCityLight(W, H))
+      birds      = Array.from({ length: mob ? 5   : 9   }, () => makeBird(W, H, true))
       buildForestTrees()
     }
 

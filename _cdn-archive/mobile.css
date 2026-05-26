@@ -62,15 +62,34 @@
 @media (max-width: 700px) {
   .hs {
     padding: 0 28px;
-    gap: 12px;
+    gap: 16px;
+    /* Sit slightly above true centre so more sky breathes below */
+    margin-top: -6vh;
   }
   .hs-mandala {
     width: min(82vw, 340px);
     height: min(82vw, 340px);
   }
+  /* Title: much larger on phone — it's the first thing you see */
+  .hs-quiet {
+    font-size: clamp(46px, 13vw, 72px) !important;
+    line-height: 1.08 !important;
+  }
+  /* Hint: a touch more visible without hover state */
+  .hs-hint {
+    opacity: 0.80;
+    font-size: 9px;
+    letter-spacing: 0.28em;
+  }
 }
 @media (max-width: 380px) {
-  .hs { padding: 0 16px; }
+  .hs {
+    padding: 0 20px;
+    margin-top: -4vh;
+  }
+  .hs-quiet {
+    font-size: clamp(40px, 12vw, 60px) !important;
+  }
 }
 
 

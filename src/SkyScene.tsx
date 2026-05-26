@@ -21,8 +21,11 @@ declare global {
 // Internal reference shared between SkyBackground and CameraRig (same module)
 let _skyMat: THREE.ShaderMaterial | null = null
 
+// ─── Mobile detection (evaluated once at load) ────────────────────────────────
+const IS_MOBILE = window.innerWidth < 700
+
 // ─── Constants ────────────────────────────────────────────────────────────────
-const M   = 420
+const M   = IS_MOBILE ? 200 : 420   // fewer motes on phone
 const BOX = { x: 18, y: 10, z: 11 }
 const _v  = new Float32Array(3)  // scratch for flow field (reused each frame)
 
@@ -678,7 +681,7 @@ export function SkyScene() {
       style={{ position: 'fixed', inset: 0, zIndex: 0 }}
       gl={{ antialias: true, alpha: false, powerPreference: 'high-performance', toneMapping: THREE.NoToneMapping }}
       camera={{ fov: 40, near: 0.1, far: 200 }}
-      dpr={[1, 2]}
+      dpr={[1, IS_MOBILE ? 1.5 : 2]}
     >
       <SkyBackground />
       <SceneLighting />
@@ -687,7 +690,11 @@ export function SkyScene() {
       <ShootingStarSystem />
       <CameraRig />
       <EffectComposer>
-        <Bloom luminanceThreshold={0.42} intensity={0.85} kernelSize={KernelSize.SMALL} />
+        <Bloom
+          luminanceThreshold={0.42}
+          intensity={IS_MOBILE ? 0.50 : 0.85}
+          kernelSize={KernelSize.SMALL}
+        />
       </EffectComposer>
     </Canvas>
   )
