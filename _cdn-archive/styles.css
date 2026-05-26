@@ -92,6 +92,7 @@ body { min-height: 100vh; }
   display: flex;
   align-items: center;
   gap: 10px;
+  text-shadow: 0 1px 18px rgba(6, 6, 26, 0.50);
 }
 .brand-mark {
   color: var(--paper);
@@ -855,37 +856,39 @@ body { min-height: 100vh; }
   margin: 0;
 }
 .hs-hint {
-  font-family: var(--mono);
-  font-size: 9.5px;
-  letter-spacing: 0.30em;
-  text-transform: uppercase;
-  color: var(--whisper);
-  opacity: 0.70;
-  margin-top: 12px;
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 12.5px;
+  letter-spacing: 0.06em;
+  color: rgba(243, 239, 230, 0.78);
+  margin-top: 14px;
+  text-shadow: 0 1px 14px rgba(6, 6, 26, 0.55);
   animation: panelIn 1200ms var(--ease-premium) 600ms both;
 }
 
 .hs-quiet {
-  font-family: "Cormorant Garamond", "Instrument Serif", Georgia, serif;
-  font-weight: 300;
+  font-family: var(--serif);
+  font-weight: 400;
   font-style: italic;
-  font-size: clamp(34px, 5.5vw, 58px);
-  line-height: 1.12;
-  letter-spacing: -0.01em;
+  font-size: clamp(36px, 5.8vw, 64px);
+  line-height: 1.10;
+  letter-spacing: -0.02em;
   margin: 0;
   /* Moonlight shimmer: warm cream baseline, cool blue-white highlight sweeps across */
   background: linear-gradient(
     105deg,
-    rgba(243, 239, 230, 0.60) 0%,
-    rgba(243, 239, 230, 0.88) 30%,
+    rgba(243, 239, 230, 0.84) 0%,
+    rgba(243, 239, 230, 0.97) 30%,
     rgba(210, 228, 255, 1.00) 48%,
-    rgba(243, 239, 230, 0.88) 66%,
-    rgba(243, 239, 230, 0.60) 100%
+    rgba(243, 239, 230, 0.97) 66%,
+    rgba(243, 239, 230, 0.84) 100%
   );
   background-size: 300% 100%;
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
+  /* Dark glow anchors letters against any sky colour (works even with transparent fill) */
+  text-shadow: 0 2px 32px rgba(6, 6, 26, 0.60), 0 0 90px rgba(6, 6, 26, 0.22);
   animation:
     panelIn 900ms var(--ease-premium) 200ms both,
     shimmerText 9s linear 1100ms infinite;
